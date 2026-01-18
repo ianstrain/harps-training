@@ -241,6 +241,22 @@
             font-size: 14px;
         }
 
+        .session-description {
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px dashed var(--border-color);
+        }
+
+        .session-description .activity-content {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        .session-description .activity-input {
+            min-height: 60px;
+        }
+
         .session-activities {
             padding: 16px;
             display: flex;
@@ -411,16 +427,17 @@
         const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwa4udrVtMQ83vEbYrg6YFVXQhCIfbCFEOkq_wGfUMQXPnfgnkECCPWRm7s8MHfIBGh/exec';
 
         const sessions = [
-            { id: 1, date: new Date(2026, 1, 3), warmup: '', drills: '', game: '' },
-            { id: 2, date: new Date(2026, 1, 10), warmup: '', drills: '', game: '' },
-            { id: 3, date: new Date(2026, 1, 17), warmup: '', drills: '', game: '' },
-            { id: 4, date: new Date(2026, 1, 24), warmup: '', drills: '', game: '' },
-            { id: 5, date: new Date(2026, 2, 3), warmup: '', drills: '', game: '' },
-            { id: 6, date: new Date(2026, 2, 10), warmup: '', drills: '', game: '' },
-            { id: 7, date: new Date(2026, 2, 24), warmup: '', drills: '', game: '' },
+            { id: 1, date: new Date(2026, 1, 3), desc: '', warmup: '', drills: '', game: '' },
+            { id: 2, date: new Date(2026, 1, 10), desc: '', warmup: '', drills: '', game: '' },
+            { id: 3, date: new Date(2026, 1, 17), desc: '', warmup: '', drills: '', game: '' },
+            { id: 4, date: new Date(2026, 1, 24), desc: '', warmup: '', drills: '', game: '' },
+            { id: 5, date: new Date(2026, 2, 3), desc: '', warmup: '', drills: '', game: '' },
+            { id: 6, date: new Date(2026, 2, 10), desc: '', warmup: '', drills: '', game: '' },
+            { id: 7, date: new Date(2026, 2, 24), desc: '', warmup: '', drills: '', game: '' },
         ];
 
         const defaults = {
+            desc: 'Add a description for this session...',
             warmup: 'General warm-up & stretching',
             drills: 'Tap edit mode to add drills...',
             game: 'Full game play'
@@ -441,6 +458,7 @@
             if (cached) {
                 const data = JSON.parse(cached);
                 sessions.forEach(s => {
+                    s.desc = data[s.id + '_desc'] || '';
                     s.warmup = data[s.id + '_warmup'] || '';
                     s.drills = data[s.id + '_drills'] || '';
                     s.game = data[s.id + '_game'] || '';
@@ -452,6 +470,7 @@
                     const response = await fetch(SCRIPT_URL);
                     const data = await response.json();
                     sessions.forEach(s => {
+                        s.desc = data[s.id + '_desc'] || '';
                         s.warmup = data[s.id + '_warmup'] || '';
                         s.drills = data[s.id + '_drills'] || '';
                         s.game = data[s.id + '_game'] || '';
@@ -467,6 +486,7 @@
         async function saveData() {
             const data = {};
             sessions.forEach(s => {
+                data[s.id + '_desc'] = s.desc;
                 data[s.id + '_warmup'] = s.warmup;
                 data[s.id + '_drills'] = s.drills;
                 data[s.id + '_game'] = s.game;
@@ -497,6 +517,7 @@
         }
 
         function generateSessionCard(session) {
+            const descContent = session.desc || defaults.desc;
             const warmupContent = session.warmup || defaults.warmup;
             const drillsContent = session.drills || defaults.drills;
             const gameContent = session.game || defaults.game;
@@ -515,6 +536,10 @@
                                 <span class="meta-icon">🕢</span>
                                 <span>7:30 PM - 8:30 PM</span>
                             </div>
+                        </div>
+                        <div class="session-description">
+                            <p class="activity-content activity-display ${!session.desc ? 'placeholder' : ''}" data-session="${session.id}" data-field="desc">${descContent}</p>
+                            <textarea class="activity-input hidden" data-session="${session.id}" data-field="desc" placeholder="Add a description or focus for this session...">${session.desc}</textarea>
                         </div>
                     </div>
                     <div class="session-activities">
