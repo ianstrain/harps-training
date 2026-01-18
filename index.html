@@ -515,10 +515,17 @@
             showSaveIndicator();
         }
 
+        let saveTimeout = null;
         function showSaveIndicator() {
             const indicator = document.getElementById('saveIndicator');
+            // Clear any existing timeout
+            if (saveTimeout) clearTimeout(saveTimeout);
+            // Show the indicator
             indicator.classList.add('show');
-            setTimeout(() => indicator.classList.remove('show'), 2000);
+            // Hide after 2 seconds
+            saveTimeout = setTimeout(function() {
+                indicator.classList.remove('show');
+            }, 2000);
         }
 
         function generateSessionCard(session) {
