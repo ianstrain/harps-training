@@ -355,6 +355,25 @@
             font-style: italic;
         }
 
+        .video-embed {
+            position: relative;
+            width: 100%;
+            padding-bottom: 56.25%;
+            margin: 12px 0;
+            border-radius: 8px;
+            overflow: hidden;
+            background: var(--bg-dark);
+        }
+
+        .video-embed iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
         .activity-input {
             width: 100%;
             min-height: 60px;
@@ -500,6 +519,21 @@
             return formatted.replace(day, day + suffix);
         }
 
+        // Convert YouTube URLs to embedded videos
+        function parseContent(text) {
+            if (!text) return text;
+            
+            // YouTube URL patterns
+            const youtubeRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})(?:\S*)?/g;
+            
+            // Replace YouTube URLs with embedded players
+            const parsed = text.replace(youtubeRegex, function(match, videoId) {
+                return '<div class="video-embed"><iframe src="https://www.youtube.com/embed/' + videoId + '" allowfullscreen></iframe></div>';
+            });
+            
+            return parsed;
+        }
+
         async function loadData() {
             const cached = localStorage.getItem('trainingData');
             if (cached) {
@@ -587,10 +621,10 @@
                 `;
             }
 
-            const descContent = session.desc || defaults.desc;
-            const warmupContent = session.warmup || defaults.warmup;
-            const drillsContent = session.drills || defaults.drills;
-            const gameContent = session.game || defaults.game;
+            const descContent = session.desc ? parseContent(session.desc) : defaults.desc;
+            const warmupContent = session.warmup ? parseContent(session.warmup) : defaults.warmup;
+            const drillsContent = session.drills ? parseContent(session.drills) : defaults.drills;
+            const gameContent = session.game ? parseContent(session.game) : defaults.game;
 
             return `
                 <article class="session-card" data-session="${session.id}">
@@ -608,7 +642,7 @@
                             </div>
                         </div>
                         <div class="session-description">
-                            <p class="activity-content activity-display ${!session.desc ? 'placeholder' : ''}" data-session="${session.id}" data-field="desc">${descContent}</p>
+                            <div class="activity-content activity-display ${!session.desc ? 'placeholder' : ''}" data-session="${session.id}" data-field="desc">${descContent}</div>
                             <textarea class="activity-input hidden" data-session="${session.id}" data-field="desc" placeholder="Add a description or focus for this session...">${session.desc}</textarea>
                         </div>
                     </div>
@@ -618,7 +652,7 @@
                                 <span class="activity-title">Warm-up</span>
                                 <span class="activity-duration">10 mins</span>
                             </div>
-                            <p class="activity-content activity-display ${!session.warmup ? 'placeholder' : ''}" data-session="${session.id}" data-field="warmup">${warmupContent}</p>
+                            <div class="activity-content activity-display ${!session.warmup ? 'placeholder' : ''}" data-session="${session.id}" data-field="warmup">${warmupContent}</div>
                             <textarea class="activity-input hidden" data-session="${session.id}" data-field="warmup" placeholder="Enter warm-up activities...">${session.warmup}</textarea>
                         </div>
                         <div class="activity-block drills">
@@ -626,7 +660,7 @@
                                 <span class="activity-title">Drills</span>
                                 <span class="activity-duration">20 mins</span>
                             </div>
-                            <p class="activity-content activity-display ${!session.drills ? 'placeholder' : ''}" data-session="${session.id}" data-field="drills">${drillsContent}</p>
+                            <div class="activity-content activity-display ${!session.drills ? 'placeholder' : ''}" data-session="${session.id}" data-field="drills">${drillsContent}</div>
                             <textarea class="activity-input hidden" data-session="${session.id}" data-field="drills" placeholder="Enter drills for this session...">${session.drills}</textarea>
                         </div>
                         <div class="activity-block match">
@@ -634,7 +668,7 @@
                                 <span class="activity-title">Match</span>
                                 <span class="activity-duration">30 mins</span>
                             </div>
-                            <p class="activity-content activity-display ${!session.game ? 'placeholder' : ''}" data-session="${session.id}" data-field="game">${gameContent}</p>
+                            <div class="activity-content activity-display ${!session.game ? 'placeholder' : ''}" data-session="${session.id}" data-field="game">${gameContent}</div>
                             <textarea class="activity-input hidden" data-session="${session.id}" data-field="game" placeholder="Enter match details...">${session.game}</textarea>
                         </div>
                     </div>
@@ -674,7 +708,7 @@
                         
                         const display = document.querySelector(`.activity-display[data-session="${input.dataset.session}"][data-field="${field}"]`);
                         if (display) {
-                            display.textContent = session[field] || defaults[field];
+                            display.innerHTML = session[field] ? parseContent(session[field]) : defaults[field];
                             display.classList.toggle('placeholder', !session[field]);
                         }
                     });
