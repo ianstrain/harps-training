@@ -630,12 +630,37 @@ Example:
             }
         }
 
+        // Sync all input values to session data and update displays
+        function syncAndSaveAllDrills() {
+            document.querySelectorAll('.drills-input').forEach(input => {
+                const sessionId = parseInt(input.dataset.session);
+                const session = sessions.find(s => s.id === sessionId);
+                if (session) {
+                    session.drills = input.value;
+                }
+                
+                // Update the corresponding display
+                const display = document.querySelector(`.drills-display[data-session="${sessionId}"]`);
+                if (display && session) {
+                    display.textContent = session.drills || 'Click edit mode to add drills...';
+                    display.classList.toggle('placeholder', !session.drills);
+                }
+            });
+            
+            saveDrills();
+        }
+
         // Toggle edit mode
         function setupEditMode() {
             const toggle = document.getElementById('editMode');
             const status = document.getElementById('editStatus');
 
             toggle.addEventListener('change', () => {
+                // If turning OFF edit mode, save all changes first
+                if (!toggle.checked && editMode) {
+                    syncAndSaveAllDrills();
+                }
+                
                 editMode = toggle.checked;
                 
                 if (editMode) {
