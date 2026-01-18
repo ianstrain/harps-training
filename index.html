@@ -22,11 +22,7 @@
             --success: #10b981;
         }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -39,10 +35,7 @@
         body::before {
             content: '';
             position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
+            top: 0; left: 0; right: 0; bottom: 0;
             background: 
                 radial-gradient(circle at 20% 20%, rgba(0, 212, 170, 0.08) 0%, transparent 50%),
                 radial-gradient(circle at 80% 80%, rgba(14, 165, 233, 0.08) 0%, transparent 50%),
@@ -95,7 +88,6 @@
             font-weight: 500;
         }
 
-        /* Edit Mode Toggle */
         .edit-toggle {
             display: flex;
             align-items: center;
@@ -136,10 +128,7 @@
         .toggle-slider {
             position: absolute;
             cursor: pointer;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
+            top: 0; left: 0; right: 0; bottom: 0;
             background: var(--bg-section);
             border: 2px solid var(--border-color);
             border-radius: 28px;
@@ -187,7 +176,6 @@
             color: var(--accent-primary);
         }
 
-        /* Session Cards */
         .session-card {
             background: var(--bg-card);
             border-radius: 16px;
@@ -248,7 +236,6 @@
             font-size: 14px;
         }
 
-        /* Activity Blocks */
         .session-activities {
             padding: 16px;
             display: flex;
@@ -307,7 +294,6 @@
             font-style: italic;
         }
 
-        /* Editable Drills */
         .drills-input {
             width: 100%;
             min-height: 80px;
@@ -328,13 +314,10 @@
             border-style: solid;
         }
 
-        .drills-input::placeholder {
-            color: var(--text-muted);
-        }
+        .drills-input::placeholder { color: var(--text-muted); }
 
         .hidden { display: none !important; }
 
-        /* Save Indicator */
         .save-indicator {
             position: fixed;
             bottom: 20px;
@@ -354,9 +337,7 @@
             z-index: 100;
         }
 
-        .save-indicator.show {
-            transform: translateX(-50%) translateY(0);
-        }
+        .save-indicator.show { transform: translateX(-50%) translateY(0); }
 
         footer {
             text-align: center;
@@ -365,7 +346,6 @@
             font-size: 12px;
         }
 
-        /* Animations */
         @keyframes fadeInUp {
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
@@ -416,10 +396,16 @@
     </div>
 
     <div class="save-indicator" id="saveIndicator">
-        <span>✓</span> Saved!
+        <span>✓</span> Synced!
     </div>
 
     <script>
+        // ========================================
+        // PASTE YOUR GOOGLE APPS SCRIPT URL HERE:
+        // ========================================
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwxAH2sFMdvs4nAZUzdObYzq9IPwHNAhAU5EMskYL8H_NI_SsHz7X08MONJaGhjo20g/exec';
+        // ========================================
+
         const sessions = [
             { id: 1, date: new Date(2026, 1, 3), drills: '' },
             { id: 2, date: new Date(2026, 1, 10), drills: '' },
@@ -440,19 +426,58 @@
             return formatted.replace(day, day + suffix);
         }
 
-        function loadDrills() {
-            const saved = localStorage.getItem('trainingDrills');
-            if (saved) {
-                const data = JSON.parse(saved);
+        // Load drills from Google Sheets (with localStorage fallback)
+        async function loadDrills() {
+            // First load from localStorage for instant display
+            const cached = localStorage.getItem('trainingDrills');
+            if (cached) {
+                const data = JSON.parse(cached);
                 sessions.forEach(s => { if (data[s.id]) s.drills = data[s.id]; });
+            }
+            
+            // Then fetch from cloud if URL is set
+            if (SCRIPT_URL) {
+                try {
+                    const response = await fetch(SCRIPT_URL);
+                    const data = await response.json();
+                    sessions.forEach(s => { 
+                        if (data[s.id] !== undefined) s.drills = data[s.id]; 
+                    });
+                    // Update cache
+                    localStorage.setItem('trainingDrills', JSON.stringify(data));
+                    renderSessions();
+                } catch (e) {
+                    console.log('Using cached data');
+                }
             }
         }
 
-        function saveDrills() {
+        // Save drills to Google Sheets (and localStorage)
+        async function saveDrills() {
             const data = {};
             sessions.forEach(s => data[s.id] = s.drills);
+            
+            // Always save to localStorage
             localStorage.setItem('trainingDrills', JSON.stringify(data));
             
+            // Save to cloud if URL is set
+            if (SCRIPT_URL) {
+                try {
+                    await fetch(SCRIPT_URL, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data)
+                    });
+                } catch (e) {
+                    console.log('Saved locally, cloud sync failed');
+                }
+            }
+            
+            showSaveIndicator();
+        }
+
+        function showSaveIndicator() {
             const indicator = document.getElementById('saveIndicator');
             indicator.classList.add('show');
             setTimeout(() => indicator.classList.remove('show'), 2000);
@@ -529,7 +554,6 @@
             const status = document.getElementById('editStatus');
 
             toggle.addEventListener('change', () => {
-                // Save when turning OFF edit mode
                 if (!toggle.checked && editMode) {
                     document.querySelectorAll('.drills-input').forEach(input => {
                         const session = sessions.find(s => s.id === parseInt(input.dataset.session));
@@ -551,8 +575,8 @@
             });
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
-            loadDrills();
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadDrills();
             renderSessions();
             setupEditMode();
         });
