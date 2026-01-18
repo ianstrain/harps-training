@@ -294,9 +294,9 @@
             font-style: italic;
         }
 
-        .drills-input {
+        .activity-input {
             width: 100%;
-            min-height: 80px;
+            min-height: 60px;
             background: var(--bg-card);
             border: 2px dashed var(--border-color);
             border-radius: 8px;
@@ -308,13 +308,16 @@
             transition: all 0.3s ease;
         }
 
-        .drills-input:focus {
+        .activity-input:focus {
             outline: none;
-            border-color: var(--accent-secondary);
             border-style: solid;
         }
 
-        .drills-input::placeholder { color: var(--text-muted); }
+        .warmup .activity-input:focus { border-color: var(--accent-warm); }
+        .drills .activity-input:focus { border-color: var(--accent-secondary); }
+        .match .activity-input:focus { border-color: var(--accent-primary); }
+
+        .activity-input::placeholder { color: var(--text-muted); }
 
         .hidden { display: none !important; }
 
@@ -400,21 +403,23 @@
     </div>
 
     <script>
-        // ========================================
-        // PASTE YOUR GOOGLE APPS SCRIPT URL HERE:
-        // ========================================
         const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwxAH2sFMdvs4nAZUzdObYzq9IPwHNAhAU5EMskYL8H_NI_SsHz7X08MONJaGhjo20g/exec';
-        // ========================================
 
         const sessions = [
-            { id: 1, date: new Date(2026, 1, 3), drills: '' },
-            { id: 2, date: new Date(2026, 1, 10), drills: '' },
-            { id: 3, date: new Date(2026, 1, 17), drills: '' },
-            { id: 4, date: new Date(2026, 1, 24), drills: '' },
-            { id: 5, date: new Date(2026, 2, 3), drills: '' },
-            { id: 6, date: new Date(2026, 2, 10), drills: '' },
-            { id: 7, date: new Date(2026, 2, 24), drills: '' },
+            { id: 1, date: new Date(2026, 1, 3), warmup: '', drills: '', match: '' },
+            { id: 2, date: new Date(2026, 1, 10), warmup: '', drills: '', match: '' },
+            { id: 3, date: new Date(2026, 1, 17), warmup: '', drills: '', match: '' },
+            { id: 4, date: new Date(2026, 1, 24), warmup: '', drills: '', match: '' },
+            { id: 5, date: new Date(2026, 2, 3), warmup: '', drills: '', match: '' },
+            { id: 6, date: new Date(2026, 2, 10), warmup: '', drills: '', match: '' },
+            { id: 7, date: new Date(2026, 2, 24), warmup: '', drills: '', match: '' },
         ];
+
+        const defaults = {
+            warmup: 'General warm-up & stretching',
+            drills: 'Tap edit mode to add drills...',
+            match: 'Full game play'
+        };
 
         let editMode = false;
 
@@ -426,25 +431,31 @@
             return formatted.replace(day, day + suffix);
         }
 
-        // Load drills from Google Sheets (with localStorage fallback)
-        async function loadDrills() {
-            // First load from localStorage for instant display
-            const cached = localStorage.getItem('trainingDrills');
+        async function loadData() {
+            const cached = localStorage.getItem('trainingData');
             if (cached) {
                 const data = JSON.parse(cached);
-                sessions.forEach(s => { if (data[s.id]) s.drills = data[s.id]; });
+                sessions.forEach(s => {
+                    if (data[s.id]) {
+                        s.warmup = data[s.id].warmup || '';
+                        s.drills = data[s.id].drills || '';
+                        s.match = data[s.id].match || '';
+                    }
+                });
             }
             
-            // Then fetch from cloud if URL is set
             if (SCRIPT_URL) {
                 try {
                     const response = await fetch(SCRIPT_URL);
                     const data = await response.json();
-                    sessions.forEach(s => { 
-                        if (data[s.id] !== undefined) s.drills = data[s.id]; 
+                    sessions.forEach(s => {
+                        if (data[s.id]) {
+                            s.warmup = data[s.id].warmup || '';
+                            s.drills = data[s.id].drills || '';
+                            s.match = data[s.id].match || '';
+                        }
                     });
-                    // Update cache
-                    localStorage.setItem('trainingDrills', JSON.stringify(data));
+                    localStorage.setItem('trainingData', JSON.stringify(data));
                     renderSessions();
                 } catch (e) {
                     console.log('Using cached data');
@@ -452,15 +463,14 @@
             }
         }
 
-        // Save drills to Google Sheets (and localStorage)
-        async function saveDrills() {
+        async function saveData() {
             const data = {};
-            sessions.forEach(s => data[s.id] = s.drills);
+            sessions.forEach(s => {
+                data[s.id] = { warmup: s.warmup, drills: s.drills, match: s.match };
+            });
             
-            // Always save to localStorage
-            localStorage.setItem('trainingDrills', JSON.stringify(data));
+            localStorage.setItem('trainingData', JSON.stringify(data));
             
-            // Save to cloud if URL is set
             if (SCRIPT_URL) {
                 try {
                     await fetch(SCRIPT_URL, {
@@ -484,8 +494,9 @@
         }
 
         function generateSessionCard(session) {
-            const content = session.drills || 'Tap edit mode to add drills...';
-            const isPlaceholder = !session.drills;
+            const warmupContent = session.warmup || defaults.warmup;
+            const drillsContent = session.drills || defaults.drills;
+            const matchContent = session.match || defaults.match;
 
             return `
                 <article class="session-card" data-session="${session.id}">
@@ -509,22 +520,24 @@
                                 <span class="activity-title">Warm-up</span>
                                 <span class="activity-duration">10 mins</span>
                             </div>
-                            <p class="activity-content">General warm-up & stretching</p>
+                            <p class="activity-content activity-display ${!session.warmup ? 'placeholder' : ''}" data-session="${session.id}" data-field="warmup">${warmupContent}</p>
+                            <textarea class="activity-input hidden" data-session="${session.id}" data-field="warmup" placeholder="Enter warm-up activities...">${session.warmup}</textarea>
                         </div>
                         <div class="activity-block drills">
                             <div class="activity-header">
                                 <span class="activity-title">Drills</span>
                                 <span class="activity-duration">20 mins</span>
                             </div>
-                            <p class="activity-content drills-display ${isPlaceholder ? 'placeholder' : ''}" data-session="${session.id}">${content}</p>
-                            <textarea class="drills-input hidden" data-session="${session.id}" placeholder="Enter drills for this session...">${session.drills}</textarea>
+                            <p class="activity-content activity-display ${!session.drills ? 'placeholder' : ''}" data-session="${session.id}" data-field="drills">${drillsContent}</p>
+                            <textarea class="activity-input hidden" data-session="${session.id}" data-field="drills" placeholder="Enter drills for this session...">${session.drills}</textarea>
                         </div>
                         <div class="activity-block match">
                             <div class="activity-header">
                                 <span class="activity-title">Match</span>
                                 <span class="activity-duration">30 mins</span>
                             </div>
-                            <p class="activity-content">Full game play</p>
+                            <p class="activity-content activity-display ${!session.match ? 'placeholder' : ''}" data-session="${session.id}" data-field="match">${matchContent}</p>
+                            <textarea class="activity-input hidden" data-session="${session.id}" data-field="match" placeholder="Enter match details...">${session.match}</textarea>
                         </div>
                     </div>
                 </article>
@@ -534,10 +547,11 @@
         function renderSessions() {
             document.getElementById('sessions').innerHTML = sessions.map(generateSessionCard).join('');
             
-            document.querySelectorAll('.drills-input').forEach(input => {
+            document.querySelectorAll('.activity-input').forEach(input => {
                 input.addEventListener('input', e => {
                     const session = sessions.find(s => s.id === parseInt(e.target.dataset.session));
-                    if (session) session.drills = e.target.value;
+                    const field = e.target.dataset.field;
+                    if (session && field) session[field] = e.target.value;
                 });
             });
             
@@ -545,8 +559,8 @@
         }
 
         function applyEditMode() {
-            document.querySelectorAll('.drills-input').forEach(el => el.classList.toggle('hidden', !editMode));
-            document.querySelectorAll('.drills-display').forEach(el => el.classList.toggle('hidden', editMode));
+            document.querySelectorAll('.activity-input').forEach(el => el.classList.toggle('hidden', !editMode));
+            document.querySelectorAll('.activity-display').forEach(el => el.classList.toggle('hidden', editMode));
         }
 
         function setupEditMode() {
@@ -555,17 +569,18 @@
 
             toggle.addEventListener('change', () => {
                 if (!toggle.checked && editMode) {
-                    document.querySelectorAll('.drills-input').forEach(input => {
+                    document.querySelectorAll('.activity-input').forEach(input => {
                         const session = sessions.find(s => s.id === parseInt(input.dataset.session));
-                        if (session) session.drills = input.value;
+                        const field = input.dataset.field;
+                        if (session && field) session[field] = input.value;
                         
-                        const display = document.querySelector(`.drills-display[data-session="${input.dataset.session}"]`);
+                        const display = document.querySelector(`.activity-display[data-session="${input.dataset.session}"][data-field="${field}"]`);
                         if (display) {
-                            display.textContent = session.drills || 'Tap edit mode to add drills...';
-                            display.classList.toggle('placeholder', !session.drills);
+                            display.textContent = session[field] || defaults[field];
+                            display.classList.toggle('placeholder', !session[field]);
                         }
                     });
-                    saveDrills();
+                    saveData();
                 }
                 
                 editMode = toggle.checked;
@@ -576,7 +591,7 @@
         }
 
         document.addEventListener('DOMContentLoaded', async () => {
-            await loadDrills();
+            await loadData();
             renderSessions();
             setupEditMode();
         });
