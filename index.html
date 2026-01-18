@@ -406,19 +406,19 @@
         const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwxAH2sFMdvs4nAZUzdObYzq9IPwHNAhAU5EMskYL8H_NI_SsHz7X08MONJaGhjo20g/exec';
 
         const sessions = [
-            { id: 1, date: new Date(2026, 1, 3), warmup: '', drills: '', match: '' },
-            { id: 2, date: new Date(2026, 1, 10), warmup: '', drills: '', match: '' },
-            { id: 3, date: new Date(2026, 1, 17), warmup: '', drills: '', match: '' },
-            { id: 4, date: new Date(2026, 1, 24), warmup: '', drills: '', match: '' },
-            { id: 5, date: new Date(2026, 2, 3), warmup: '', drills: '', match: '' },
-            { id: 6, date: new Date(2026, 2, 10), warmup: '', drills: '', match: '' },
-            { id: 7, date: new Date(2026, 2, 24), warmup: '', drills: '', match: '' },
+            { id: 1, date: new Date(2026, 1, 3), warmup: '', drills: '', game: '' },
+            { id: 2, date: new Date(2026, 1, 10), warmup: '', drills: '', game: '' },
+            { id: 3, date: new Date(2026, 1, 17), warmup: '', drills: '', game: '' },
+            { id: 4, date: new Date(2026, 1, 24), warmup: '', drills: '', game: '' },
+            { id: 5, date: new Date(2026, 2, 3), warmup: '', drills: '', game: '' },
+            { id: 6, date: new Date(2026, 2, 10), warmup: '', drills: '', game: '' },
+            { id: 7, date: new Date(2026, 2, 24), warmup: '', drills: '', game: '' },
         ];
 
         const defaults = {
             warmup: 'General warm-up & stretching',
             drills: 'Tap edit mode to add drills...',
-            match: 'Full game play'
+            game: 'Full game play'
         };
 
         let editMode = false;
@@ -439,7 +439,7 @@
                     if (data[s.id]) {
                         s.warmup = data[s.id].warmup || '';
                         s.drills = data[s.id].drills || '';
-                        s.match = data[s.id].match || '';
+                        s.game = data[s.id].game || '';
                     }
                 });
             }
@@ -452,7 +452,7 @@
                         if (data[s.id]) {
                             s.warmup = data[s.id].warmup || '';
                             s.drills = data[s.id].drills || '';
-                            s.match = data[s.id].match || '';
+                            s.game = data[s.id].game || '';
                         }
                     });
                     localStorage.setItem('trainingData', JSON.stringify(data));
@@ -466,7 +466,7 @@
         async function saveData() {
             const data = {};
             sessions.forEach(s => {
-                data[s.id] = { warmup: s.warmup, drills: s.drills, match: s.match };
+                data[s.id] = { warmup: s.warmup, drills: s.drills, game: s.game };
             });
             
             localStorage.setItem('trainingData', JSON.stringify(data));
@@ -496,7 +496,7 @@
         function generateSessionCard(session) {
             const warmupContent = session.warmup || defaults.warmup;
             const drillsContent = session.drills || defaults.drills;
-            const matchContent = session.match || defaults.match;
+            const gameContent = session.game || defaults.game;
 
             return `
                 <article class="session-card" data-session="${session.id}">
@@ -536,8 +536,8 @@
                                 <span class="activity-title">Match</span>
                                 <span class="activity-duration">30 mins</span>
                             </div>
-                            <p class="activity-content activity-display ${!session.match ? 'placeholder' : ''}" data-session="${session.id}" data-field="match">${matchContent}</p>
-                            <textarea class="activity-input hidden" data-session="${session.id}" data-field="match" placeholder="Enter match details...">${session.match}</textarea>
+                            <p class="activity-content activity-display ${!session.game ? 'placeholder' : ''}" data-session="${session.id}" data-field="game">${gameContent}</p>
+                            <textarea class="activity-input hidden" data-session="${session.id}" data-field="game" placeholder="Enter match details...">${session.game}</textarea>
                         </div>
                     </div>
                 </article>
