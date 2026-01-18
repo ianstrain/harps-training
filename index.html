@@ -436,11 +436,9 @@
             if (cached) {
                 const data = JSON.parse(cached);
                 sessions.forEach(s => {
-                    if (data[s.id]) {
-                        s.warmup = data[s.id].warmup || '';
-                        s.drills = data[s.id].drills || '';
-                        s.game = data[s.id].game || '';
-                    }
+                    s.warmup = data[s.id + '_warmup'] || '';
+                    s.drills = data[s.id + '_drills'] || '';
+                    s.game = data[s.id + '_game'] || '';
                 });
             }
             
@@ -449,11 +447,9 @@
                     const response = await fetch(SCRIPT_URL);
                     const data = await response.json();
                     sessions.forEach(s => {
-                        if (data[s.id]) {
-                            s.warmup = data[s.id].warmup || '';
-                            s.drills = data[s.id].drills || '';
-                            s.game = data[s.id].game || '';
-                        }
+                        s.warmup = data[s.id + '_warmup'] || '';
+                        s.drills = data[s.id + '_drills'] || '';
+                        s.game = data[s.id + '_game'] || '';
                     });
                     localStorage.setItem('trainingData', JSON.stringify(data));
                     renderSessions();
@@ -466,7 +462,9 @@
         async function saveData() {
             const data = {};
             sessions.forEach(s => {
-                data[s.id] = { warmup: s.warmup, drills: s.drills, game: s.game };
+                data[s.id + '_warmup'] = s.warmup;
+                data[s.id + '_drills'] = s.drills;
+                data[s.id + '_game'] = s.game;
             });
             
             localStorage.setItem('trainingData', JSON.stringify(data));
