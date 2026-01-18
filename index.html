@@ -593,10 +593,57 @@
             });
         }
 
+        function scrollToClosestSession() {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            // Find the closest session (prefer upcoming, fallback to most recent past)
+            let closestSession = null;
+            let smallestDiff = Infinity;
+            
+            // First try to find the next upcoming session
+            for (const session of sessions) {
+                const sessionDate = new Date(session.date);
+                sessionDate.setHours(0, 0, 0, 0);
+                const diff = sessionDate - today;
+                
+                if (diff >= 0 && diff < smallestDiff) {
+                    smallestDiff = diff;
+                    closestSession = session;
+                }
+            }
+            
+            // If no upcoming session, find the most recent past session
+            if (!closestSession) {
+                smallestDiff = Infinity;
+                for (const session of sessions) {
+                    const sessionDate = new Date(session.date);
+                    sessionDate.setHours(0, 0, 0, 0);
+                    const diff = today - sessionDate;
+                    
+                    if (diff >= 0 && diff < smallestDiff) {
+                        smallestDiff = diff;
+                        closestSession = session;
+                    }
+                }
+            }
+            
+            // Scroll to the closest session
+            if (closestSession) {
+                const card = document.querySelector(`.session-card[data-session="${closestSession.id}"]`);
+                if (card) {
+                    setTimeout(() => {
+                        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }, 600); // Wait for animations to complete
+                }
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', async () => {
             await loadData();
             renderSessions();
             setupEditMode();
+            scrollToClosestSession();
         });
     </script>
 </body>
