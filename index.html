@@ -346,7 +346,7 @@
             position: fixed;
             bottom: 85px;
             left: 50%;
-            transform: translateX(-50%) translateY(100px);
+            transform: translateX(-50%);
             background: var(--success);
             color: var(--bg-dark);
             padding: 12px 24px;
@@ -357,11 +357,16 @@
             align-items: center;
             gap: 8px;
             box-shadow: 0 4px 20px rgba(16, 185, 129, 0.4);
-            transition: transform 0.3s ease;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
             z-index: 100;
+            opacity: 0;
+            visibility: hidden;
         }
 
-        .save-indicator.show { transform: translateX(-50%) translateY(0); }
+        .save-indicator.show { 
+            opacity: 1;
+            visibility: visible;
+        }
 
         footer {
             text-align: center;
