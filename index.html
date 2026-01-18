@@ -195,6 +195,46 @@
             box-shadow: 0 0 30px rgba(0, 212, 170, 0.1);
         }
 
+        .session-card.cancelled {
+            opacity: 0.7;
+            border-color: var(--danger);
+        }
+
+        .session-card.cancelled:hover {
+            border-color: var(--danger);
+            box-shadow: 0 0 30px rgba(239, 68, 68, 0.1);
+        }
+
+        .session-card.cancelled .session-number {
+            color: var(--danger);
+        }
+
+        .cancelled-notice {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 32px 16px;
+            text-align: center;
+            gap: 12px;
+        }
+
+        .cancelled-badge {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--danger);
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            padding: 8px 16px;
+            border-radius: 20px;
+        }
+
+        .cancelled-reason {
+            font-size: 18px;
+            color: var(--text-secondary);
+        }
+
         .session-header {
             padding: 20px;
             border-bottom: 1px solid var(--border-color);
@@ -392,6 +432,7 @@
         .session-card:nth-child(5) { animation-delay: 0.3s; }
         .session-card:nth-child(6) { animation-delay: 0.35s; }
         .session-card:nth-child(7) { animation-delay: 0.4s; }
+        .session-card:nth-child(8) { animation-delay: 0.45s; }
 
         @media (max-width: 380px) {
             h1 { font-size: 2.4rem; }
@@ -404,7 +445,7 @@
         <header>
             <div class="header-badge">Feb - Mar 2026</div>
             <h1>TRAINING SCHEDULE</h1>
-            <p class="subtitle">7 Sessions • Weekly Training Program</p>
+            <p class="subtitle">8 Weeks • Weekly Training Program</p>
         </header>
 
         <div class="edit-toggle">
@@ -438,7 +479,8 @@
             { id: 4, date: new Date(2026, 1, 24), desc: '', warmup: '', drills: '', game: '' },
             { id: 5, date: new Date(2026, 2, 3), desc: '', warmup: '', drills: '', game: '' },
             { id: 6, date: new Date(2026, 2, 10), desc: '', warmup: '', drills: '', game: '' },
-            { id: 7, date: new Date(2026, 2, 24), desc: '', warmup: '', drills: '', game: '' },
+            { id: 7, date: new Date(2026, 2, 17), cancelled: true, cancelReason: "St. Patrick's Day 🍀" },
+            { id: 8, date: new Date(2026, 2, 24), desc: '', warmup: '', drills: '', game: '' },
         ];
 
         const defaults = {
@@ -529,6 +571,22 @@
         }
 
         function generateSessionCard(session) {
+            // Handle cancelled sessions
+            if (session.cancelled) {
+                return `
+                    <article class="session-card cancelled" data-session="${session.id}">
+                        <div class="session-header">
+                            <span class="session-number">${String(session.id).padStart(2, '0')}</span>
+                            <h2 class="session-date">${formatDate(session.date)}</h2>
+                        </div>
+                        <div class="cancelled-notice">
+                            <span class="cancelled-badge">No Training</span>
+                            <span class="cancelled-reason">${session.cancelReason || 'Session cancelled'}</span>
+                        </div>
+                    </article>
+                `;
+            }
+
             const descContent = session.desc || defaults.desc;
             const warmupContent = session.warmup || defaults.warmup;
             const drillsContent = session.drills || defaults.drills;
