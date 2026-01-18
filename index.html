@@ -323,7 +323,6 @@
             color: var(--text-primary);
             resize: vertical;
             transition: all 0.3s ease;
-            display: none;
         }
 
         .drills-input:focus {
@@ -336,16 +335,13 @@
             color: var(--text-muted);
         }
 
-        body.edit-mode .drills-input {
-            display: block;
-        }
-
-        body.edit-mode .drills-display {
-            display: none;
-        }
-
         .drills-display {
             white-space: pre-wrap;
+        }
+
+        /* Hidden state */
+        .hidden {
+            display: none !important;
         }
 
         /* Save Indicator */
@@ -466,6 +462,8 @@
             { id: 7, date: new Date(2026, 2, 24), drills: '' },  // Mar 24
         ];
 
+        let editMode = false;
+
         // Format date nicely
         function formatDate(date) {
             const options = { weekday: 'long', month: 'long', day: 'numeric' };
@@ -554,11 +552,16 @@
                                 <span class="activity-title">Drills</span>
                                 <span class="activity-duration">20 mins</span>
                             </div>
-                            <p class="activity-content drills-display ${isPlaceholder ? 'placeholder' : ''}">${displayContent}</p>
+                            <p class="activity-content drills-display ${isPlaceholder ? 'placeholder' : ''}" data-session="${session.id}">${displayContent}</p>
                             <textarea 
-                                class="drills-input" 
+                                class="drills-input hidden" 
                                 data-session="${session.id}"
-                                placeholder="Enter drills for this session...&#10;&#10;Example:&#10;- Passing in pairs&#10;- 3v2 possession drill&#10;- Shooting practice"
+                                placeholder="Enter drills for this session...
+
+Example:
+- Passing in pairs
+- 3v2 possession drill
+- Shooting practice"
                             >${drillsContent}</textarea>
                         </div>
                         <div class="activity-block match">
@@ -577,8 +580,12 @@
         function renderSessions() {
             const container = document.getElementById('sessions');
             container.innerHTML = sessions.map(generateSessionCard).join('');
-            
-            // Add event listeners to drill inputs
+            attachInputListeners();
+            applyEditMode();
+        }
+
+        // Attach listeners to drill inputs
+        function attachInputListeners() {
             document.querySelectorAll('.drills-input').forEach(input => {
                 input.addEventListener('input', (e) => {
                     const sessionId = parseInt(e.target.dataset.session);
@@ -588,8 +595,32 @@
                     }
                 });
 
-                input.addEventListener('blur', saveDrills);
+                input.addEventListener('blur', () => {
+                    saveDrills();
+                    // Update display text
+                    const sessionId = parseInt(input.dataset.session);
+                    const session = sessions.find(s => s.id === sessionId);
+                    const display = document.querySelector(`.drills-display[data-session="${sessionId}"]`);
+                    if (display && session) {
+                        display.textContent = session.drills || 'Click edit mode to add drills...';
+                        display.classList.toggle('placeholder', !session.drills);
+                    }
+                });
             });
+        }
+
+        // Apply edit mode state to all elements
+        function applyEditMode() {
+            const inputs = document.querySelectorAll('.drills-input');
+            const displays = document.querySelectorAll('.drills-display');
+            
+            if (editMode) {
+                inputs.forEach(el => el.classList.remove('hidden'));
+                displays.forEach(el => el.classList.add('hidden'));
+            } else {
+                inputs.forEach(el => el.classList.add('hidden'));
+                displays.forEach(el => el.classList.remove('hidden'));
+            }
         }
 
         // Toggle edit mode
@@ -598,17 +629,17 @@
             const status = document.getElementById('editStatus');
 
             toggle.addEventListener('change', () => {
-                if (toggle.checked) {
-                    document.body.classList.add('edit-mode');
+                editMode = toggle.checked;
+                
+                if (editMode) {
                     status.textContent = 'On';
                     status.classList.add('active');
                 } else {
-                    document.body.classList.remove('edit-mode');
                     status.textContent = 'Off';
                     status.classList.remove('active');
-                    // Re-render to update display content
-                    renderSessions();
                 }
+                
+                applyEditMode();
             });
         }
 
