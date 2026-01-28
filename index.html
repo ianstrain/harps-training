@@ -1309,20 +1309,28 @@
             
             try {
                 const total = getTotalGoals(goals);
-                const data = {
-                    player: playerName,
-                    goals: goals,
-                    total: total,
-                    lastUpdated: new Date().toISOString()
-                };
-                
-                console.log('Saving goals to Firebase:', data);
-                
-                // Save to Firebase Realtime Database
                 const playerRef = database.ref('players/' + encodeURIComponent(playerName));
-                await playerRef.set(data);
                 
-                console.log('Goals saved successfully to Firebase for', playerName);
+                // If goals object is empty, remove the entire node from Firebase
+                if (Object.keys(goals).length === 0) {
+                    console.log('Removing empty goals from Firebase for', playerName);
+                    await playerRef.remove();
+                    console.log('Empty goals removed successfully from Firebase for', playerName);
+                } else {
+                    const data = {
+                        player: playerName,
+                        goals: goals,
+                        total: total,
+                        lastUpdated: new Date().toISOString()
+                    };
+                    
+                    console.log('Saving goals to Firebase:', data);
+                    
+                    // Save to Firebase Realtime Database
+                    await playerRef.set(data);
+                    
+                    console.log('Goals saved successfully to Firebase for', playerName);
+                }
             } catch (e) {
                 console.error('Failed to save to Firebase:', e);
                 // Still saved locally even if Firebase fails
@@ -1341,15 +1349,15 @@
                 const playersData = snapshot.val();
                 
                 if (playersData) {
-                    // Merge Firebase data with localStorage
+                    // Use Firebase data as source of truth (don't merge with localStorage)
                     Object.keys(playersData).forEach(playerName => {
                         const decodedName = decodeURIComponent(playerName);
                         const firebaseGoals = playersData[playerName].goals || {};
-                        const localGoals = getPlayerGoals(decodedName);
                         
-                        // Merge: Firebase takes precedence if it's newer
-                        const mergedGoals = { ...localGoals, ...firebaseGoals };
-                        savePlayerGoals(decodedName, mergedGoals);
+                        // Use Firebase data directly - it's the source of truth
+                        // This ensures deletions are properly reflected
+                        const goalsKey = `goals_${decodedName}`;
+                        localStorage.setItem(goalsKey, JSON.stringify(firebaseGoals));
                     });
                     
                     console.log('Goals loaded from Firebase');
@@ -1432,7 +1440,7 @@
                                 </div>
                             </div>
                             <div class="player-card-back">
-                                <div class="goal-log-title">Goal Log</div>
+                                <div class="goal-log-title">Goal Log - ${playerName}</div>
                                 <div class="total-goals">
                                     <div class="total-goals-label">Total Goals</div>
                                     <div>${getTotalGoals(goals)}</div>
@@ -1461,6 +1469,20 @@
                     
                     const wrapper = this.closest('.player-card-wrapper');
                     const isFlipping = !this.classList.contains('flipped');
+                    
+                    // Flip back any other flipped cards
+                    if (isFlipping) {
+                        container.querySelectorAll('.player-card.flipped').forEach(flippedCard => {
+                            if (flippedCard !== this) {
+                                flippedCard.classList.remove('flipped');
+                                const flippedWrapper = flippedCard.closest('.player-card-wrapper');
+                                if (flippedWrapper) {
+                                    flippedWrapper.style.height = 'auto';
+                                    flippedWrapper.style.overflow = 'visible';
+                                }
+                            }
+                        });
+                    }
                     
                     if (isFlipping) {
                         // Measure the back content height before flipping
