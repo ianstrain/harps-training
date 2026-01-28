@@ -1877,33 +1877,61 @@
                 totalGoalsEl.textContent = getTotalGoals(goals);
             }
             
-            // Update goal count on front of card
+            // Update goal count and statistics on front of card
             const card = document.querySelector(`.player-card[data-index="${index}"]`);
             const frontDetails = card.querySelector('.player-card-front .player-details');
-            const existingGoalItem = frontDetails.querySelector('.player-detail-item:last-child');
             const totalGoals = getTotalGoals(goals);
             
+            // Remove existing goal-related items (Total Goals and Statistics)
+            const existingGoalItems = frontDetails.querySelectorAll('.player-detail-item, .player-statistics');
+            existingGoalItems.forEach(item => {
+                if (item.textContent.includes('Total Goals') || item.classList.contains('player-statistics')) {
+                    item.remove();
+                }
+            });
+            
             if (totalGoals > 0) {
-                if (existingGoalItem && existingGoalItem.textContent.includes('Total Goals')) {
-                    existingGoalItem.querySelector('.player-detail-value').textContent = totalGoals;
-                } else {
-                    // Remove old goal item if it exists
-                    if (existingGoalItem && existingGoalItem.textContent.includes('Goals')) {
-                        existingGoalItem.remove();
-                    }
-                    const goalItem = document.createElement('div');
-                    goalItem.className = 'player-detail-item';
-                    goalItem.style.cssText = 'margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-color);';
-                    goalItem.innerHTML = `
-                        <span class="player-detail-label">Total Goals</span>
-                        <span class="player-detail-value" style="color: var(--accent-primary); font-weight: 600;">${totalGoals}</span>
-                    `;
-                    frontDetails.appendChild(goalItem);
-                }
-            } else {
-                if (existingGoalItem && existingGoalItem.textContent.includes('Total Goals')) {
-                    existingGoalItem.remove();
-                }
+                // Add Total Goals item
+                const goalItem = document.createElement('div');
+                goalItem.className = 'player-detail-item';
+                goalItem.style.cssText = 'margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-color);';
+                goalItem.innerHTML = `
+                    <span class="player-detail-label">Total Goals</span>
+                    <span class="player-detail-value" style="color: var(--accent-primary); font-weight: 600;">${totalGoals}</span>
+                `;
+                frontDetails.appendChild(goalItem);
+                
+                // Add Statistics section
+                const statsSection = document.createElement('div');
+                statsSection.className = 'player-statistics';
+                statsSection.style.cssText = 'margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-color);';
+                
+                const goalsThisMonth = getGoalsThisMonth(goals);
+                const recentGoals = getRecentGoals(goals, 3);
+                
+                statsSection.innerHTML = `
+                    <div class="stat-item">
+                        <span class="stat-label">Goals/Game</span>
+                        <span class="stat-value">${getGoalsPerGame(goals)}</span>
+                    </div>
+                    ${goalsThisMonth > 0 ? `
+                        <div class="stat-item">
+                            <span class="stat-label">This Month</span>
+                            <span class="stat-value">${goalsThisMonth}</span>
+                        </div>
+                    ` : ''}
+                    ${recentGoals.length > 0 ? `
+                        <div class="recent-goals">
+                            <span class="stat-label">Recent:</span>
+                            <div class="recent-goals-list">
+                                ${recentGoals.map(recent => `
+                                    <span class="recent-goal-item">${formatGoalDate(recent.date)} (${recent.count})</span>
+                                `).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+                `;
+                frontDetails.appendChild(statsSection);
             }
         }
 
