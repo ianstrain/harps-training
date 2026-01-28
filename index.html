@@ -52,6 +52,44 @@
             z-index: 1;
         }
 
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .tab-button {
+            flex: 1;
+            padding: 12px 16px;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .tab-button:hover {
+            color: var(--text-primary);
+        }
+
+        .tab-button.active {
+            color: var(--accent-primary);
+            border-bottom-color: var(--accent-primary);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
         header {
             text-align: center;
             margin-bottom: 24px;
@@ -453,9 +491,83 @@
         .session-card:nth-child(7) { animation-delay: 0.4s; }
         .session-card:nth-child(8) { animation-delay: 0.45s; }
 
+        .players-container {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .player-card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+            padding: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .player-card:hover {
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 30px rgba(0, 212, 170, 0.1);
+        }
+
+        .player-name {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .player-details {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .player-detail-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            font-size: 14px;
+        }
+
+        .player-detail-label {
+            color: var(--text-secondary);
+            font-weight: 600;
+            min-width: 100px;
+            text-transform: uppercase;
+            font-size: 11px;
+            letter-spacing: 1px;
+        }
+
+        .player-detail-value {
+            color: var(--text-primary);
+            flex: 1;
+        }
+
+        .players-header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .players-header h2 {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 2.5rem;
+            letter-spacing: 3px;
+            background: linear-gradient(135deg, var(--text-primary) 0%, var(--accent-primary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+        }
+
         @media (max-width: 380px) {
             h1 { font-size: 2.4rem; }
             .session-number { font-size: 2rem; }
+            .player-card { padding: 16px; }
+            .player-name { font-size: 18px; }
+            .player-detail-item { font-size: 13px; }
         }
     </style>
 </head>
@@ -467,21 +579,36 @@
             <p class="subtitle">8 Weeks • Weekly Training Program</p>
         </header>
 
-        <div class="edit-toggle">
-            <label for="editMode">Edit Mode</label>
-            <div class="toggle-switch">
-                <input type="checkbox" id="editMode">
-                <span class="toggle-slider"></span>
+        <nav class="tabs">
+            <button class="tab-button active" data-tab="schedule">Schedule</button>
+            <button class="tab-button" data-tab="players">Players</button>
+        </nav>
+
+        <div class="tab-content active" id="schedule-tab">
+            <div class="edit-toggle">
+                <label for="editMode">Edit Mode</label>
+                <div class="toggle-switch">
+                    <input type="checkbox" id="editMode">
+                    <span class="toggle-slider"></span>
+                </div>
+                <span class="edit-status" id="editStatus">Off</span>
             </div>
-            <span class="edit-status" id="editStatus">Off</span>
+
+            <main id="sessions"></main>
+
+            <footer>
+                <p>📍 All sessions at <strong>The Aura</strong></p>
+                <p style="margin-top: 8px;">🕢 7:30 PM - 8:30 PM</p>
+            </footer>
         </div>
 
-        <main id="sessions"></main>
-
-        <footer>
-            <p>📍 All sessions at <strong>The Aura</strong></p>
-            <p style="margin-top: 8px;">🕢 7:30 PM - 8:30 PM</p>
-        </footer>
+        <div class="tab-content" id="players-tab">
+            <div class="players-header">
+                <h2>PLAYER INFORMATION</h2>
+            </div>
+            <div class="players-container" id="players-container">
+            </div>
+        </div>
     </div>
 
     <div class="save-indicator" id="saveIndicator">
@@ -768,11 +895,91 @@
             }
         }
 
+        // Player data from spreadsheet (excluding Returning column from display, but using it for filtering)
+        const players = [
+            { parent: 'Ian Strain', phone: '+353 86 877 4663', player: 'Chloe Strain', year: '2014', returning: 'Yes' },
+            { parent: 'Sinéad Giles', phone: '+353 86 343 2733', player: 'Aoibhin Giles', year: '', returning: 'Yes' },
+            { parent: 'Mark McBride/Caroline McBride', phone: '+353 85 123 4231/+353 87 770 1206', player: 'Sarah McBride', year: '', returning: 'Yes' },
+            { parent: 'Steven Gallagher/Deborah Callaghan', phone: '+353 85 712 2232', player: 'Eimear Gallagher', year: '', returning: 'Yes' },
+            { parent: 'Aisling', phone: '+353 86 053 5867', player: 'Leah McClafferty', year: '', returning: 'Yes' },
+            { parent: 'Annemarie McBride/Martin Kennedy', phone: '+353 87 963 4431/+353 86 400 3128', player: 'Sinéad Kennedy', year: '', returning: 'Yes' },
+            { parent: 'Aoife', phone: '+353 87 940 3055', player: 'Lauren Diver', year: '', returning: 'Yes' },
+            { parent: 'Bríd O\' Donnell', phone: '+353 86 196 7547', player: '?', year: '', returning: 'No' },
+            { parent: 'Ciarán Ní Fearraigh/Sile Kelly', phone: '+353 87 984 9564/+353 86 201 8876', player: 'Aoibh Ní Fhearraigh', year: '', returning: 'Yes' },
+            { parent: 'Clíona', phone: '+353 86 395 6987', player: 'Zoe and Molly', year: '', returning: 'No' },
+            { parent: 'Fawzi', phone: '+353 87 263 2160', player: 'child has left', year: '', returning: 'No' },
+            { parent: 'Jenny Duncan', phone: '+353 86 350 4064', player: 'Chelsea', year: '', returning: 'No' },
+            { parent: 'Josie', phone: '+353 83 066 8724', player: 'Ella Toland', year: '', returning: 'No' },
+            { parent: 'Laela Curran', phone: '+353 86 170 2485', player: 'Seva Curran', year: '', returning: 'Yes' },
+            { parent: 'Louise/Justin Sterritt', phone: '+353 86 343 8505/+353 86 062 1717', player: 'Arianne Sherritt', year: '', returning: 'Yes' },
+            { parent: 'Nicola', phone: '+353 86 086 0444', player: '?', year: '', returning: 'No' },
+            { parent: 'Orlaith/Niall', phone: '+353 86 805 0155/+353 83 427 4881', player: 'Faela Kavannagh', year: '', returning: 'Yes' },
+            { parent: 'Paddy Carr', phone: '+353 87 918 1128', player: 'Aoife Carr', year: '', returning: 'Yes' },
+            { parent: 'Paddy McTeague', phone: '+353 87 640 9560', player: 'Aisling McTeague', year: '', returning: 'Yes' },
+            { parent: 'Raymond Carey', phone: '+353 86 216 9856', player: 'Clara Carey', year: '', returning: 'Yes' },
+            { parent: 'Sumalatha Aka', phone: '+353 85 178 9502', player: 'Poshita', year: '', returning: 'Yes' },
+            { parent: 'Wego', phone: '+353 87 372 7683', player: 'child left club', year: '', returning: 'No' },
+            { parent: 'Martina', phone: '+353 87 958 7465', player: 'Rebecca', year: '', returning: 'No' },
+            { parent: 'Laura Muhandiramge', phone: '+353 87 396 4780', player: 'Eliana', year: '', returning: 'Yes' }
+        ];
+
+        function renderPlayers() {
+            const container = document.getElementById('players-container');
+            // Filter: exclude players where returning = "No" (case-insensitive), and exclude invalid entries
+            const filteredPlayers = players.filter(p => {
+                const returning = (p.returning || '').toString().toLowerCase().trim();
+                const playerName = (p.player || '').toString().toLowerCase();
+                return p.player && 
+                       p.player !== '?' && 
+                       !playerName.includes('child') &&
+                       returning !== 'no';
+            });
+            
+            container.innerHTML = filteredPlayers.map(p => `
+                <div class="player-card">
+                    <div class="player-name">${p.player || ''}</div>
+                    <div class="player-details">
+                        ${p.parent ? `
+                            <div class="player-detail-item">
+                                <span class="player-detail-label">Parent</span>
+                                <span class="player-detail-value">${p.parent}</span>
+                            </div>
+                        ` : ''}
+                        <div class="player-detail-item">
+                            <span class="player-detail-label">Year</span>
+                            <span class="player-detail-value">${p.year || ''}</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function setupTabs() {
+            const tabButtons = document.querySelectorAll('.tab-button');
+            const tabContents = document.querySelectorAll('.tab-content');
+
+            tabButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const targetTab = button.getAttribute('data-tab');
+                    
+                    // Update buttons
+                    tabButtons.forEach(btn => btn.classList.remove('active'));
+                    button.classList.add('active');
+                    
+                    // Update content
+                    tabContents.forEach(content => content.classList.remove('active'));
+                    document.getElementById(targetTab + '-tab').classList.add('active');
+                });
+            });
+        }
+
         document.addEventListener('DOMContentLoaded', async () => {
             await loadData();
             renderSessions();
             setupEditMode();
             scrollToClosestSession();
+            setupTabs();
+            renderPlayers();
         });
     </script>
 </body>
