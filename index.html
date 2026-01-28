@@ -644,7 +644,102 @@
             display: flex;
             align-items: flex-start;
             gap: 12px;
+        }
+
+        .player-statistics {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .stat-value {
+            color: var(--accent-primary);
+            font-weight: 600;
+        }
+
+        .recent-goals {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin-top: 4px;
+        }
+
+        .recent-goals-list {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .recent-goal-item {
+            font-size: 11px;
+            color: var(--text-secondary);
+            padding-left: 8px;
+        }
+
+        .notes-section {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .notes-label {
             font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .notes-textarea {
+            width: 100%;
+            min-height: 80px;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 14px;
+            resize: vertical;
+            box-sizing: border-box;
+        }
+
+        .notes-textarea:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 2px rgba(0, 212, 170, 0.1);
+        }
+
+        .save-notes-btn {
+            padding: 8px 16px;
+            background: var(--accent-primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            align-self: flex-start;
+        }
+
+        .save-notes-btn:hover {
+            background: var(--accent-secondary);
+        }
+
+        .save-notes-btn:active {
+            transform: scale(0.98);
         }
 
         .player-detail-label {
@@ -869,6 +964,16 @@
             .player-card-back { padding: 12px; }
             .player-name { font-size: 18px; }
             .player-detail-item { font-size: 13px; }
+            .stat-item { font-size: 12px; }
+            .recent-goal-item { font-size: 10px; }
+            .notes-textarea {
+                min-height: 60px;
+                font-size: 13px;
+            }
+            .save-notes-btn {
+                padding: 6px 12px;
+                font-size: 13px;
+            }
             .goal-input-group {
                 gap: 8px;
             }
@@ -1282,8 +1387,53 @@
             saveGoalsToFirebase(playerName, goals);
         }
 
+        function getPlayerNotes(playerName) {
+            const notesKey = `notes_${playerName}`;
+            const stored = localStorage.getItem(notesKey);
+            return stored || '';
+        }
+
+        function savePlayerNotes(playerName, notes) {
+            const notesKey = `notes_${playerName}`;
+            localStorage.setItem(notesKey, notes);
+            
+            // Save to Firebase
+            saveNotesToFirebase(playerName, notes);
+        }
+
         function getTotalGoals(goals) {
             return Object.values(goals).reduce((sum, count) => sum + (parseInt(count) || 0), 0);
+        }
+
+        function getGoalsPerGame(goals) {
+            const uniqueDates = Object.keys(goals).length;
+            if (uniqueDates === 0) return 0;
+            const totalGoals = getTotalGoals(goals);
+            return (totalGoals / uniqueDates).toFixed(2);
+        }
+
+        function getRecentGoals(goals, count = 3) {
+            const goalEntries = Object.entries(goals)
+                .sort((a, b) => new Date(b[0]) - new Date(a[0]))
+                .slice(0, count);
+            return goalEntries.map(([date, goalCount]) => ({
+                date,
+                count: parseInt(goalCount) || 0
+            }));
+        }
+
+        function getGoalsThisMonth(goals) {
+            const now = new Date();
+            const currentMonth = now.getMonth();
+            const currentYear = now.getFullYear();
+            
+            return Object.entries(goals).reduce((sum, [date, count]) => {
+                const goalDate = new Date(date);
+                if (goalDate.getMonth() === currentMonth && goalDate.getFullYear() === currentYear) {
+                    return sum + (parseInt(count) || 0);
+                }
+                return sum;
+            }, 0);
         }
 
         function addGoals(playerName, date, count) {
@@ -1311,16 +1461,21 @@
                 const total = getTotalGoals(goals);
                 const playerRef = database.ref('players/' + encodeURIComponent(playerName));
                 
-                // If goals object is empty, remove the entire node from Firebase
-                if (Object.keys(goals).length === 0) {
-                    console.log('Removing empty goals from Firebase for', playerName);
+                // Get existing notes if any
+                const existingData = await playerRef.once('value');
+                const existingNotes = existingData.val()?.notes || '';
+                
+                // If goals object is empty and no notes, remove the entire node from Firebase
+                if (Object.keys(goals).length === 0 && !existingNotes) {
+                    console.log('Removing empty player data from Firebase for', playerName);
                     await playerRef.remove();
-                    console.log('Empty goals removed successfully from Firebase for', playerName);
+                    console.log('Empty player data removed successfully from Firebase for', playerName);
                 } else {
                     const data = {
                         player: playerName,
                         goals: goals,
                         total: total,
+                        notes: existingNotes,
                         lastUpdated: new Date().toISOString()
                     };
                     
@@ -1336,6 +1491,47 @@
                 // Still saved locally even if Firebase fails
             }
         }
+
+        async function saveNotesToFirebase(playerName, notes) {
+            if (!database) {
+                console.log('Firebase not configured - data saved to localStorage only');
+                return;
+            }
+            
+            try {
+                const playerRef = database.ref('players/' + encodeURIComponent(playerName));
+                
+                // Get existing goals if any
+                const existingData = await playerRef.once('value');
+                const existingGoals = existingData.val()?.goals || {};
+                const existingTotal = existingData.val()?.total || 0;
+                
+                // If notes is empty and no goals, remove the entire node from Firebase
+                if (!notes && Object.keys(existingGoals).length === 0) {
+                    console.log('Removing empty player data from Firebase for', playerName);
+                    await playerRef.remove();
+                    console.log('Empty player data removed successfully from Firebase for', playerName);
+                } else {
+                    const data = {
+                        player: playerName,
+                        goals: existingGoals,
+                        total: existingTotal,
+                        notes: notes,
+                        lastUpdated: new Date().toISOString()
+                    };
+                    
+                    console.log('Saving notes to Firebase:', data);
+                    
+                    // Save to Firebase Realtime Database
+                    await playerRef.set(data);
+                    
+                    console.log('Notes saved successfully to Firebase for', playerName);
+                }
+            } catch (e) {
+                console.error('Failed to save notes to Firebase:', e);
+                // Still saved locally even if Firebase fails
+            }
+        }
         
         async function loadGoalsFromFirebase() {
             if (!database) {
@@ -1344,12 +1540,14 @@
             }
             
             try {
-                // First, clear all existing goal data from localStorage to ensure Firebase is source of truth
+                // First, clear all existing goal and notes data from localStorage to ensure Firebase is source of truth
                 players.forEach(p => {
                     const playerName = p.player;
                     if (playerName) {
                         const goalsKey = `goals_${playerName}`;
+                        const notesKey = `notes_${playerName}`;
                         localStorage.removeItem(goalsKey);
+                        localStorage.removeItem(notesKey);
                     }
                 });
                 
@@ -1362,14 +1560,17 @@
                     Object.keys(playersData).forEach(playerName => {
                         const decodedName = decodeURIComponent(playerName);
                         const firebaseGoals = playersData[playerName].goals || {};
+                        const firebaseNotes = playersData[playerName].notes || '';
                         
                         // Use Firebase data directly - it's the source of truth
                         // This ensures deletions are properly reflected
                         const goalsKey = `goals_${decodedName}`;
+                        const notesKey = `notes_${decodedName}`;
                         localStorage.setItem(goalsKey, JSON.stringify(firebaseGoals));
+                        localStorage.setItem(notesKey, firebaseNotes);
                     });
                     
-                    console.log('Goals loaded from Firebase');
+                    console.log('Goals and notes loaded from Firebase');
                 }
             } catch (e) {
                 console.error('Failed to load from Firebase:', e);
@@ -1446,6 +1647,30 @@
                                             <span class="player-detail-value" style="color: var(--accent-primary); font-weight: 600;">${getTotalGoals(goals)}</span>
                                         </div>
                                     ` : ''}
+                                    ${Object.keys(goals).length > 0 ? `
+                                        <div class="player-statistics" style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-color);">
+                                            <div class="stat-item">
+                                                <span class="stat-label">Goals/Game</span>
+                                                <span class="stat-value">${getGoalsPerGame(goals)}</span>
+                                            </div>
+                                            ${getGoalsThisMonth(goals) > 0 ? `
+                                                <div class="stat-item">
+                                                    <span class="stat-label">This Month</span>
+                                                    <span class="stat-value">${getGoalsThisMonth(goals)}</span>
+                                                </div>
+                                            ` : ''}
+                                            ${getRecentGoals(goals, 3).length > 0 ? `
+                                                <div class="recent-goals">
+                                                    <span class="stat-label">Recent:</span>
+                                                    <div class="recent-goals-list">
+                                                        ${getRecentGoals(goals, 3).map(recent => `
+                                                            <span class="recent-goal-item">${formatGoalDate(recent.date)} (${recent.count})</span>
+                                                        `).join('')}
+                                                    </div>
+                                                </div>
+                                            ` : ''}
+                                        </div>
+                                    ` : ''}
                                 </div>
                             </div>
                             <div class="player-card-back">
@@ -1462,6 +1687,11 @@
                                 <div class="goals-list" id="goals-list-${index}">
                                     ${renderGoalsList(goals, playerName, index)}
                                 </div>
+                                <div class="notes-section" style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-color);">
+                                    <div class="notes-label">Notes</div>
+                                    <textarea class="notes-textarea" id="notes-${index}" placeholder="Add notes about this player...">${getPlayerNotes(playerName)}</textarea>
+                                    <button class="save-notes-btn" onclick="handleSaveNotes('${playerName}', ${index})">Save Notes</button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1471,8 +1701,8 @@
             // Add click handlers for card flipping
             container.querySelectorAll('.player-card').forEach(card => {
                 card.addEventListener('click', function(e) {
-                    // Don't flip if clicking on input or button
-                    if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') {
+                    // Don't flip if clicking on input, button, or textarea
+                    if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON' || e.target.tagName === 'TEXTAREA') {
                         return;
                     }
                     
@@ -1618,6 +1848,22 @@
         function handleDeleteGoal(playerName, cardIndex, date) {
             const goals = deleteGoal(playerName, date);
             updateGoalDisplay(playerName, cardIndex, goals);
+        }
+
+        function handleSaveNotes(playerName, index) {
+            const notesTextarea = document.getElementById(`notes-${index}`);
+            const notes = notesTextarea.value.trim();
+            savePlayerNotes(playerName, notes);
+            
+            // Show feedback
+            const saveBtn = notesTextarea.nextElementSibling;
+            const originalText = saveBtn.textContent;
+            saveBtn.textContent = 'Saved!';
+            saveBtn.style.backgroundColor = 'var(--accent-secondary)';
+            setTimeout(() => {
+                saveBtn.textContent = originalText;
+                saveBtn.style.backgroundColor = '';
+            }, 1500);
         }
 
         function updateGoalDisplay(playerName, index, goals) {
