@@ -516,12 +516,14 @@
         .player-card-front,
         .player-card-back {
             width: 100%;
+            max-width: 100%;
             background: var(--bg-card);
             border-radius: 16px;
             border: 1px solid var(--border-color);
             padding: 20px;
             transition: opacity 0.3s ease, transform 0.3s ease;
             box-sizing: border-box;
+            overflow: hidden;
         }
 
         .player-card-front {
@@ -633,6 +635,8 @@
             display: flex;
             gap: 12px;
             margin-bottom: 16px;
+            width: 100%;
+            box-sizing: border-box;
         }
 
         .goal-date-input,
@@ -646,11 +650,15 @@
             font-family: 'Inter', sans-serif;
             font-size: 14px;
             transition: all 0.3s ease;
+            box-sizing: border-box;
+            width: 100%;
+            max-width: 100%;
         }
 
         .goal-count-input {
             flex: 0 0 80px;
             text-align: center;
+            min-width: 80px;
         }
 
         .goal-date-input:focus,
@@ -740,13 +748,56 @@
             margin-bottom: 8px;
         }
 
+        @media (max-width: 768px) {
+            .goal-input-group {
+                flex-direction: column;
+                gap: 8px;
+            }
+            
+            .goal-count-input {
+                flex: 1;
+                min-width: auto;
+                width: 100%;
+            }
+            
+            .goal-date-input {
+                width: 100%;
+            }
+            
+            .player-card-front,
+            .player-card-back {
+                padding: 16px;
+            }
+            
+            .goal-log-title {
+                font-size: 16px;
+            }
+            
+            .total-goals {
+                font-size: 20px;
+                padding: 10px;
+            }
+        }
+
         @media (max-width: 380px) {
             h1 { font-size: 2.4rem; }
             .session-number { font-size: 2rem; }
             .player-card-front,
-            .player-card-back { padding: 16px; }
+            .player-card-back { padding: 12px; }
             .player-name { font-size: 18px; }
             .player-detail-item { font-size: 13px; }
+            .goal-input-group {
+                gap: 8px;
+            }
+            .goal-date-input,
+            .goal-count-input {
+                padding: 10px;
+                font-size: 13px;
+            }
+            .add-goal-btn {
+                padding: 10px;
+                font-size: 13px;
+            }
         }
     </style>
 </head>
