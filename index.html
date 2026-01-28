@@ -621,18 +621,17 @@
             border-radius: 8px;
             border: 2px solid var(--accent-primary);
             display: inline-flex;
-            align-items: center;
+            align-items: baseline;
             gap: 6px;
-            line-height: 1.2;
-            vertical-align: middle;
+            line-height: 1;
         }
 
         .jersey-icon {
             font-size: 20px;
             display: inline-block;
             line-height: 1;
-            filter: hue-rotate(120deg) saturate(1.5);
-            vertical-align: middle;
+            filter: hue-rotate(120deg) saturate(2) brightness(0.6);
+            margin-bottom: -2px;
         }
 
         .player-details {
@@ -1243,7 +1242,7 @@
 
         // Player data from spreadsheet (excluding Returning column from display, but using it for filtering)
         const players = [
-            { parent: 'Ian Strain', phone: '+353 86 877 4663', player: 'Chloe Strain', year: '2014', jersey: '10', returning: 'Yes' },
+            { parent: 'Ian Strain', phone: '+353 86 877 4663', player: 'Chloe Strain', year: '2014', jersey: '#', returning: 'Yes' },
             { parent: 'Sinéad Giles', phone: '+353 86 343 2733', player: 'Aoibhin Giles', year: '', jersey: '#', returning: 'Yes' },
             { parent: 'Mark McBride/Caroline McBride', phone: '+353 85 123 4231/+353 87 770 1206', player: 'Sarah McBride', year: '', jersey: '#', returning: 'Yes' },
             { parent: 'Steven Gallagher/Deborah Callaghan', phone: '+353 85 712 2232', player: 'Eimear Gallagher', year: '', jersey: '#', returning: 'Yes' },
