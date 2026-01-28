@@ -27,12 +27,21 @@
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
+        html {
+            overflow-x: hidden;
+            width: 100%;
+            max-width: 100%;
+        }
+
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             background: var(--bg-dark);
             color: var(--text-primary);
             min-height: 100vh;
             line-height: 1.5;
+            overflow-x: hidden;
+            width: 100%;
+            max-width: 100%;
         }
 
         body::before {
@@ -515,8 +524,10 @@
         .player-card {
             position: relative;
             width: 100%;
+            max-width: 100%;
             cursor: pointer;
             min-height: 150px;
+            overflow: hidden;
         }
 
         .player-card-front,
@@ -642,7 +653,9 @@
             gap: 12px;
             margin-bottom: 16px;
             width: 100%;
+            max-width: 100%;
             box-sizing: border-box;
+            overflow: hidden;
         }
 
         .goal-date-input,
@@ -768,21 +781,28 @@
             .goal-input-group {
                 flex-direction: column;
                 gap: 8px;
+                width: 100%;
+                max-width: 100%;
             }
             
             .goal-count-input {
                 flex: 1;
                 min-width: auto;
                 width: 100%;
+                max-width: 100%;
             }
             
             .goal-date-input {
                 width: 100%;
+                max-width: 100%;
             }
             
             .player-card-front,
             .player-card-back {
                 padding: 16px;
+                width: 100%;
+                max-width: 100%;
+                box-sizing: border-box;
             }
             
             .goal-log-title {
@@ -792,6 +812,11 @@
             .total-goals {
                 font-size: 20px;
                 padding: 10px;
+            }
+            
+            .container {
+                max-width: 100%;
+                padding: 20px 12px 40px;
             }
         }
 
@@ -1368,7 +1393,7 @@
                                     <div>${getTotalGoals(goals)}</div>
                                 </div>
                                 <div class="goal-input-group">
-                                    <input type="date" class="goal-date-input" id="goal-date-${index}" />
+                                    <input type="date" class="goal-date-input" id="goal-date-${index}" value="${new Date().toISOString().split('T')[0]}" />
                                     <input type="number" class="goal-count-input" id="goal-count-${index}" min="1" value="1" />
                                 </div>
                                 <button class="add-goal-btn" onclick="handleAddGoals('${playerName}', ${index})">Add Goals</button>
@@ -1442,22 +1467,32 @@
                 input.addEventListener('focus', function() {
                     // Small delay to ensure date picker is opening
                     setTimeout(() => {
+                        // Scroll the input into view
                         this.scrollIntoView({ 
                             behavior: 'smooth', 
                             block: 'center',
-                            inline: 'nearest'
+                            inline: 'start'
                         });
                         
-                        // Also scroll the wrapper into view
+                        // Also ensure the wrapper is in view
                         const wrapper = this.closest('.player-card-wrapper');
                         if (wrapper) {
                             wrapper.scrollIntoView({ 
                                 behavior: 'smooth', 
-                                block: 'center',
+                                block: 'nearest',
                                 inline: 'nearest'
                             });
                         }
-                    }, 100);
+                        
+                        // Ensure the input stays within bounds
+                        const rect = this.getBoundingClientRect();
+                        if (rect.left < 0 || rect.right > window.innerWidth) {
+                            window.scrollTo({
+                                left: window.scrollX + rect.left - 20,
+                                behavior: 'smooth'
+                            });
+                        }
+                    }, 150);
                 });
             });
         }
