@@ -7,6 +7,9 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
     <style>
         :root {
             --bg-dark: #0a0f1a;
@@ -497,17 +500,68 @@
             gap: 16px;
         }
 
+        .player-card-wrapper {
+            position: relative;
+            transition: height 0.6s ease;
+            margin-bottom: 16px;
+        }
+
         .player-card {
+            position: relative;
+            width: 100%;
+            cursor: pointer;
+            min-height: 150px;
+        }
+
+        .player-card-front,
+        .player-card-back {
+            width: 100%;
             background: var(--bg-card);
             border-radius: 16px;
             border: 1px solid var(--border-color);
             padding: 20px;
-            transition: all 0.3s ease;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            box-sizing: border-box;
         }
 
-        .player-card:hover {
+        .player-card-front {
+            position: relative;
+            z-index: 2;
+        }
+
+        .player-card-front:hover {
             border-color: var(--accent-primary);
             box-shadow: 0 0 30px rgba(0, 212, 170, 0.1);
+        }
+
+        .player-card-back {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            opacity: 0;
+            transform: scale(0.95);
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .player-card.flipped .player-card-front {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            opacity: 0;
+            transform: scale(0.95);
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .player-card.flipped .player-card-back {
+            position: relative;
+            opacity: 1;
+            transform: scale(1);
+            pointer-events: auto;
+            z-index: 2;
         }
 
         .player-name {
@@ -546,6 +600,130 @@
             flex: 1;
         }
 
+        .goal-log-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 12px;
+            text-align: center;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .total-goals {
+            text-align: center;
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--accent-primary);
+            margin-bottom: 16px;
+            padding: 12px;
+            background: var(--bg-section);
+            border-radius: 8px;
+        }
+
+        .total-goals-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+        }
+
+        .goal-input-group {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .goal-date-input,
+        .goal-count-input {
+            flex: 1;
+            padding: 12px;
+            background: var(--bg-section);
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .goal-count-input {
+            flex: 0 0 80px;
+            text-align: center;
+        }
+
+        .goal-date-input:focus,
+        .goal-count-input:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+        }
+
+        .add-goal-btn {
+            width: 100%;
+            padding: 12px;
+            background: var(--accent-primary);
+            color: var(--bg-dark);
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 16px;
+        }
+
+        .add-goal-btn:hover {
+            background: var(--accent-secondary);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 212, 170, 0.3);
+        }
+
+        .goals-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .goal-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: var(--bg-section);
+            border-radius: 8px;
+            font-size: 14px;
+            color: var(--text-primary);
+        }
+
+        .goal-date {
+            color: var(--text-secondary);
+        }
+
+        .delete-goal-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 18px;
+            padding: 4px 8px;
+            transition: all 0.3s ease;
+        }
+
+        .delete-goal-btn:hover {
+            color: #ef4444;
+        }
+
+        .no-goals {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 14px;
+            padding: 20px;
+            font-style: italic;
+        }
+
         .players-header {
             text-align: center;
             margin-bottom: 24px;
@@ -565,7 +743,8 @@
         @media (max-width: 380px) {
             h1 { font-size: 2.4rem; }
             .session-number { font-size: 2rem; }
-            .player-card { padding: 16px; }
+            .player-card-front,
+            .player-card-back { padding: 16px; }
             .player-name { font-size: 18px; }
             .player-detail-item { font-size: 13px; }
         }
@@ -617,6 +796,38 @@
 
     <script>
         const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwa4udrVtMQ83vEbYrg6YFVXQhCIfbCFEOkq_wGfUMQXPnfgnkECCPWRm7s8MHfIBGh/exec';
+        
+        // ============================================
+        // FIREBASE CONFIGURATION - UPDATE THIS SECTION
+        // ============================================
+        // To set up Firebase:
+        // 1. Go to https://console.firebase.google.com
+        // 2. Create a new project (or use existing)
+        // 3. Enable Realtime Database
+        // 4. Go to Project Settings > Your apps > Web app
+        // 5. Copy the config object and replace the values below
+        // ============================================
+        const firebaseConfig = {
+        apiKey: "AIzaSyDxnXltlxrvj7XaplM21IJqvW-7SPI0C60",
+        authDomain: "ballyraine-harps.firebaseapp.com",
+        databaseURL: "https://ballyraine-harps-default-rtdb.europe-west1.firebasedatabase.app",
+        projectId: "ballyraine-harps",
+        storageBucket: "ballyraine-harps.firebasestorage.app",
+        messagingSenderId: "150301654173",
+        appId: "1:150301654173:web:3dfc661d09a5421e5f2874",
+        measurementId: "G-W9P5F8E1X3"
+        };
+        // ============================================
+        
+        // Initialize Firebase (only if config is provided)
+        let database = null;
+        if (firebaseConfig.apiKey !== "YOUR_API_KEY") {
+            firebase.initializeApp(firebaseConfig);
+            database = firebase.database();
+            console.log('Firebase initialized');
+        } else {
+            console.log('Firebase not configured - using localStorage only');
+        }
 
         const sessions = [
             { id: 1, date: new Date(2026, 1, 3), desc: '', warmup: '', drills: '', game: '' },
@@ -923,6 +1134,126 @@
             { parent: 'Laura Muhandiramge', phone: '+353 87 396 4780', player: 'Eliana', year: '', returning: 'Yes' }
         ];
 
+        function getPlayerGoals(playerName) {
+            const goalsKey = `goals_${playerName}`;
+            const stored = localStorage.getItem(goalsKey);
+            return stored ? JSON.parse(stored) : {}; // Changed to object: { date: count }
+        }
+
+        function savePlayerGoals(playerName, goals) {
+            const goalsKey = `goals_${playerName}`;
+            localStorage.setItem(goalsKey, JSON.stringify(goals));
+            
+            // Save to Firebase
+            saveGoalsToFirebase(playerName, goals);
+        }
+
+        function getTotalGoals(goals) {
+            return Object.values(goals).reduce((sum, count) => sum + (parseInt(count) || 0), 0);
+        }
+
+        function addGoals(playerName, date, count) {
+            const goals = getPlayerGoals(playerName);
+            const currentCount = goals[date] || 0;
+            goals[date] = currentCount + parseInt(count);
+            savePlayerGoals(playerName, goals);
+            return goals;
+        }
+
+        function deleteGoal(playerName, date) {
+            const goals = getPlayerGoals(playerName);
+            delete goals[date];
+            savePlayerGoals(playerName, goals);
+            return goals;
+        }
+
+        async function saveGoalsToFirebase(playerName, goals) {
+            if (!database) {
+                console.log('Firebase not configured - data saved to localStorage only');
+                return;
+            }
+            
+            try {
+                const total = getTotalGoals(goals);
+                const data = {
+                    player: playerName,
+                    goals: goals,
+                    total: total,
+                    lastUpdated: new Date().toISOString()
+                };
+                
+                console.log('Saving goals to Firebase:', data);
+                
+                // Save to Firebase Realtime Database
+                const playerRef = database.ref('players/' + encodeURIComponent(playerName));
+                await playerRef.set(data);
+                
+                console.log('Goals saved successfully to Firebase for', playerName);
+            } catch (e) {
+                console.error('Failed to save to Firebase:', e);
+                // Still saved locally even if Firebase fails
+            }
+        }
+        
+        async function loadGoalsFromFirebase() {
+            if (!database) {
+                console.log('Firebase not configured - loading from localStorage only');
+                return;
+            }
+            
+            try {
+                const playersRef = database.ref('players');
+                const snapshot = await playersRef.once('value');
+                const playersData = snapshot.val();
+                
+                if (playersData) {
+                    // Merge Firebase data with localStorage
+                    Object.keys(playersData).forEach(playerName => {
+                        const decodedName = decodeURIComponent(playerName);
+                        const firebaseGoals = playersData[playerName].goals || {};
+                        const localGoals = getPlayerGoals(decodedName);
+                        
+                        // Merge: Firebase takes precedence if it's newer
+                        const mergedGoals = { ...localGoals, ...firebaseGoals };
+                        savePlayerGoals(decodedName, mergedGoals);
+                    });
+                    
+                    console.log('Goals loaded from Firebase');
+                }
+            } catch (e) {
+                console.error('Failed to load from Firebase:', e);
+            }
+        }
+
+        function formatGoalDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-IE', { 
+                weekday: 'short', 
+                year: 'numeric', 
+                month: 'short', 
+                day: 'numeric' 
+            });
+        }
+
+        function renderGoalsList(goals, playerName, cardIndex) {
+            const goalEntries = Object.entries(goals);
+            if (goalEntries.length === 0) {
+                return '<div class="no-goals">No goals logged yet</div>';
+            }
+            
+            // Sort by date (newest first)
+            goalEntries.sort((a, b) => new Date(b[0]) - new Date(a[0]));
+            
+            return goalEntries.map(([date, count]) => `
+                <div class="goal-item">
+                    <span class="goal-date">
+                        ${formatGoalDate(date)} - ${count} ${count === 1 ? 'goal' : 'goals'}
+                    </span>
+                    <button class="delete-goal-btn" onclick="handleDeleteGoal('${playerName}', ${cardIndex}, '${date}')">×</button>
+                </div>
+            `).join('');
+        }
+
         function renderPlayers() {
             const container = document.getElementById('players-container');
             // Filter: exclude players where returning = "No" (case-insensitive), and exclude invalid entries
@@ -935,23 +1266,179 @@
                        returning !== 'no';
             });
             
-            container.innerHTML = filteredPlayers.map(p => `
-                <div class="player-card">
-                    <div class="player-name">${p.player || ''}</div>
-                    <div class="player-details">
-                        ${p.parent ? `
-                            <div class="player-detail-item">
-                                <span class="player-detail-label">Parent</span>
-                                <span class="player-detail-value">${p.parent}</span>
+            container.innerHTML = filteredPlayers.map((p, index) => {
+                const playerName = p.player || '';
+                const goals = getPlayerGoals(playerName);
+                
+                return `
+                    <div class="player-card-wrapper">
+                        <div class="player-card" data-player="${playerName}" data-index="${index}">
+                            <div class="player-card-front">
+                                <div class="player-name">${playerName}</div>
+                                <div class="player-details">
+                                    ${p.parent ? `
+                                        <div class="player-detail-item">
+                                            <span class="player-detail-label">Parent</span>
+                                            <span class="player-detail-value">${p.parent}</span>
+                                        </div>
+                                    ` : ''}
+                                    <div class="player-detail-item">
+                                        <span class="player-detail-label">Year</span>
+                                        <span class="player-detail-value">${p.year || ''}</span>
+                                    </div>
+                                    ${Object.keys(goals).length > 0 ? `
+                                        <div class="player-detail-item" style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-color);">
+                                            <span class="player-detail-label">Total Goals</span>
+                                            <span class="player-detail-value" style="color: var(--accent-primary); font-weight: 600;">${getTotalGoals(goals)}</span>
+                                        </div>
+                                    ` : ''}
+                                </div>
                             </div>
-                        ` : ''}
-                        <div class="player-detail-item">
-                            <span class="player-detail-label">Year</span>
-                            <span class="player-detail-value">${p.year || ''}</span>
+                            <div class="player-card-back">
+                                <div class="goal-log-title">Goal Log</div>
+                                <div class="total-goals">
+                                    <div class="total-goals-label">Total Goals</div>
+                                    <div>${getTotalGoals(goals)}</div>
+                                </div>
+                                <div class="goal-input-group">
+                                    <input type="date" class="goal-date-input" id="goal-date-${index}" />
+                                    <input type="number" class="goal-count-input" id="goal-count-${index}" min="1" value="1" />
+                                </div>
+                                <button class="add-goal-btn" onclick="handleAddGoals('${playerName}', ${index})">Add Goals</button>
+                                <div class="goals-list" id="goals-list-${index}">
+                                    ${renderGoalsList(goals, playerName, index)}
+                                </div>
+                            </div>
                         </div>
                     </div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
+            
+            // Add click handlers for card flipping
+            container.querySelectorAll('.player-card').forEach(card => {
+                card.addEventListener('click', function(e) {
+                    // Don't flip if clicking on input or button
+                    if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') {
+                        return;
+                    }
+                    
+                    const wrapper = this.closest('.player-card-wrapper');
+                    const isFlipping = !this.classList.contains('flipped');
+                    
+                    if (isFlipping) {
+                        // Measure the back content height before flipping
+                        const back = this.querySelector('.player-card-back');
+                        const front = this.querySelector('.player-card-front');
+                        const frontHeight = front.offsetHeight;
+                        
+                        // Temporarily make back visible and positioned to measure
+                        const originalStyles = {
+                            transform: back.style.transform,
+                            position: back.style.position,
+                            visibility: back.style.visibility,
+                            opacity: back.style.opacity,
+                            zIndex: back.style.zIndex
+                        };
+                        
+                        back.style.transform = 'scale(1)';
+                        back.style.position = 'relative';
+                        back.style.visibility = 'visible';
+                        back.style.opacity = '1';
+                        back.style.zIndex = '2';
+                        
+                        // Force reflow
+                        void back.offsetHeight;
+                        
+                        const backHeight = back.offsetHeight;
+                        
+                        // Restore original styles
+                        Object.keys(originalStyles).forEach(key => {
+                            back.style[key] = originalStyles[key] || '';
+                        });
+                        
+                        // Set wrapper height to the larger of the two, with some padding
+                        const targetHeight = Math.max(frontHeight, backHeight);
+                        wrapper.style.height = targetHeight + 'px';
+                        wrapper.style.overflow = 'visible';
+                    } else {
+                        // Reset to auto height when flipping back
+                        wrapper.style.height = 'auto';
+                        wrapper.style.overflow = 'visible';
+                    }
+                    
+                    this.classList.toggle('flipped');
+                });
+            });
+        }
+
+        function handleAddGoals(playerName, index) {
+            const dateInput = document.getElementById(`goal-date-${index}`);
+            const countInput = document.getElementById(`goal-count-${index}`);
+            const date = dateInput.value;
+            const count = parseInt(countInput.value) || 1;
+            
+            if (!date) {
+                alert('Please select a date');
+                return;
+            }
+            
+            if (count < 1) {
+                alert('Please enter a valid number of goals');
+                return;
+            }
+            
+            const goals = addGoals(playerName, date, count);
+            dateInput.value = ''; // Clear date input
+            countInput.value = '1'; // Reset count to 1
+            
+            // Re-render the goals list and total
+            updateGoalDisplay(playerName, index, goals);
+        }
+
+        function handleDeleteGoal(playerName, cardIndex, date) {
+            const goals = deleteGoal(playerName, date);
+            updateGoalDisplay(playerName, cardIndex, goals);
+        }
+
+        function updateGoalDisplay(playerName, index, goals) {
+            // Update goals list
+            const goalsList = document.getElementById(`goals-list-${index}`);
+            goalsList.innerHTML = renderGoalsList(goals, playerName, index);
+            
+            // Update total goals on back
+            const totalGoalsEl = document.querySelector(`.player-card[data-index="${index}"] .total-goals div:last-child`);
+            if (totalGoalsEl) {
+                totalGoalsEl.textContent = getTotalGoals(goals);
+            }
+            
+            // Update goal count on front of card
+            const card = document.querySelector(`.player-card[data-index="${index}"]`);
+            const frontDetails = card.querySelector('.player-card-front .player-details');
+            const existingGoalItem = frontDetails.querySelector('.player-detail-item:last-child');
+            const totalGoals = getTotalGoals(goals);
+            
+            if (totalGoals > 0) {
+                if (existingGoalItem && existingGoalItem.textContent.includes('Total Goals')) {
+                    existingGoalItem.querySelector('.player-detail-value').textContent = totalGoals;
+                } else {
+                    // Remove old goal item if it exists
+                    if (existingGoalItem && existingGoalItem.textContent.includes('Goals')) {
+                        existingGoalItem.remove();
+                    }
+                    const goalItem = document.createElement('div');
+                    goalItem.className = 'player-detail-item';
+                    goalItem.style.cssText = 'margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-color);';
+                    goalItem.innerHTML = `
+                        <span class="player-detail-label">Total Goals</span>
+                        <span class="player-detail-value" style="color: var(--accent-primary); font-weight: 600;">${totalGoals}</span>
+                    `;
+                    frontDetails.appendChild(goalItem);
+                }
+            } else {
+                if (existingGoalItem && existingGoalItem.textContent.includes('Total Goals')) {
+                    existingGoalItem.remove();
+                }
+            }
         }
 
         function setupTabs() {
@@ -979,6 +1466,8 @@
             setupEditMode();
             scrollToClosestSession();
             setupTabs();
+            // Load goals from Firebase before rendering players
+            await loadGoalsFromFirebase();
             renderPlayers();
         });
     </script>
