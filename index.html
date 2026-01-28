@@ -1344,6 +1344,15 @@
             }
             
             try {
+                // First, clear all existing goal data from localStorage to ensure Firebase is source of truth
+                players.forEach(p => {
+                    const playerName = p.player;
+                    if (playerName) {
+                        const goalsKey = `goals_${playerName}`;
+                        localStorage.removeItem(goalsKey);
+                    }
+                });
+                
                 const playersRef = database.ref('players');
                 const snapshot = await playersRef.once('value');
                 const playersData = snapshot.val();
