@@ -70,22 +70,21 @@
             gap: 8px;
             margin-bottom: 24px;
             border-bottom: 2px solid var(--border-color);
-            position: -webkit-sticky;
-            position: sticky;
+            position: fixed;
             top: 0;
+            left: 50%;
+            transform: translateX(-50%);
             background: var(--bg-dark);
             background-image: 
                 radial-gradient(circle at 20% 20%, rgba(0, 212, 170, 0.08) 0%, transparent 50%),
                 radial-gradient(circle at 80% 80%, rgba(14, 165, 233, 0.08) 0%, transparent 50%);
-            z-index: 100;
+            z-index: 1000;
             padding: 12px 16px;
-            margin-left: -16px;
-            margin-right: -16px;
-            margin-top: 0;
-            margin-bottom: 24px;
+            margin: 0;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-            width: calc(100% + 32px);
-            will-change: transform;
+            width: 100%;
+            max-width: 500px;
+            justify-content: center;
         }
 
         .tab-button {
@@ -113,6 +112,7 @@
 
         .tab-content {
             display: none;
+            padding-bottom: 100px; /* Space for fixed controls at bottom */
         }
 
         .tab-content.active {
@@ -122,6 +122,7 @@
         header {
             text-align: center;
             margin-bottom: 24px;
+            margin-top: 60px; /* Space for fixed tabs */
             padding: 24px 0;
         }
 
@@ -156,26 +157,19 @@
         }
 
         .edit-toggle {
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
             display: flex;
             align-items: center;
-            justify-content: center;
             gap: 12px;
-            padding: 14px 24px;
-            background: var(--bg-card);
-            border-radius: 40px;
+            padding: 8px 12px;
+            background: var(--bg-section);
+            border-radius: 8px;
             border: 1px solid var(--border-color);
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-            z-index: 50;
         }
 
         .edit-toggle label {
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 600;
-            color: var(--text-secondary);
+            color: var(--text-primary);
             cursor: pointer;
             user-select: none;
         }
@@ -248,6 +242,332 @@
             color: var(--accent-primary);
         }
 
+        .edit-controls {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 16px 24px;
+            flex-wrap: wrap;
+            justify-content: center;
+            background: var(--bg-dark);
+            border-top: 1px solid var(--border-color);
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+        }
+
+        .view-toggles {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .edit-toggle,
+        .view-toggle {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 12px;
+            background: var(--bg-section);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .cleanup-btn {
+            padding: 8px 16px;
+            background: rgba(239, 68, 68, 0.1);
+            border: 2px solid #ef4444;
+            border-radius: 8px;
+            color: #ef4444;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .cleanup-btn:hover {
+            background: rgba(239, 68, 68, 0.2);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+        }
+
+        .players-controls {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 16px 24px;
+            flex-wrap: wrap;
+            justify-content: center;
+            background: var(--bg-dark);
+            border-top: 1px solid var(--border-color);
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+        }
+
+        .add-player-btn {
+            padding: 8px 16px;
+            background: rgba(0, 212, 170, 0.1);
+            border: 2px solid var(--accent-primary);
+            border-radius: 8px;
+            color: var(--accent-primary);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .add-player-btn:hover {
+            background: rgba(0, 212, 170, 0.2);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 212, 170, 0.3);
+        }
+
+        .add-session-btn-bottom {
+            padding: 8px 16px;
+            background: rgba(0, 212, 170, 0.1);
+            border: 2px solid var(--accent-primary);
+            border-radius: 8px;
+            color: var(--accent-primary);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .add-session-btn-bottom:hover {
+            background: rgba(0, 212, 170, 0.2);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 212, 170, 0.3);
+        }
+
+        .delete-player-btn {
+            padding: 4px 8px;
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid #ef4444;
+            border-radius: 4px;
+            color: #ef4444;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-left: 8px;
+        }
+
+        .delete-player-btn:hover {
+            background: rgba(239, 68, 68, 0.2);
+        }
+
+        .player-card.deleted {
+            opacity: 0.6;
+            border-color: var(--text-muted);
+            background: linear-gradient(135deg, var(--bg-section) 0%, rgba(239, 68, 68, 0.05) 100%);
+            position: relative;
+        }
+
+        .player-card.deleted::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--danger);
+        }
+
+        .deleted-indicator {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--danger);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            z-index: 10;
+        }
+
+        .player-name-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-left: auto;
+        }
+
+        .player-name {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        #players-tab {
+            padding-bottom: 100px;
+        }
+
+        .new-session-card {
+            border: 2px dashed var(--border-color);
+            background: var(--bg-section);
+        }
+
+        .new-session-date-input,
+        .new-session-location-input,
+        .new-session-time-input {
+            padding: 8px 12px;
+            background: var(--bg-dark);
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .new-session-date-input:focus,
+        .new-session-location-input:focus,
+        .new-session-time-input:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+        }
+
+        .new-session-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 16px;
+            padding: 16px 20px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .save-session-btn,
+        .cancel-session-btn {
+            flex: 1;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .save-session-btn {
+            background: var(--accent-primary);
+            border: 2px solid var(--accent-primary);
+            color: var(--bg-dark);
+        }
+
+        .save-session-btn:hover {
+            background: var(--accent-secondary);
+            border-color: var(--accent-secondary);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 212, 170, 0.3);
+        }
+
+        .cancel-session-btn {
+            background: transparent;
+            border: 2px solid var(--border-color);
+            color: var(--text-secondary);
+        }
+
+        .cancel-session-btn:hover {
+            border-color: var(--text-muted);
+            color: var(--text-primary);
+        }
+
+        .new-player-card {
+            border: 2px dashed var(--border-color);
+            background: var(--bg-section);
+        }
+
+        .player-name-input,
+        .player-jersey-input,
+        .player-parent-input {
+            width: 100%;
+            padding: 8px 12px;
+            background: var(--bg-dark);
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .player-name-input {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 12px;
+        }
+
+        .player-name-input:focus,
+        .player-jersey-input:focus,
+        .player-parent-input:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+        }
+
+        .new-player-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .save-player-btn,
+        .cancel-player-btn {
+            flex: 1;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .save-player-btn {
+            background: var(--accent-primary);
+            border: 2px solid var(--accent-primary);
+            color: var(--bg-dark);
+        }
+
+        .save-player-btn:hover {
+            background: var(--accent-secondary);
+            border-color: var(--accent-secondary);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 212, 170, 0.3);
+        }
+
+        .cancel-player-btn {
+            background: transparent;
+            border: 2px solid var(--border-color);
+            color: var(--text-secondary);
+        }
+
+        .cancel-player-btn:hover {
+            border-color: var(--text-muted);
+            color: var(--text-primary);
+        }
+
+        .view-toggle label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-primary);
+            cursor: pointer;
+        }
+
         .session-card {
             background: var(--bg-card);
             border-radius: 16px;
@@ -274,6 +594,112 @@
 
         .session-card.cancelled .session-number {
             color: var(--danger);
+        }
+
+        .session-card.deleted {
+            opacity: 0.5;
+            border-color: var(--text-muted);
+            background: var(--bg-section);
+        }
+
+        .session-card.deleted .session-number::after {
+            content: ' (Deleted)';
+            font-size: 0.5em;
+            color: var(--text-muted);
+        }
+
+        .delete-session-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            margin-top: 12px;
+            background: rgba(239, 68, 68, 0.1);
+            border: 2px solid #ef4444;
+            border-radius: 8px;
+            color: #ef4444;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Inter', sans-serif;
+            width: 100%;
+            justify-content: center;
+        }
+
+        .delete-session-btn:hover {
+            background: #ef4444;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+        }
+
+        .delete-icon {
+            font-size: 16px;
+        }
+
+        .add-session-container {
+            margin: 20px 0;
+            display: flex;
+            justify-content: center;
+        }
+
+        .add-session-form {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .new-session-date-input {
+            padding: 12px 16px;
+            background: var(--bg-section);
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .new-session-date-input:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+        }
+
+        .add-session-btn {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px 32px;
+            background: var(--bg-card);
+            border: 2px dashed var(--border-color);
+            border-radius: 16px;
+            color: var(--text-primary);
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .add-session-btn:hover {
+            border-color: var(--accent-primary);
+            background: rgba(0, 212, 170, 0.05);
+            color: var(--accent-primary);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 212, 170, 0.2);
+        }
+
+        .add-session-icon {
+            font-size: 24px;
+            font-weight: 300;
+            line-height: 1;
+        }
+
+        .add-session-text {
+            font-size: 16px;
         }
 
         .cancelled-notice {
@@ -405,6 +831,59 @@
             padding: 20px;
             border-bottom: 1px solid var(--border-color);
             position: relative;
+        }
+
+        .session-date-edit {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .session-date-edit label {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .session-date-input {
+            flex: 1;
+            padding: 10px;
+            background: var(--bg-section);
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .session-date-input:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+        }
+
+        .meta-item-edit {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .meta-input {
+            flex: 1;
+            padding: 8px 12px;
+            background: var(--bg-section);
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .meta-input:focus {
+            outline: none;
+            border-color: var(--accent-primary);
         }
 
         .session-number {
@@ -1285,9 +1764,8 @@
 <body>
     <div class="container">
         <header>
-            <div class="header-badge">Feb - Mar 2026</div>
             <h1>TRAINING SCHEDULE</h1>
-            <p class="subtitle">8 Weeks • Weekly Training Program</p>
+            <p class="subtitle">Weekly Training Program</p>
         </header>
 
         <nav class="tabs">
@@ -1297,21 +1775,37 @@
         </nav>
 
         <div class="tab-content active" id="schedule-tab">
-            <div class="edit-toggle">
-                <label for="editMode">Edit Mode</label>
-                <div class="toggle-switch">
-                    <input type="checkbox" id="editMode">
-                    <span class="toggle-slider"></span>
-                </div>
-                <span class="edit-status" id="editStatus">Off</span>
-            </div>
-
             <main id="sessions"></main>
 
-            <footer>
-                <p>📍 All sessions at <strong>The Aura</strong></p>
-                <p style="margin-top: 8px;">🕢 7:30 PM - 8:30 PM</p>
-            </footer>
+            <div class="edit-controls">
+                <div class="edit-toggle">
+                    <label for="editMode">Edit Mode</label>
+                    <div class="toggle-switch">
+                        <input type="checkbox" id="editMode">
+                        <span class="toggle-slider"></span>
+                    </div>
+                </div>
+                <div class="view-toggle">
+                    <label for="showPastSessions">Show Past Sessions</label>
+                    <div class="toggle-switch">
+                        <input type="checkbox" id="showPastSessions">
+                        <span class="toggle-slider"></span>
+                    </div>
+                </div>
+                <div class="view-toggle">
+                    <label for="showDeletedSessions">Show Deleted Sessions</label>
+                    <div class="toggle-switch">
+                        <input type="checkbox" id="showDeletedSessions">
+                        <span class="toggle-slider"></span>
+                    </div>
+                </div>
+                <button class="cleanup-btn" onclick="cleanupDeletedSessions()" title="Permanently remove all deleted sessions">
+                    🗑️ Clean Up Deleted
+                </button>
+                <button class="add-session-btn-bottom" onclick="handleAddSession()" title="Add a new session">
+                    ➕ New Session
+                </button>
+            </div>
         </div>
 
         <div class="tab-content" id="players-tab">
@@ -1319,6 +1813,21 @@
                 <h2>PLAYER INFORMATION</h2>
             </div>
             <div class="players-container" id="players-container">
+            </div>
+            <div class="players-controls">
+                <div class="view-toggle">
+                    <label for="showDeletedPlayers">Show Deleted Players</label>
+                    <div class="toggle-switch">
+                        <input type="checkbox" id="showDeletedPlayers">
+                        <span class="toggle-slider"></span>
+                    </div>
+                </div>
+                <button class="cleanup-btn" onclick="cleanupDeletedPlayers()" title="Permanently remove all deleted players">
+                    🗑️ Clean Up Deleted
+                </button>
+                <button class="add-player-btn" onclick="handleAddPlayer()" title="Add a new player">
+                    ➕ Add Player
+                </button>
             </div>
         </div>
 
@@ -1390,6 +1899,8 @@
         };
 
         let editMode = false;
+        let showPastSessions = false;
+        let showDeletedSessions = false;
 
         function formatDate(date) {
             const options = { weekday: 'long', month: 'long', day: 'numeric' };
@@ -1429,7 +1940,10 @@
                     // Convert Firebase object to array and parse dates
                     sessions = Object.values(sessionsListData).map(s => ({
                         ...s,
-                        date: s.date ? new Date(s.date) : new Date()
+                        date: s.date ? new Date(s.date) : new Date(),
+                        location: s.location || 'The Aura',
+                        time: s.time || '7:30 PM - 8:30 PM',
+                        deleted: s.deleted || false
                     })).sort((a, b) => a.id - b.id);
                     console.log('Sessions structure loaded from Firebase:', sessions.length);
                 } else {
@@ -1542,7 +2056,10 @@
                         id: s.id,
                         date: s.date ? s.date.toISOString() : new Date().toISOString(),
                         cancelled: s.cancelled || false,
-                        cancelReason: s.cancelReason || ''
+                        cancelReason: s.cancelReason || '',
+                        location: s.location || 'The Aura',
+                        time: s.time || '7:30 PM - 8:30 PM',
+                        deleted: s.deleted || false
                     };
                 });
                 
@@ -1607,6 +2124,38 @@
         }
 
         function generateSessionCard(session) {
+            // If it's a new session, show an editable card
+            if (session._isNew) {
+                const tempId = session._tempId || '';
+                const defaultDateStr = session.date ? new Date(session.date).toISOString().split('T')[0] : '';
+                
+                return `
+                    <article class="session-card new-session-card" data-temp-id="${tempId}">
+                        <div class="session-header">
+                            <span class="session-number">New</span>
+                            <div class="session-date-edit">
+                                <label>Date:</label>
+                                <input type="date" class="new-session-date-input" value="${defaultDateStr}" />
+                            </div>
+                        </div>
+                        <div class="session-meta">
+                            <div class="meta-item meta-item-edit">
+                                <span class="meta-icon">📍</span>
+                                <input type="text" class="new-session-location-input" value="${session.location || 'The Aura'}" placeholder="Location" />
+                            </div>
+                            <div class="meta-item meta-item-edit">
+                                <span class="meta-icon">🕢</span>
+                                <input type="text" class="new-session-time-input" value="${session.time || '7:30 PM - 8:30 PM'}" placeholder="Time" />
+                            </div>
+                        </div>
+                        <div class="new-session-actions">
+                            <button class="save-session-btn" onclick="handleSaveSession('${tempId}')">Save</button>
+                            <button class="cancel-session-btn" onclick="handleCancelNewSession()">Cancel</button>
+                        </div>
+                    </article>
+                `;
+            }
+            
             // Handle cancelled sessions (only show cancelled notice when NOT in edit mode)
             if (session.cancelled && !editMode) {
                 return `
@@ -1629,19 +2178,37 @@
             const gameContent = session.game ? parseContent(session.game) : defaults.game;
 
             return `
-                <article class="session-card ${session.cancelled ? 'cancelled' : ''}" data-session="${session.id}">
+                <article class="session-card ${session.cancelled ? 'cancelled' : ''} ${session.deleted ? 'deleted' : ''}" data-session="${session.id}">
                     <div class="session-header">
                         <span class="session-number">${String(session.id).padStart(2, '0')}</span>
-                        <h2 class="session-date">${formatDate(session.date)}</h2>
+                        ${editMode ? `
+                            <div class="session-date-edit">
+                                <label>Date:</label>
+                                <input type="date" class="session-date-input" value="${session.date ? new Date(session.date).toISOString().split('T')[0] : ''}" data-session="${session.id}" data-field="date" />
+                            </div>
+                        ` : `
+                            <h2 class="session-date">${formatDate(session.date)}</h2>
+                        `}
                         <div class="session-meta">
-                            <div class="meta-item">
-                                <span class="meta-icon">📍</span>
-                                <span>The Aura</span>
-                            </div>
-                            <div class="meta-item">
-                                <span class="meta-icon">🕢</span>
-                                <span>7:30 PM - 8:30 PM</span>
-                            </div>
+                            ${editMode ? `
+                                <div class="meta-item meta-item-edit">
+                                    <span class="meta-icon">📍</span>
+                                    <input type="text" class="meta-input" value="${session.location || 'The Aura'}" data-session="${session.id}" data-field="location" placeholder="Location" />
+                                </div>
+                                <div class="meta-item meta-item-edit">
+                                    <span class="meta-icon">🕢</span>
+                                    <input type="text" class="meta-input" value="${session.time || '7:30 PM - 8:30 PM'}" data-session="${session.id}" data-field="time" placeholder="Time" />
+                                </div>
+                            ` : `
+                                <div class="meta-item">
+                                    <span class="meta-icon">📍</span>
+                                    <span>${session.location || 'The Aura'}</span>
+                                </div>
+                                <div class="meta-item">
+                                    <span class="meta-icon">🕢</span>
+                                    <span>${session.time || '7:30 PM - 8:30 PM'}</span>
+                                </div>
+                            `}
                         </div>
                         <div class="session-description">
                             <div class="activity-content activity-display ${!session.desc ? 'placeholder' : ''}" data-session="${session.id}" data-field="desc">${descContent}</div>
@@ -1692,13 +2259,61 @@
                             </div>
                         </div>
                         <input type="text" class="cancel-reason-input" id="cancel-reason-${session.id}" placeholder="Reason for cancellation..." value="${session.cancelReason || ''}" data-session="${session.id}" ${!session.cancelled ? 'disabled' : ''} />
+                        <button class="delete-session-btn" onclick="handleDeleteSession(${session.id})" data-session="${session.id}">
+                            <span class="delete-icon">🗑️</span>
+                            <span>Delete Session</span>
+                        </button>
                     </div>
                 </article>
             `;
         }
 
         function renderSessions() {
-            document.getElementById('sessions').innerHTML = sessions.map(generateSessionCard).join('');
+            const sessionsContainer = document.getElementById('sessions');
+            
+            // Filter sessions based on showPastSessions and showDeletedSessions flags
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            const filteredSessions = sessions.filter(session => {
+                // Always show new sessions
+                if (session._isNew) {
+                    return true;
+                }
+                
+                // Hide deleted sessions unless showDeletedSessions is true
+                if (session.deleted && !showDeletedSessions) {
+                    return false;
+                }
+                
+                // Hide past sessions unless showPastSessions is true
+                const sessionDate = new Date(session.date);
+                sessionDate.setHours(0, 0, 0, 0);
+                if (sessionDate < today && !showPastSessions) {
+                    return false;
+                }
+                
+                return true;
+            });
+            
+            let html = filteredSessions.map(generateSessionCard).join('');
+            
+            // Add "Add Session" button in edit mode
+            if (editMode) {
+                html += `
+                    <div class="add-session-container">
+                        <div class="add-session-form">
+                            <input type="date" class="new-session-date-input" id="newSessionDate" />
+                            <button class="add-session-btn" onclick="handleAddSession()">
+                                <span class="add-session-icon">+</span>
+                                <span class="add-session-text">Add New Session</span>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            sessionsContainer.innerHTML = html;
             
             document.querySelectorAll('.activity-input').forEach(input => {
                 input.addEventListener('input', e => {
@@ -1708,25 +2323,263 @@
                 });
             });
             
+            // Handle date, location, and time inputs
+            document.querySelectorAll('.session-date-input, .meta-input').forEach(input => {
+                input.addEventListener('change', e => {
+                    const session = sessions.find(s => s.id === parseInt(e.target.dataset.session));
+                    const field = e.target.dataset.field;
+                    if (session && field) {
+                        if (field === 'date') {
+                            session.date = new Date(e.target.value);
+                        } else {
+                            session[field] = e.target.value;
+                        }
+                        saveSessionsList();
+                    }
+                });
+            });
+            
             applyEditMode();
             
             // Setup cancel controls if in edit mode
             if (editMode) {
                 setupCancelControls();
+                
+                // Set default date for new session date picker
+                const newSessionDateInput = document.getElementById('newSessionDate');
+                if (newSessionDateInput && !newSessionDateInput.value) {
+                    // Default to 7 days after the last session, or today if no sessions
+                    let defaultDate = new Date();
+                    if (sessions.length > 0) {
+                        const sortedSessions = [...sessions].sort((a, b) => new Date(b.date) - new Date(a.date));
+                        const lastSession = sortedSessions[0];
+                        defaultDate = new Date(lastSession.date);
+                        defaultDate.setDate(defaultDate.getDate() + 7);
+                    }
+                    newSessionDateInput.value = defaultDate.toISOString().split('T')[0];
+                }
             }
         }
+        
+        window.handleDeleteSession = async function(sessionId) {
+            if (!confirm('Are you sure you want to delete this session? It will be hidden but can be restored by showing past & deleted sessions.')) {
+                return;
+            }
+            
+            const session = sessions.find(s => s.id === sessionId);
+            if (session) {
+                session.deleted = true;
+                await saveSessionsList();
+                renderSessions();
+            }
+        };
+
+        window.cleanupDeletedSessions = async function() {
+            const deletedSessions = sessions.filter(s => s.deleted);
+            const deletedCount = deletedSessions.length;
+            
+            if (deletedCount === 0) {
+                alert('No deleted sessions to clean up.');
+                return;
+            }
+            
+            if (!confirm(`Are you sure you want to permanently delete ${deletedCount} session(s)? This action cannot be undone.`)) {
+                return;
+            }
+            
+            // Get IDs of deleted sessions before removing them
+            const deletedSessionIds = deletedSessions.map(s => s.id);
+            
+            // Remove deleted sessions from the array
+            const originalLength = sessions.length;
+            sessions = sessions.filter(s => !s.deleted);
+            
+            // Also remove their data from Firebase sessions node
+            if (database) {
+                try {
+                    // Remove session content from Firebase
+                    const sessionsRef = database.ref('sessions');
+                    for (const sessionId of deletedSessionIds) {
+                        await sessionsRef.child(sessionId).remove();
+                    }
+                } catch (e) {
+                    console.error('Failed to remove session data from Firebase:', e);
+                }
+            }
+            
+            // Save updated sessions list
+            await saveSessionsList();
+            
+            // Re-render
+            renderSessions();
+            
+            alert(`Successfully removed ${originalLength - sessions.length} deleted session(s).`);
+        };
+        
+        window.handleAddSession = function() {
+            // Create a temporary new session with a unique ID
+            const tempId = 'new-session-' + Date.now();
+            
+            // Default date: 7 days after the last session, or today if no sessions
+            let defaultDate = new Date();
+            if (sessions.length > 0) {
+                const sortedSessions = [...sessions].sort((a, b) => new Date(b.date) - new Date(a.date));
+                const lastSession = sortedSessions[0];
+                defaultDate = new Date(lastSession.date);
+                defaultDate.setDate(defaultDate.getDate() + 7);
+            }
+            
+            const newSession = {
+                id: null, // Will be assigned when saved
+                date: defaultDate,
+                cancelled: false,
+                cancelReason: '',
+                location: 'The Aura',
+                time: '7:30 PM - 8:30 PM',
+                desc: '',
+                warmup: '',
+                drills: '',
+                game: '',
+                deleted: false,
+                _tempId: tempId,
+                _isNew: true
+            };
+            
+            // Add to sessions array
+            sessions.push(newSession);
+            
+            // Re-render to show the empty card
+            renderSessions();
+            
+            // Scroll to the new session card
+            setTimeout(() => {
+                const newSessionCard = document.querySelector(`.session-card[data-temp-id="${tempId}"]`);
+                if (newSessionCard) {
+                    newSessionCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }, 100);
+        };
+
+        window.handleSaveSession = async function(tempId) {
+            const sessionCard = document.querySelector(`.session-card[data-temp-id="${tempId}"]`);
+            if (!sessionCard) return;
+            
+            const dateInput = sessionCard.querySelector('.new-session-date-input');
+            const locationInput = sessionCard.querySelector('.new-session-location-input');
+            const timeInput = sessionCard.querySelector('.new-session-time-input');
+            
+            const dateStr = dateInput ? dateInput.value : '';
+            const location = locationInput ? locationInput.value.trim() : '';
+            const time = timeInput ? timeInput.value.trim() : '';
+            
+            if (!dateStr) {
+                alert('Please enter a session date.');
+                if (dateInput) dateInput.focus();
+                return;
+            }
+            
+            const newDate = new Date(dateStr);
+            if (isNaN(newDate.getTime())) {
+                alert('Invalid date format.');
+                if (dateInput) dateInput.focus();
+                return;
+            }
+            
+            // Find and update the session
+            const sessionIndex = sessions.findIndex(s => s._tempId === tempId);
+            if (sessionIndex !== -1) {
+                const session = sessions[sessionIndex];
+                
+                // Find the next available ID
+                const deletedSessions = sessions.filter(s => s.deleted && !s._isNew).sort((a, b) => a.id - b.id);
+                let newId;
+                
+                if (deletedSessions.length > 0) {
+                    newId = deletedSessions[0].id;
+                    const indexToRemove = sessions.findIndex(s => s.id === newId && !s._isNew);
+                    if (indexToRemove !== -1) {
+                        sessions.splice(indexToRemove, 1);
+                    }
+                } else {
+                    const activeSessions = sessions.filter(s => !s.deleted && !s._isNew);
+                    const maxId = activeSessions.length > 0 ? Math.max(...activeSessions.map(s => s.id)) : 0;
+                    newId = maxId + 1;
+                }
+                
+                session.id = newId;
+                session.date = newDate;
+                session.location = location || 'The Aura';
+                session.time = time || '7:30 PM - 8:30 PM';
+                delete session._tempId;
+                delete session._isNew;
+            }
+            
+            // Sort sessions by ID
+            sessions.sort((a, b) => {
+                if (a.id === null) return 1;
+                if (b.id === null) return -1;
+                return a.id - b.id;
+            });
+            
+            // Save to Firebase
+            await saveSessionsList();
+            await saveData();
+            
+            // Re-render
+            renderSessions();
+        };
+
+        window.handleCancelNewSession = function() {
+            // Remove the temporary session from the array
+            const sessionIndex = sessions.findIndex(s => s._isNew);
+            if (sessionIndex !== -1) {
+                sessions.splice(sessionIndex, 1);
+            }
+            
+            // Re-render
+            renderSessions();
+        };
 
         function applyEditMode() {
-            document.querySelectorAll('.activity-input').forEach(el => el.classList.toggle('hidden', !editMode));
-            document.querySelectorAll('.activity-display').forEach(el => el.classList.toggle('hidden', editMode));
-            document.querySelectorAll('.session-cancel-controls').forEach(el => el.classList.toggle('hidden', !editMode));
+            // Apply edit mode to activity inputs and displays (skip new session cards)
+            document.querySelectorAll('.activity-input').forEach(el => {
+                if (el.closest('.new-session-card')) return; // Skip new session cards
+                el.classList.toggle('hidden', !editMode);
+            });
+            document.querySelectorAll('.activity-display').forEach(el => {
+                if (el.closest('.new-session-card')) return; // Skip new session cards
+                el.classList.toggle('hidden', editMode);
+            });
+            document.querySelectorAll('.session-cancel-controls').forEach(el => {
+                if (el.closest('.new-session-card')) return; // Skip new session cards
+                el.classList.toggle('hidden', !editMode);
+            });
         }
 
         function setupEditMode() {
             const toggle = document.getElementById('editMode');
-            const status = document.getElementById('editStatus');
+            
+            if (!toggle) return;
+            
+            // Setup show past sessions toggle
+            const showPastToggle = document.getElementById('showPastSessions');
+            if (showPastToggle) {
+                showPastToggle.addEventListener('change', () => {
+                    showPastSessions = showPastToggle.checked;
+                    renderSessions();
+                });
+            }
+            
+            // Setup show deleted sessions toggle
+            const showDeletedToggle = document.getElementById('showDeletedSessions');
+            if (showDeletedToggle) {
+                showDeletedToggle.addEventListener('change', () => {
+                    showDeletedSessions = showDeletedToggle.checked;
+                    renderSessions();
+                });
+            }
 
-            toggle.addEventListener('change', () => {
+                toggle.addEventListener('change', () => {
                 if (!toggle.checked && editMode) {
                     document.querySelectorAll('.activity-input').forEach(input => {
                         const session = sessions.find(s => s.id === parseInt(input.dataset.session));
@@ -1737,6 +2590,19 @@
                         if (display) {
                             display.innerHTML = session[field] ? parseContent(session[field]) : defaults[field];
                             display.classList.toggle('placeholder', !session[field]);
+                        }
+                    });
+                    
+                    // Save date, location, and time
+                    document.querySelectorAll('.session-date-input, .meta-input').forEach(input => {
+                        const session = sessions.find(s => s.id === parseInt(input.dataset.session));
+                        const field = input.dataset.field;
+                        if (session && field) {
+                            if (field === 'date') {
+                                session.date = new Date(input.value);
+                            } else {
+                                session[field] = input.value;
+                            }
                         }
                     });
                     
@@ -1760,8 +2626,6 @@
                 }
                 
                 editMode = toggle.checked;
-                status.textContent = editMode ? 'On' : 'Off';
-                status.classList.toggle('active', editMode);
                 
                 // Re-render sessions when toggling edit mode so cancelled sessions show full card in edit mode
                 renderSessions();
@@ -2201,6 +3065,8 @@
             `).join('');
         }
 
+        let showDeletedPlayers = false;
+
         function renderPlayers() {
             const container = document.getElementById('players-container');
             
@@ -2209,14 +3075,20 @@
                 container.innerHTML = `
                     <div style="text-align: center; padding: 40px; color: var(--text-secondary);">
                         <p style="font-size: 16px; margin-bottom: 12px;">No players found</p>
-                        <p style="font-size: 14px; color: var(--text-muted);">Run <code style="background: var(--bg-section); padding: 4px 8px; border-radius: 4px;">migratePlayersToFirebase()</code> in the browser console to migrate players to Firebase.</p>
+                        <p style="font-size: 14px; color: var(--text-muted);">Click "Add Player" to create a new player.</p>
                     </div>
                 `;
                 return;
             }
             
-            // Filter: exclude players where returning = "No" (case-insensitive), and exclude invalid entries
-            const filteredPlayers = players.filter(p => {
+            // Filter: exclude players where returning = "No" (case-insensitive), exclude invalid entries, and filter by deleted status
+            // Always include new players (_isNew)
+            let filteredPlayers = players.filter(p => {
+                // Always show new players
+                if (p._isNew) {
+                    return true;
+                }
+                
                 const returning = (p.returning || '').toString().toLowerCase().trim();
                 const playerName = (p.player || '').toString().toLowerCase();
                 return p.player && 
@@ -2225,17 +3097,58 @@
                        returning !== 'no';
             });
             
+            // Filter by deleted status (but always show new players)
+            if (!showDeletedPlayers) {
+                filteredPlayers = filteredPlayers.filter(p => !p.deleted || p._isNew);
+            }
+            
             container.innerHTML = filteredPlayers.map((p, index) => {
                 const playerName = p.player || '';
                 const goals = getPlayerGoals(playerName);
+                const isDeleted = p.deleted || false;
+                const isNew = p._isNew || false;
+                const tempId = p._tempId || '';
+                
+                // If it's a new player, show an editable card
+                if (isNew) {
+                    return `
+                        <div class="player-card-wrapper">
+                            <div class="player-card new-player-card" data-temp-id="${tempId}" data-index="${index}">
+                                <div class="player-card-front">
+                                    <div class="player-name">
+                                        <input type="text" class="player-name-input" placeholder="Player Name" value="${playerName}" />
+                                    </div>
+                                    <div class="player-details">
+                                        <div class="player-detail-item">
+                                            <span class="player-detail-label">Jersey #</span>
+                                            <input type="text" class="player-jersey-input" placeholder="Jersey Number" value="${p.jersey || ''}" />
+                                        </div>
+                                        <div class="player-detail-item">
+                                            <span class="player-detail-label">Parent</span>
+                                            <input type="text" class="player-parent-input" placeholder="Parent Name" value="${p.parent || ''}" />
+                                        </div>
+                                    </div>
+                                    <div class="new-player-actions">
+                                        <button class="save-player-btn" onclick="handleSavePlayer('${tempId}')">Save</button>
+                                        <button class="cancel-player-btn" onclick="handleCancelNewPlayer('${tempId}')">Cancel</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
                 
                 return `
                     <div class="player-card-wrapper">
-                        <div class="player-card" data-player="${playerName}" data-index="${index}">
+                        <div class="player-card ${isDeleted ? 'deleted' : ''}" data-player="${playerName}" data-index="${index}">
+                            ${isDeleted ? '<div class="deleted-indicator">Deleted</div>' : ''}
                             <div class="player-card-front">
                                 <div class="player-name">
                                     ${playerName}
-                                    ${p.jersey ? `<span class="jersey-number"><span class="jersey-icon">👕</span>${p.jersey}</span>` : ''}
+                                    <div class="player-name-actions">
+                                        ${p.jersey ? `<span class="jersey-number"><span class="jersey-icon">👕</span>${p.jersey}</span>` : ''}
+                                        <button class="delete-player-btn" onclick="handleDeletePlayer('${playerName}')" title="Delete player">🗑️</button>
+                                    </div>
                                 </div>
                                 <div class="player-details">
                                     ${p.parent ? `
@@ -2565,6 +3478,215 @@
             }, 1500);
         }
 
+        async function savePlayersList() {
+            if (!database) {
+                return;
+            }
+            
+            try {
+                const playersRef = database.ref('playersList');
+                const playersData = {};
+                
+                players.forEach(p => {
+                    // Skip temporary/new players that haven't been saved yet
+                    if (p._isNew || !p.player) {
+                        return;
+                    }
+                    playersData[p.player] = {
+                        player: p.player,
+                        jersey: p.jersey || '',
+                        parent: p.parent || '',
+                        year: p.year || '',
+                        returning: p.returning || '',
+                        deleted: p.deleted || false
+                    };
+                });
+                
+                await playersRef.set(playersData);
+                console.log('Players list saved to Firebase');
+            } catch (e) {
+                console.error('Failed to save players list to Firebase:', e);
+            }
+        }
+
+        window.handleAddPlayer = function() {
+            // Create a temporary new player with a unique ID
+            const tempId = 'new-' + Date.now();
+            const newPlayer = {
+                player: '',
+                jersey: '',
+                parent: '',
+                year: '',
+                returning: 'Yes',
+                deleted: false,
+                _tempId: tempId,
+                _isNew: true
+            };
+            
+            // Add to players array
+            players.push(newPlayer);
+            
+            // Re-render to show the empty card
+            renderPlayers();
+            
+            // Scroll to the new player card
+            setTimeout(() => {
+                const newPlayerCard = document.querySelector(`.player-card[data-temp-id="${tempId}"]`);
+                if (newPlayerCard) {
+                    newPlayerCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    // Focus on the name input
+                    const nameInput = newPlayerCard.querySelector('.player-name-input');
+                    if (nameInput) {
+                        nameInput.focus();
+                    }
+                }
+            }, 100);
+        };
+
+        window.handleDeletePlayer = async function(playerName) {
+            if (!confirm(`Are you sure you want to delete ${playerName}? They will be hidden but can be restored by showing deleted players.`)) {
+                return;
+            }
+            
+            const player = players.find(p => p.player === playerName);
+            if (player) {
+                player.deleted = true;
+                await savePlayersList();
+                renderPlayers();
+            }
+        };
+
+        window.cleanupDeletedPlayers = async function() {
+            const deletedPlayers = players.filter(p => p.deleted);
+            const deletedCount = deletedPlayers.length;
+            
+            if (deletedCount === 0) {
+                alert('No deleted players to clean up.');
+                return;
+            }
+            
+            if (!confirm(`Are you sure you want to permanently delete ${deletedCount} player(s)? This action cannot be undone.`)) {
+                return;
+            }
+            
+            // Get names of deleted players before removing them
+            const deletedPlayerNames = deletedPlayers.map(p => p.player);
+            
+            // Remove deleted players from the array
+            const originalLength = players.length;
+            players = players.filter(p => !p.deleted);
+            
+            // Also remove their data from Firebase players node
+            if (database) {
+                try {
+                    // Remove player data from Firebase
+                    const playersRef = database.ref('players');
+                    for (const playerName of deletedPlayerNames) {
+                        await playersRef.child(encodeURIComponent(playerName)).remove();
+                    }
+                } catch (e) {
+                    console.error('Failed to remove player data from Firebase:', e);
+                }
+            }
+            
+            // Save updated players list
+            await savePlayersList();
+            
+            // Re-render
+            renderPlayers();
+            
+            alert(`Successfully removed ${originalLength - players.length} deleted player(s).`);
+        };
+
+        window.handleAddPlayer = async function() {
+            // Create a temporary new player with a unique ID
+            const tempId = 'new-' + Date.now();
+            const newPlayer = {
+                player: '',
+                jersey: '',
+                parent: '',
+                year: '',
+                returning: 'Yes',
+                deleted: false,
+                _tempId: tempId,
+                _isNew: true
+            };
+            
+            // Add to players array
+            players.push(newPlayer);
+            
+            // Re-render to show the empty card
+            renderPlayers();
+            
+            // Scroll to the new player card
+            setTimeout(() => {
+                const newPlayerCard = document.querySelector(`.player-card[data-temp-id="${tempId}"]`);
+                if (newPlayerCard) {
+                    newPlayerCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    // Focus on the name input
+                    const nameInput = newPlayerCard.querySelector('.player-name-input');
+                    if (nameInput) {
+                        nameInput.focus();
+                    }
+                }
+            }, 100);
+        };
+
+        window.handleSavePlayer = async function(tempId) {
+            const playerCard = document.querySelector(`.player-card[data-temp-id="${tempId}"]`);
+            if (!playerCard) return;
+            
+            const nameInput = playerCard.querySelector('.player-name-input');
+            const jerseyInput = playerCard.querySelector('.player-jersey-input');
+            const parentInput = playerCard.querySelector('.player-parent-input');
+            
+            const playerName = nameInput ? nameInput.value.trim() : '';
+            const jersey = jerseyInput ? jerseyInput.value.trim() : '';
+            const parent = parentInput ? parentInput.value.trim() : '';
+            
+            if (!playerName) {
+                alert('Please enter a player name.');
+                if (nameInput) nameInput.focus();
+                return;
+            }
+            
+            // Check if player already exists (excluding the current temp player)
+            const existingPlayer = players.find(p => p.player === playerName && !p._isNew);
+            if (existingPlayer) {
+                alert('A player with this name already exists.');
+                if (nameInput) nameInput.focus();
+                return;
+            }
+            
+            // Find and update the player
+            const playerIndex = players.findIndex(p => p._tempId === tempId);
+            if (playerIndex !== -1) {
+                const player = players[playerIndex];
+                player.player = playerName;
+                player.jersey = jersey;
+                player.parent = parent;
+                delete player._tempId;
+                delete player._isNew;
+            }
+            
+            // Save to Firebase
+            await savePlayersList();
+            
+            // Re-render
+            renderPlayers();
+        };
+
+        window.handleCancelNewPlayer = async function(tempId) {
+            // Remove the temporary player from the array
+            const playerIndex = players.findIndex(p => p._tempId === tempId);
+            if (playerIndex !== -1) {
+                players.splice(playerIndex, 1);
+            }
+            
+            // Re-render
+            renderPlayers();
+        };
+
         function updateGoalDisplay(playerName, index, goals) {
             // Update goals list
             const goalsList = document.getElementById(`goals-list-${index}`);
@@ -2809,53 +3931,49 @@
                     tabContents.forEach(content => content.classList.remove('active'));
                     document.getElementById(targetTab + '-tab').classList.add('active');
                     
+                    // Setup show deleted players toggle if on players tab
+                    if (targetTab === 'players') {
+                        const showDeletedToggle = document.getElementById('showDeletedPlayers');
+                        if (showDeletedToggle) {
+                            showDeletedToggle.addEventListener('change', () => {
+                                showDeletedPlayers = showDeletedToggle.checked;
+                                renderPlayers();
+                            });
+                        }
+                    }
+                    
                     // Render stats when stats tab is shown
                     if (targetTab === 'stats') {
                         renderStats();
                     }
+                    
+                    // Setup show deleted players toggle if on players tab
+                    if (targetTab === 'players') {
+                        setupPlayersControls();
+                    }
                 });
             });
             
-            // Ensure tabs stick to top on scroll (fallback for browsers that don't support sticky well)
-            if (tabs) {
-                const container = document.querySelector('.container');
-                let tabsOffsetTop = tabs.offsetTop;
-                
-                function handleScroll() {
-                    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-                    const containerRect = container.getBoundingClientRect();
-                    
-                    if (scrollTop >= tabsOffsetTop) {
-                        tabs.style.position = 'fixed';
-                        tabs.style.top = '0';
-                        tabs.style.left = '50%';
-                        tabs.style.transform = 'translateX(-50%)';
-                        tabs.style.width = Math.min(500, containerRect.width) + 'px';
-                        tabs.style.maxWidth = '100vw';
-                        tabs.style.paddingLeft = '16px';
-                        tabs.style.paddingRight = '16px';
-                        tabs.style.marginLeft = '0';
-                        tabs.style.marginRight = '0';
-                    } else {
-                        tabs.style.position = 'sticky';
-                        tabs.style.top = '0';
-                        tabs.style.left = 'auto';
-                        tabs.style.transform = 'none';
-                        tabs.style.width = 'calc(100% + 32px)';
-                        tabs.style.marginLeft = '-16px';
-                        tabs.style.marginRight = '-16px';
-                    }
-                }
-                
-                window.addEventListener('scroll', handleScroll);
-                window.addEventListener('resize', () => {
-                    tabsOffsetTop = tabs.offsetTop;
-                    handleScroll();
-                });
-                
-                // Initial check
-                handleScroll();
+            // Setup players controls on initial load if players tab is active
+            if (document.getElementById('players-tab').classList.contains('active')) {
+                setupPlayersControls();
             }
+        }
+        
+        function setupPlayersControls() {
+            const showDeletedToggle = document.getElementById('showDeletedPlayers');
+            if (showDeletedToggle) {
+                // Remove existing listeners to avoid duplicates
+                const newToggle = showDeletedToggle.cloneNode(true);
+                showDeletedToggle.parentNode.replaceChild(newToggle, showDeletedToggle);
+                
+                newToggle.addEventListener('change', () => {
+                    showDeletedPlayers = newToggle.checked;
+                    renderPlayers();
+                });
+            }
+            
+            // Tabs are now fixed at the top via CSS, no JavaScript manipulation needed
         }
 
         // Migration function to add sessions structure to Firebase
@@ -2975,6 +4093,7 @@
             await loadPlayersFromFirebase();
             await loadGoalsFromFirebase();
             renderPlayers();
+            setupPlayersControls();
         });
     </script>
 </body>
