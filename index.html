@@ -1101,7 +1101,7 @@
 
         .stats-chart-svg-container {
             width: 100%;
-            height: 400px;
+            height: 300px;
             overflow: visible;
         }
 
@@ -1117,21 +1117,22 @@
         }
 
         .stats-chart-player-label {
-            font-size: 11px;
+            font-size: 28px;
             fill: var(--text-secondary);
             text-anchor: middle;
             font-weight: 500;
+            dominant-baseline: middle;
         }
 
         .stats-chart-goal-value {
-            font-size: 12px;
+            font-size: 24px;
             fill: var(--accent-primary);
             text-anchor: middle;
             font-weight: 700;
         }
 
         .stats-chart-axis-label {
-            font-size: 12px;
+            font-size: 24px;
             fill: var(--text-secondary);
             font-weight: 600;
         }
@@ -1209,19 +1210,19 @@
             }
             
             .stats-chart-svg-container {
-                height: 300px;
+                height: 500px;
             }
             
             .stats-chart-player-label {
-                font-size: 9px;
+                font-size: 24px;
             }
             
             .stats-chart-goal-value {
-                font-size: 10px;
+                font-size: 20px;
             }
             
             .stats-chart-axis-label {
-                font-size: 10px;
+                font-size: 20px;
             }
             
             .goals-chart-value {
@@ -2288,7 +2289,7 @@
                                 </div>
                                 <div class="goal-input-group">
                                     <input type="date" class="goal-date-input" id="goal-date-${index}" value="${new Date().toISOString().split('T')[0]}" />
-                                    <input type="number" class="goal-count-input" id="goal-count-${index}" min="1" value="1" />
+                                    <input type="number" class="goal-count-input" id="goal-count-${index}" min="1" value="" />
                                 </div>
                                 <button class="add-goal-btn" onclick="handleAddGoals('${playerName}', ${index})">Add Goals</button>
                                 <div class="goals-list" id="goals-list-${index}">
@@ -2513,21 +2514,31 @@
             const dateInput = document.getElementById(`goal-date-${index}`);
             const countInput = document.getElementById(`goal-count-${index}`);
             const date = dateInput.value;
-            const count = parseInt(countInput.value) || 1;
+            const countValue = countInput.value.trim();
             
             if (!date) {
                 alert('Please select a date');
                 return;
             }
             
-            if (count < 1) {
-                alert('Please enter a valid number of goals');
+            if (!countValue || countValue === '') {
+                alert('Please enter the number of goals');
+                countInput.focus();
+                return;
+            }
+            
+            const count = parseInt(countValue);
+            if (isNaN(count) || count < 1) {
+                alert('Please enter a valid number of goals (must be 1 or more)');
+                countInput.focus();
                 return;
             }
             
             const goals = addGoals(playerName, date, count);
-            dateInput.value = ''; // Clear date input
-            countInput.value = '1'; // Reset count to 1
+            // Set today's date and clear count
+            const today = new Date();
+            dateInput.value = today.toISOString().split('T')[0];
+            countInput.value = ''; // Clear count input
             
             // Re-render the goals list and total
             updateGoalDisplay(playerName, index, goals);
@@ -2681,10 +2692,24 @@
                 return;
             }
             
+            // Find the longest player name to calculate proper spacing
+            const longestName = playersWithGoals.reduce((longest, player) => 
+                player.name.length > longest.length ? player.name : longest, '');
+            const longestNameLength = longestName.length;
+            const fontSize = 28; // Current font size for player labels
+            // Calculate space needed: font size * number of characters + some padding
+            // When rotated -90 degrees, the text width becomes the height
+            const nameSpaceNeeded = (fontSize * longestNameLength * 0.6) + 20; // 0.6 is approximate character width ratio, +20 for padding (reduced)
+            
             // Chart dimensions
             const chartWidth = 800;
-            const chartHeight = 400;
-            const padding = { top: 40, right: 40, bottom: 80, left: 60 };
+            const chartHeight = 600; // Increased overall height for longer bars
+            const padding = { 
+                top: 40, 
+                right: 40, 
+                bottom: Math.max(200, nameSpaceNeeded + 10), // Dynamic bottom padding based on longest name, minimal buffer
+                left: 80 // Increased left padding to prevent Goals text from being cut off
+            };
             const barWidth = (chartWidth - padding.left - padding.right) / playersWithGoals.length - 10;
             const maxGoals = Math.max(...playersWithGoals.map(p => p.total), 1);
             const barHeight = chartHeight - padding.top - padding.bottom;
@@ -2696,15 +2721,16 @@
                         <svg viewBox="0 0 ${chartWidth} ${chartHeight}" preserveAspectRatio="xMidYMid meet">
                             <!-- Y-axis label -->
                             <text class="stats-chart-axis-label" 
-                                  x="${padding.left / 2}" 
-                                  y="${chartHeight / 2}" 
-                                  transform="rotate(-90, ${padding.left / 2}, ${chartHeight / 2})"
-                                  text-anchor="middle">Goals</text>
+                                  x="20" 
+                                  y="${(padding.top + (barHeight / 2) )}" 
+                                  transform="rotate(-90, 20, ${padding.top + (barHeight / 2)})"
+                                  text-anchor="middle"
+                                  dominant-baseline="middle">Goals</text>
                             
                             <!-- X-axis label -->
                             <text class="stats-chart-axis-label" 
                                   x="${chartWidth / 2}" 
-                                  y="${chartHeight - 10}" 
+                                  y="${(chartHeight - padding.bottom + 5) + 30}" 
                                   text-anchor="middle">Players</text>
                             
                             <!-- Y-axis grid lines and labels -->
@@ -2751,8 +2777,10 @@
                                               x="${x + barWidth / 2}" 
                                               y="${y - 8}">${player.total}</text>
                                         <text class="stats-chart-player-label" 
-                                              x="${x + barWidth / 2}" 
-                                              y="${chartHeight - padding.bottom + 20}">${displayName}</text>
+                                              x="${(x + barWidth / 2) - 40}" 
+                                              y="${chartHeight - padding.bottom + (nameSpaceNeeded * 0.4)}"
+                                              transform="rotate(-90, ${x + barWidth / 2}, ${chartHeight - padding.bottom + (nameSpaceNeeded * 0.4)})"
+                                              text-anchor="middle">${player.name}</text>
                                     </g>
                                 `;
                             }).join('')}
