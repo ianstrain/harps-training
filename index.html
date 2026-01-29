@@ -221,7 +221,7 @@
         }
 
         .toggle-switch input:checked + .toggle-slider::before {
-            transform: translateX(24px);
+            transform: translateX(20px);
             background: var(--bg-dark);
         }
 
@@ -249,8 +249,8 @@
             right: 0;
             display: flex;
             align-items: center;
-            gap: 16px;
-            padding: 16px 24px;
+            gap: 8px;
+            padding: 8px 12px;
             flex-wrap: wrap;
             justify-content: center;
             background: var(--bg-dark);
@@ -269,20 +269,20 @@
         .view-toggle {
             display: flex;
             align-items: center;
-            gap: 12px;
-            padding: 8px 12px;
+            gap: 8px;
+            padding: 6px 10px;
             background: var(--bg-section);
             border-radius: 8px;
             border: 1px solid var(--border-color);
         }
 
         .cleanup-btn {
-            padding: 8px 16px;
+            padding: 6px 12px;
             background: rgba(239, 68, 68, 0.1);
             border: 2px solid #ef4444;
             border-radius: 8px;
             color: #ef4444;
-            font-size: 13px;
+            font-size: 11px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
@@ -302,8 +302,8 @@
             right: 0;
             display: flex;
             align-items: center;
-            gap: 16px;
-            padding: 16px 24px;
+            gap: 8px;
+            padding: 8px 12px;
             flex-wrap: wrap;
             justify-content: center;
             background: var(--bg-dark);
@@ -313,12 +313,12 @@
         }
 
         .add-player-btn {
-            padding: 8px 16px;
+            padding: 6px 12px;
             background: rgba(0, 212, 170, 0.1);
             border: 2px solid var(--accent-primary);
             border-radius: 8px;
             color: var(--accent-primary);
-            font-size: 13px;
+            font-size: 11px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
@@ -332,12 +332,12 @@
         }
 
         .add-session-btn-bottom {
-            padding: 8px 16px;
+            padding: 6px 12px;
             background: rgba(0, 212, 170, 0.1);
             border: 2px solid var(--accent-primary);
             border-radius: 8px;
             color: var(--accent-primary);
-            font-size: 13px;
+            font-size: 11px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
@@ -562,7 +562,14 @@
         }
 
         .view-toggle label {
-            font-size: 13px;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-primary);
+            cursor: pointer;
+        }
+
+        .edit-toggle label {
+            font-size: 11px;
             font-weight: 600;
             color: var(--text-primary);
             cursor: pointer;
@@ -1633,6 +1640,56 @@
         }
 
         @media (max-width: 768px) {
+            .edit-controls,
+            .players-controls {
+                padding: 6px 8px;
+                gap: 6px;
+            }
+
+            .edit-toggle,
+            .view-toggle {
+                padding: 4px 8px;
+                gap: 6px;
+            }
+
+            .edit-toggle label,
+            .view-toggle label {
+                font-size: 10px;
+            }
+
+            .toggle-switch {
+                width: 36px;
+                height: 20px;
+            }
+
+            .toggle-slider {
+                border-radius: 20px;
+            }
+
+            .toggle-slider::before {
+                height: 14px;
+                width: 14px;
+            }
+
+            .toggle-switch input:checked + .toggle-slider::before {
+                transform: translateX(16px);
+            }
+
+            .cleanup-btn,
+            .add-player-btn,
+            .add-session-btn-bottom {
+                padding: 5px 10px;
+                font-size: 10px;
+            }
+
+            .tab-content {
+                padding-bottom: 70px;
+            }
+
+            #players-tab {
+                padding-bottom: 70px;
+            }
+
             .goal-input-group {
                 flex-direction: column;
                 gap: 8px;
