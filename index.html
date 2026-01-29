@@ -898,6 +898,74 @@
             font-style: italic;
         }
 
+        .goals-chart {
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .goals-chart-title {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+        }
+
+        .goals-chart-container {
+            width: 100%;
+            height: 110px;
+            position: relative;
+            overflow: visible;
+        }
+
+        .goals-chart-svg {
+            width: 100%;
+            height: 100%;
+            overflow: visible;
+        }
+
+        .goals-chart-bar {
+            fill: var(--accent-primary);
+            transition: all 0.3s ease;
+        }
+
+        .goals-chart-bar:hover {
+            fill: var(--accent-secondary);
+            opacity: 0.9;
+        }
+
+
+        .goals-chart-label {
+            font-size: 10px;
+            fill: var(--text-secondary);
+            text-anchor: middle;
+            font-weight: 500;
+        }
+
+        .goals-chart-label-letter {
+            font-size: 9px;
+            fill: var(--text-secondary);
+            text-anchor: middle;
+            font-weight: 400;
+        }
+
+        .goals-chart-label-rotated {
+            font-size: 5px;
+            fill: var(--text-secondary);
+            text-anchor: middle;
+            font-weight: 900;
+            letter-spacing: 6px;
+        }
+
+        .goals-chart-value {
+            font-size: 8px;
+            fill: var(--accent-primary);
+            text-anchor: middle;
+            font-weight: 500;
+        }
+
         .players-header {
             text-align: center;
             margin-bottom: 24px;
@@ -951,6 +1019,20 @@
                 padding: 10px;
             }
             
+            .goals-chart-container {
+                height: 110px;
+            }
+            
+            .goals-chart-label,
+            .goals-chart-label-letter,
+            .goals-chart-label-rotated {
+                font-size: 5px;
+            }
+            
+            .goals-chart-value {
+                font-size: 7px;
+            }
+            
             .container {
                 max-width: 100%;
                 padding: 20px 12px 40px;
@@ -985,6 +1067,21 @@
             .add-goal-btn {
                 padding: 10px;
                 font-size: 13px;
+            }
+            .goals-chart-container {
+                height: 100px;
+            }
+            .goals-chart-title {
+                font-size: 10px;
+                margin-bottom: 8px;
+            }
+            .goals-chart-label,
+            .goals-chart-label-letter,
+            .goals-chart-label-rotated {
+                font-size: 5px;
+            }
+            .goals-chart-value {
+                font-size: 6px;
             }
         }
     </style>
@@ -1436,6 +1533,44 @@
             }, 0);
         }
 
+        function getGoalsByMonth(goals) {
+            const now = new Date();
+            const currentYear = now.getFullYear();
+            const monthlyGoals = {};
+            
+            // Initialize all months from February (1) to October (9) with 0 goals
+            for (let month = 1; month <= 9; month++) {
+                const monthKey = `${currentYear}-${String(month + 1).padStart(2, '0')}`;
+                const monthDate = new Date(currentYear, month, 1);
+                const monthLabel = monthDate.toLocaleDateString('en-IE', { month: 'short', year: 'numeric' });
+                
+                monthlyGoals[monthKey] = {
+                    label: monthLabel,
+                    count: 0
+                };
+            }
+            
+            // Add actual goal data for months in the range (February to October)
+            Object.entries(goals).forEach(([date, count]) => {
+                const goalDate = new Date(date);
+                const goalMonth = goalDate.getMonth(); // 0-indexed (0 = Jan, 1 = Feb, ..., 9 = Oct)
+                const goalYear = goalDate.getFullYear();
+                
+                // Only include goals from February (month 1) to October (month 9) in the current year
+                if (goalYear === currentYear && goalMonth >= 1 && goalMonth <= 9) {
+                    const monthKey = `${goalYear}-${String(goalMonth + 1).padStart(2, '0')}`;
+                    if (monthlyGoals[monthKey]) {
+                        monthlyGoals[monthKey].count += parseInt(count) || 0;
+                    }
+                }
+            });
+            
+            // Return all months from February to October, sorted by date
+            return Object.entries(monthlyGoals)
+                .sort((a, b) => a[0].localeCompare(b[0]))
+                .map(([key, data]) => data);
+        }
+
         function addGoals(playerName, date, count) {
             const goals = getPlayerGoals(playerName);
             const currentCount = goals[date] || 0;
@@ -1587,6 +1722,73 @@
             });
         }
 
+        function renderGoalsChart(goals) {
+            const monthlyData = getGoalsByMonth(goals);
+            
+            if (monthlyData.length === 0) {
+                return '';
+            }
+            
+            const maxGoals = Math.max(...monthlyData.map(m => m.count), 1);
+            const chartWidth = 100;
+            const chartHeight = 90;
+            const padding = 8;
+            const barWidth = 2;//(chartWidth - (padding * (monthlyData.length + 1))) / monthlyData.length;
+            const topPadding = 15; // Space for goal count text above bars
+            const bottomPadding = 35; // Space for rotated month labels
+            const maxBarHeight = chartHeight - topPadding - bottomPadding;
+            
+            let svg = `<div class="goals-chart">
+                <div class="goals-chart-title">Goals by Month</div>
+                <div class="goals-chart-container">
+                    <svg class="goals-chart-svg" viewBox="0 0 ${chartWidth} ${chartHeight}" preserveAspectRatio="none">
+            `;
+            
+            monthlyData.forEach((month, index) => {
+                const barHeight = maxGoals > 0 ? (month.count / maxGoals) * maxBarHeight : 0;
+                const x = padding + index * (barWidth + padding);
+                const barY = chartHeight - bottomPadding - barHeight;
+                const monthName = month.label.split(' ')[0];
+                const labelX = x + barWidth / 2;
+                const labelY = chartHeight - 10;
+                
+                svg += `
+                    <g>
+                        <!-- Single color bar -->
+                        <rect class="goals-chart-bar" 
+                              x="${x}" 
+                              y="${barY}" 
+                              width="${barWidth}" 
+                              height="${barHeight}"
+                              rx="1">
+                            <title>${month.label}: ${month.count} ${month.count === 1 ? 'goal' : 'goals'}</title>
+                        </rect>
+                        ${month.count > 0 ? `
+                            <text class="goals-chart-value" 
+                                  x="${x + barWidth / 2}" 
+                                  y="${barY - 6}">${month.count}</text>
+                        ` : ''}
+                        <!-- Rotated month label (90 degrees) - positioned under each bar -->
+                        <g transform="translate(${labelX}, ${labelY}) rotate(-90)">
+                            <text class="goals-chart-label-rotated" 
+                                  x="0" 
+                                  y="0"
+                                  text-anchor="middle"
+                                  dominant-baseline="central"
+                                  style="letter-spacing: 6px;">${monthName}</text>
+                        </g>
+                    </g>
+                `;
+            });
+            
+            svg += `
+                    </svg>
+                </div>
+            </div>`;
+            
+            return svg;
+        }
+
         function renderGoalsList(goals, playerName, cardIndex) {
             const goalEntries = Object.entries(goals);
             if (goalEntries.length === 0) {
@@ -1670,6 +1872,7 @@
                                                 </div>
                                             ` : ''}
                                         </div>
+                                        ${renderGoalsChart(goals)}
                                     ` : ''}
                                 </div>
                             </div>
@@ -1882,10 +2085,10 @@
             const frontDetails = card.querySelector('.player-card-front .player-details');
             const totalGoals = getTotalGoals(goals);
             
-            // Remove existing goal-related items (Total Goals and Statistics)
-            const existingGoalItems = frontDetails.querySelectorAll('.player-detail-item, .player-statistics');
+            // Remove existing goal-related items (Total Goals, Statistics, and Chart)
+            const existingGoalItems = frontDetails.querySelectorAll('.player-detail-item, .player-statistics, .goals-chart');
             existingGoalItems.forEach(item => {
-                if (item.textContent.includes('Total Goals') || item.classList.contains('player-statistics')) {
+                if (item.textContent.includes('Total Goals') || item.classList.contains('player-statistics') || item.classList.contains('goals-chart')) {
                     item.remove();
                 }
             });
@@ -1932,6 +2135,14 @@
                     ` : ''}
                 `;
                 frontDetails.appendChild(statsSection);
+                
+                // Add goals chart
+                const chartHtml = renderGoalsChart(goals);
+                if (chartHtml) {
+                    const chartContainer = document.createElement('div');
+                    chartContainer.innerHTML = chartHtml;
+                    frontDetails.appendChild(chartContainer.firstElementChild);
+                }
             }
         }
 
