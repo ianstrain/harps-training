@@ -176,9 +176,10 @@
 
         .toggle-switch {
             position: relative;
-            width: 52px;
-            height: 28px;
+            width: 36px;
+            height: 20px;
             cursor: pointer;
+            flex-shrink: 0;
         }
 
         .toggle-switch input {
@@ -197,7 +198,7 @@
             top: 0; left: 0; right: 0; bottom: 0;
             background: var(--bg-section);
             border: 2px solid var(--border-color);
-            border-radius: 28px;
+            border-radius: 20px;
             transition: all 0.3s ease;
             pointer-events: none;
             z-index: 1;
@@ -206,8 +207,8 @@
         .toggle-slider::before {
             position: absolute;
             content: '';
-            height: 20px;
-            width: 20px;
+            height: 14px;
+            width: 14px;
             left: 2px;
             bottom: 2px;
             background: var(--text-muted);
@@ -221,7 +222,7 @@
         }
 
         .toggle-switch input:checked + .toggle-slider::before {
-            transform: translateX(20px);
+            transform: translateX(16px);
             background: var(--bg-dark);
         }
 
@@ -249,44 +250,63 @@
             right: 0;
             display: flex;
             align-items: center;
-            gap: 8px;
-            padding: 8px 12px;
-            flex-wrap: wrap;
-            justify-content: center;
+            gap: 4px;
+            padding: 6px 8px;
+            flex-wrap: nowrap;
+            justify-content: space-around;
             background: var(--bg-dark);
             border-top: 1px solid var(--border-color);
             box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
             z-index: 1000;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .edit-controls::-webkit-scrollbar {
+            display: none;
+        }
+
+        .edit-controls {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
         }
 
         .view-toggles {
             display: flex;
-            gap: 12px;
-            flex-wrap: wrap;
+            gap: 4px;
+            flex-wrap: nowrap;
+            flex-shrink: 0;
         }
 
         .edit-toggle,
         .view-toggle {
             display: flex;
             align-items: center;
-            gap: 8px;
-            padding: 6px 10px;
+            gap: 6px;
+            padding: 4px 8px;
             background: var(--bg-section);
-            border-radius: 8px;
+            border-radius: 6px;
             border: 1px solid var(--border-color);
+            flex-shrink: 0;
+            min-width: fit-content;
         }
 
         .cleanup-btn {
-            padding: 6px 12px;
+            padding: 4px 8px;
             background: rgba(239, 68, 68, 0.1);
             border: 2px solid #ef4444;
-            border-radius: 8px;
+            border-radius: 6px;
             color: #ef4444;
-            font-size: 11px;
+            font-size: 10px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
             font-family: 'Inter', sans-serif;
+            flex-shrink: 0;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 4px;
         }
 
         .cleanup-btn:hover {
@@ -302,27 +322,43 @@
             right: 0;
             display: flex;
             align-items: center;
-            gap: 8px;
-            padding: 8px 12px;
-            flex-wrap: wrap;
-            justify-content: center;
+            gap: 4px;
+            padding: 6px 8px;
+            flex-wrap: nowrap;
+            justify-content: space-around;
             background: var(--bg-dark);
             border-top: 1px solid var(--border-color);
             box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
             z-index: 1000;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .players-controls::-webkit-scrollbar {
+            display: none;
+        }
+
+        .players-controls {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
         }
 
         .add-player-btn {
-            padding: 6px 12px;
+            padding: 4px 8px;
             background: rgba(0, 212, 170, 0.1);
             border: 2px solid var(--accent-primary);
-            border-radius: 8px;
+            border-radius: 6px;
             color: var(--accent-primary);
-            font-size: 11px;
+            font-size: 10px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
             font-family: 'Inter', sans-serif;
+            flex-shrink: 0;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 4px;
         }
 
         .add-player-btn:hover {
@@ -332,16 +368,21 @@
         }
 
         .add-session-btn-bottom {
-            padding: 6px 12px;
+            padding: 4px 8px;
             background: rgba(0, 212, 170, 0.1);
             border: 2px solid var(--accent-primary);
-            border-radius: 8px;
+            border-radius: 6px;
             color: var(--accent-primary);
-            font-size: 11px;
+            font-size: 10px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
             font-family: 'Inter', sans-serif;
+            flex-shrink: 0;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 4px;
         }
 
         .add-session-btn-bottom:hover {
@@ -562,10 +603,19 @@
         }
 
         .view-toggle label {
-            font-size: 11px;
+            font-size: 10px;
             font-weight: 600;
             color: var(--text-primary);
             cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .edit-toggle label {
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--text-primary);
+            cursor: pointer;
+            white-space: nowrap;
         }
 
         .edit-toggle label {
@@ -1642,52 +1692,52 @@
         @media (max-width: 768px) {
             .edit-controls,
             .players-controls {
-                padding: 6px 8px;
-                gap: 6px;
+                padding: 4px 6px;
+                gap: 3px;
             }
 
             .edit-toggle,
             .view-toggle {
-                padding: 4px 8px;
-                gap: 6px;
+                padding: 3px 6px;
+                gap: 4px;
             }
 
             .edit-toggle label,
             .view-toggle label {
-                font-size: 10px;
+                font-size: 9px;
             }
 
             .toggle-switch {
-                width: 36px;
-                height: 20px;
+                width: 32px;
+                height: 18px;
             }
 
             .toggle-slider {
-                border-radius: 20px;
+                border-radius: 18px;
             }
 
             .toggle-slider::before {
-                height: 14px;
-                width: 14px;
+                height: 12px;
+                width: 12px;
             }
 
             .toggle-switch input:checked + .toggle-slider::before {
-                transform: translateX(16px);
+                transform: translateX(14px);
             }
 
             .cleanup-btn,
             .add-player-btn,
             .add-session-btn-bottom {
-                padding: 5px 10px;
-                font-size: 10px;
+                padding: 3px 6px;
+                font-size: 9px;
             }
 
             .tab-content {
-                padding-bottom: 70px;
+                padding-bottom: 50px;
             }
 
             #players-tab {
-                padding-bottom: 70px;
+                padding-bottom: 50px;
             }
 
             .goal-input-group {
@@ -1835,13 +1885,13 @@
             <main id="sessions"></main>
 
             <div class="edit-controls">
-                <div class="edit-toggle">
-                    <label for="editMode">Edit Mode</label>
-                    <div class="toggle-switch">
-                        <input type="checkbox" id="editMode">
-                        <span class="toggle-slider"></span>
-                    </div>
+            <div class="edit-toggle">
+                <label for="editMode">Edit Mode</label>
+                <div class="toggle-switch">
+                    <input type="checkbox" id="editMode">
+                    <span class="toggle-slider"></span>
                 </div>
+            </div>
                 <div class="view-toggle">
                     <label for="showPastSessions">Show Past Sessions</label>
                     <div class="toggle-switch">
@@ -1930,9 +1980,9 @@
         let database = null;
         if (typeof firebase !== 'undefined' && firebaseConfig.apiKey !== "YOUR_API_KEY") {
             try {
-                firebase.initializeApp(firebaseConfig);
-                database = firebase.database();
-                console.log('Firebase initialized');
+            firebase.initializeApp(firebaseConfig);
+            database = firebase.database();
+            console.log('Firebase initialized');
             } catch (e) {
                 console.error('Failed to initialize Firebase:', e);
                 console.log('Using localStorage only');
@@ -1940,8 +1990,8 @@
         } else {
             if (typeof firebase === 'undefined') {
                 console.warn('Firebase scripts not loaded - check internet connection. Using localStorage only.');
-            } else {
-                console.log('Firebase not configured - using localStorage only');
+        } else {
+            console.log('Firebase not configured - using localStorage only');
             }
         }
 
@@ -2083,7 +2133,7 @@
                 const sessionsListRef = database.ref('sessionsList');
                 const sessionsListData = {};
                 
-                sessions.forEach(s => {
+                    sessions.forEach(s => {
                     sessionsListData[s.id] = {
                         id: s.id,
                         date: s.date ? s.date.toISOString() : new Date().toISOString(),
@@ -2094,7 +2144,7 @@
                 
                 await sessionsListRef.set(sessionsListData);
                 console.log('Sessions list saved to Firebase');
-            } catch (e) {
+                } catch (e) {
                 console.error('Failed to save sessions list to Firebase:', e);
             }
         }
@@ -2244,7 +2294,7 @@
                                 <input type="date" class="session-date-input" value="${session.date ? new Date(session.date).toISOString().split('T')[0] : ''}" data-session="${session.id}" data-field="date" />
                             </div>
                         ` : `
-                            <h2 class="session-date">${formatDate(session.date)}</h2>
+                        <h2 class="session-date">${formatDate(session.date)}</h2>
                         `}
                         <div class="session-meta">
                             ${editMode ? `
@@ -2257,14 +2307,14 @@
                                     <input type="text" class="meta-input" value="${session.time || '7:30 PM - 8:30 PM'}" data-session="${session.id}" data-field="time" placeholder="Time" />
                                 </div>
                             ` : `
-                                <div class="meta-item">
-                                    <span class="meta-icon">📍</span>
+                            <div class="meta-item">
+                                <span class="meta-icon">📍</span>
                                     <span>${session.location || 'The Aura'}</span>
-                                </div>
-                                <div class="meta-item">
-                                    <span class="meta-icon">🕢</span>
+                            </div>
+                            <div class="meta-item">
+                                <span class="meta-icon">🕢</span>
                                     <span>${session.time || '7:30 PM - 8:30 PM'}</span>
-                                </div>
+                            </div>
                             `}
                         </div>
                         <div class="session-description">
@@ -2636,7 +2686,7 @@
                 });
             }
 
-                toggle.addEventListener('change', () => {
+            toggle.addEventListener('change', () => {
                 if (!toggle.checked && editMode) {
                     document.querySelectorAll('.activity-input').forEach(input => {
                         const session = sessions.find(s => s.id === parseInt(input.dataset.session));
@@ -2981,7 +3031,7 @@
                 players = [];
             }
         }
-
+        
         async function loadGoalsFromFirebase() {
             if (!database) {
                 console.log('Firebase not configured - loading from localStorage only');
@@ -3168,8 +3218,8 @@
                 
                 // If it's a new player, show an editable card
                 if (isNew) {
-                    return `
-                        <div class="player-card-wrapper">
+                return `
+                    <div class="player-card-wrapper">
                             <div class="player-card new-player-card" data-temp-id="${tempId}" data-index="${index}">
                                 <div class="player-card-front">
                                     <div class="player-name">
@@ -3203,7 +3253,7 @@
                                 <div class="player-name">
                                     ${playerName}
                                     <div class="player-name-actions">
-                                        ${p.jersey ? `<span class="jersey-number"><span class="jersey-icon">👕</span>${p.jersey}</span>` : ''}
+                                    ${p.jersey ? `<span class="jersey-number"><span class="jersey-icon">👕</span>${p.jersey}</span>` : ''}
                                         <button class="delete-player-btn" onclick="handleDeletePlayer('${playerName}')" title="Delete player">🗑️</button>
                                     </div>
                                 </div>
