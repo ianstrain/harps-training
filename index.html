@@ -85,6 +85,132 @@
             width: 100%;
             max-width: 500px;
             justify-content: center;
+            align-items: center;
+        }
+
+        .menu-toggle {
+            position: fixed;
+            top: 12px;
+            right: 16px;
+            width: 40px;
+            height: 40px;
+            background: var(--bg-section);
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+            z-index: 1001;
+            transition: all 0.3s ease;
+        }
+
+        @media (max-width: 500px) {
+            .menu-toggle {
+                right: 12px;
+                width: 36px;
+                height: 36px;
+            }
+        }
+
+        .menu-toggle:hover {
+            background: var(--bg-card);
+            border-color: var(--accent-primary);
+        }
+
+        .menu-toggle span {
+            display: block;
+            width: 20px;
+            height: 2px;
+            background: var(--text-primary);
+            border-radius: 2px;
+            transition: all 0.3s ease;
+        }
+
+        .menu-toggle.active span:nth-child(1) {
+            transform: rotate(45deg) translate(6px, 6px);
+        }
+
+        .menu-toggle.active span:nth-child(2) {
+            opacity: 0;
+        }
+
+        .menu-toggle.active span:nth-child(3) {
+            transform: rotate(-45deg) translate(6px, -6px);
+        }
+
+        .menu-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1002;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .menu-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .menu-drawer {
+            position: fixed;
+            top: 0;
+            right: -100%;
+            width: 280px;
+            max-width: 85vw;
+            height: 100vh;
+            background: var(--bg-dark);
+            border-left: 2px solid var(--border-color);
+            z-index: 1003;
+            transition: right 0.3s ease;
+            overflow-y: auto;
+            box-shadow: -4px 0 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .menu-drawer.active {
+            right: 0;
+        }
+
+        .menu-header {
+            padding: 60px 20px 20px;
+            border-bottom: 1px solid var(--border-color);
+            background: var(--bg-section);
+        }
+
+        .menu-header h3 {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin: 0;
+        }
+
+        .menu-content {
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .menu-section {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .menu-section-title {
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
         }
 
         .tab-button {
@@ -112,7 +238,7 @@
 
         .tab-content {
             display: none;
-            padding-bottom: 100px; /* Space for fixed controls at bottom */
+            padding-bottom: 40px;
         }
 
         .tab-content.active {
@@ -244,69 +370,44 @@
         }
 
         .edit-controls {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            padding: 6px 8px;
-            flex-wrap: nowrap;
-            justify-content: space-around;
-            background: var(--bg-dark);
-            border-top: 1px solid var(--border-color);
-            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
-            z-index: 1000;
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-        }
-
-        .edit-controls::-webkit-scrollbar {
             display: none;
-        }
-
-        .edit-controls {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
         }
 
         .view-toggles {
             display: flex;
-            gap: 4px;
-            flex-wrap: nowrap;
-            flex-shrink: 0;
+            flex-direction: column;
+            gap: 12px;
         }
 
         .edit-toggle,
         .view-toggle {
             display: flex;
             align-items: center;
-            gap: 6px;
-            padding: 4px 8px;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 12px;
             background: var(--bg-section);
-            border-radius: 6px;
+            border-radius: 8px;
             border: 1px solid var(--border-color);
-            flex-shrink: 0;
-            min-width: fit-content;
+            width: 100%;
         }
 
         .cleanup-btn {
-            padding: 4px 8px;
+            padding: 12px 16px;
             background: rgba(239, 68, 68, 0.1);
             border: 2px solid #ef4444;
-            border-radius: 6px;
+            border-radius: 8px;
             color: #ef4444;
-            font-size: 10px;
+            font-size: 14px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
             font-family: 'Inter', sans-serif;
-            flex-shrink: 0;
-            white-space: nowrap;
+            width: 100%;
             display: flex;
             align-items: center;
-            gap: 4px;
+            justify-content: center;
+            gap: 8px;
         }
 
         .cleanup-btn:hover {
@@ -316,49 +417,25 @@
         }
 
         .players-controls {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            padding: 6px 8px;
-            flex-wrap: nowrap;
-            justify-content: space-around;
-            background: var(--bg-dark);
-            border-top: 1px solid var(--border-color);
-            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
-            z-index: 1000;
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-        }
-
-        .players-controls::-webkit-scrollbar {
             display: none;
         }
 
-        .players-controls {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
-        }
-
         .add-player-btn {
-            padding: 4px 8px;
+            padding: 12px 16px;
             background: rgba(0, 212, 170, 0.1);
             border: 2px solid var(--accent-primary);
-            border-radius: 6px;
+            border-radius: 8px;
             color: var(--accent-primary);
-            font-size: 10px;
+            font-size: 14px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
             font-family: 'Inter', sans-serif;
-            flex-shrink: 0;
-            white-space: nowrap;
+            width: 100%;
             display: flex;
             align-items: center;
-            gap: 4px;
+            justify-content: center;
+            gap: 8px;
         }
 
         .add-player-btn:hover {
@@ -368,21 +445,21 @@
         }
 
         .add-session-btn-bottom {
-            padding: 4px 8px;
+            padding: 12px 16px;
             background: rgba(0, 212, 170, 0.1);
             border: 2px solid var(--accent-primary);
-            border-radius: 6px;
+            border-radius: 8px;
             color: var(--accent-primary);
-            font-size: 10px;
+            font-size: 14px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
             font-family: 'Inter', sans-serif;
-            flex-shrink: 0;
-            white-space: nowrap;
+            width: 100%;
             display: flex;
             align-items: center;
-            gap: 4px;
+            justify-content: center;
+            gap: 8px;
         }
 
         .add-session-btn-bottom:hover {
@@ -1880,39 +1957,24 @@
             <button class="tab-button" data-tab="players">Players</button>
             <button class="tab-button" data-tab="stats">Stats</button>
         </nav>
+        <button class="menu-toggle" id="menuToggle" onclick="toggleMenu()">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+        <div class="menu-overlay" id="menuOverlay" onclick="closeMenu()"></div>
+        <div class="menu-drawer" id="menuDrawer">
+            <div class="menu-header">
+                <h3 id="menuTitle">Options</h3>
+            </div>
+            <div class="menu-content" id="menuContent">
+                <!-- Menu content will be populated by JavaScript -->
+            </div>
+        </div>
 
         <div class="tab-content active" id="schedule-tab">
             <main id="sessions"></main>
 
-            <div class="edit-controls">
-            <div class="edit-toggle">
-                <label for="editMode">Edit Mode</label>
-                <div class="toggle-switch">
-                    <input type="checkbox" id="editMode">
-                    <span class="toggle-slider"></span>
-                </div>
-            </div>
-                <div class="view-toggle">
-                    <label for="showPastSessions">Show Past Sessions</label>
-                    <div class="toggle-switch">
-                        <input type="checkbox" id="showPastSessions">
-                        <span class="toggle-slider"></span>
-                    </div>
-                </div>
-                <div class="view-toggle">
-                    <label for="showDeletedSessions">Show Deleted Sessions</label>
-                    <div class="toggle-switch">
-                        <input type="checkbox" id="showDeletedSessions">
-                        <span class="toggle-slider"></span>
-                    </div>
-                </div>
-                <button class="cleanup-btn" onclick="cleanupDeletedSessions()" title="Permanently remove all deleted sessions">
-                    🗑️ Clean Up Deleted
-                </button>
-                <button class="add-session-btn-bottom" onclick="handleAddSession()" title="Add a new session">
-                    ➕ New Session
-                </button>
-            </div>
         </div>
 
         <div class="tab-content" id="players-tab">
@@ -1920,21 +1982,6 @@
                 <h2>PLAYER INFORMATION</h2>
             </div>
             <div class="players-container" id="players-container">
-            </div>
-            <div class="players-controls">
-                <div class="view-toggle">
-                    <label for="showDeletedPlayers">Show Deleted Players</label>
-                    <div class="toggle-switch">
-                        <input type="checkbox" id="showDeletedPlayers">
-                        <span class="toggle-slider"></span>
-                    </div>
-                </div>
-                <button class="cleanup-btn" onclick="cleanupDeletedPlayers()" title="Permanently remove all deleted players">
-                    🗑️ Clean Up Deleted
-                </button>
-                <button class="add-player-btn" onclick="handleAddPlayer()" title="Add a new player">
-                    ➕ Add Player
-                </button>
             </div>
         </div>
 
@@ -2008,6 +2055,7 @@
         let editMode = false;
         let showPastSessions = false;
         let showDeletedSessions = false;
+        let showDeletedPlayers = false;
 
         function formatDate(date) {
             const options = { weekday: 'long', month: 'long', day: 'numeric' };
@@ -3172,8 +3220,6 @@
             `).join('');
         }
 
-        let showDeletedPlayers = false;
-
         function renderPlayers() {
             const container = document.getElementById('players-container');
             
@@ -4188,6 +4234,132 @@
             }
         };
 
+        function toggleMenu() {
+            const menuToggle = document.getElementById('menuToggle');
+            const menuOverlay = document.getElementById('menuOverlay');
+            const menuDrawer = document.getElementById('menuDrawer');
+            
+            menuToggle.classList.toggle('active');
+            menuOverlay.classList.toggle('active');
+            menuDrawer.classList.toggle('active');
+            
+            if (menuDrawer.classList.contains('active')) {
+                updateMenuContent();
+            }
+        }
+
+        function closeMenu() {
+            const menuToggle = document.getElementById('menuToggle');
+            const menuOverlay = document.getElementById('menuOverlay');
+            const menuDrawer = document.getElementById('menuDrawer');
+            
+            menuToggle.classList.remove('active');
+            menuOverlay.classList.remove('active');
+            menuDrawer.classList.remove('active');
+        }
+
+        function updateMenuContent() {
+            const menuContent = document.getElementById('menuContent');
+            const menuTitle = document.getElementById('menuTitle');
+            const activeTab = document.querySelector('.tab-button.active')?.dataset.tab || 'schedule';
+            
+            let html = '';
+            
+            if (activeTab === 'schedule') {
+                menuTitle.textContent = 'Schedule Options';
+                html = `
+                    <div class="menu-section">
+                        <div class="edit-toggle">
+                            <label for="editMode">Edit Mode</label>
+                            <div class="toggle-switch">
+                                <input type="checkbox" id="editMode">
+                                <span class="toggle-slider"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="menu-section">
+                        <div class="menu-section-title">View Options</div>
+                        <div class="view-toggles">
+                            <div class="view-toggle">
+                                <label for="showPastSessions">Show Past Sessions</label>
+                                <div class="toggle-switch">
+                                    <input type="checkbox" id="showPastSessions">
+                                    <span class="toggle-slider"></span>
+                                </div>
+                            </div>
+                            <div class="view-toggle">
+                                <label for="showDeletedSessions">Show Deleted Sessions</label>
+                                <div class="toggle-switch">
+                                    <input type="checkbox" id="showDeletedSessions">
+                                    <span class="toggle-slider"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="menu-section">
+                        <div class="menu-section-title">Actions</div>
+                        <button class="cleanup-btn" onclick="cleanupDeletedSessions(); closeMenu();" title="Permanently remove all deleted sessions">
+                            🗑️ Clean Up Deleted
+                        </button>
+                        <button class="add-session-btn-bottom" onclick="handleAddSession(); closeMenu();" title="Add a new session">
+                            ➕ New Session
+                        </button>
+                    </div>
+                `;
+            } else if (activeTab === 'players') {
+                menuTitle.textContent = 'Player Options';
+                html = `
+                    <div class="menu-section">
+                        <div class="menu-section-title">View Options</div>
+                        <div class="view-toggles">
+                            <div class="view-toggle">
+                                <label for="showDeletedPlayers">Show Deleted Players</label>
+                                <div class="toggle-switch">
+                                    <input type="checkbox" id="showDeletedPlayers">
+                                    <span class="toggle-slider"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="menu-section">
+                        <div class="menu-section-title">Actions</div>
+                        <button class="cleanup-btn" onclick="cleanupDeletedPlayers(); closeMenu();" title="Permanently remove all deleted players">
+                            🗑️ Clean Up Deleted
+                        </button>
+                        <button class="add-player-btn" onclick="handleAddPlayer(); closeMenu();" title="Add a new player">
+                            ➕ Add Player
+                        </button>
+                    </div>
+                `;
+            } else {
+                menuTitle.textContent = 'Stats';
+                html = `
+                    <div class="menu-section">
+                        <p style="color: var(--text-secondary); font-size: 14px; margin: 0;">
+                            View goal statistics for all players.
+                        </p>
+                    </div>
+                `;
+            }
+            
+            menuContent.innerHTML = html;
+            
+            // Restore toggle states
+            if (activeTab === 'schedule') {
+                const editModeToggle = document.getElementById('editMode');
+                const showPastToggle = document.getElementById('showPastSessions');
+                const showDeletedToggle = document.getElementById('showDeletedSessions');
+                if (editModeToggle) editModeToggle.checked = editMode;
+                if (showPastToggle) showPastToggle.checked = showPastSessions;
+                if (showDeletedToggle) showDeletedToggle.checked = showDeletedSessions;
+                setupEditMode();
+            } else if (activeTab === 'players') {
+                const showDeletedToggle = document.getElementById('showDeletedPlayers');
+                if (showDeletedToggle) showDeletedToggle.checked = showDeletedPlayers;
+                setupPlayersControls();
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', async () => {
             // Load sessions structure first, then session content
             await loadSessionsFromFirebase();
@@ -4201,6 +4373,13 @@
             await loadGoalsFromFirebase();
             renderPlayers();
             setupPlayersControls();
+            
+            // Update menu when tabs change
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.addEventListener('click', () => {
+                    setTimeout(updateMenuContent, 100);
+                });
+            });
         });
     </script>
 </body>
