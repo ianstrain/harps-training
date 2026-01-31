@@ -776,12 +776,22 @@
             font-weight: 700;
             color: var(--text-primary);
             margin: 8px 0 12px 0;
+            padding: 0 20px;
         }
 
         .cup-stage {
             font-size: 13px;
             color: var(--text-secondary);
             margin-bottom: 12px;
+            padding: 0 20px;
+        }
+
+        .match-card .session-meta {
+            padding: 0 20px 10px 20px;
+        }
+
+        .match-card .match-input-group {
+            padding: 0 20px;
         }
 
         /* Match card back - attendance tracking */
@@ -805,6 +815,43 @@
             padding: 8px;
             background: var(--bg-section);
             border-radius: 8px;
+        }
+
+        .attendance-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 8px 12px 8px;
+            margin-bottom: 8px;
+            border-bottom: 2px solid var(--border-color);
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+        }
+
+        .attendance-header-label {
+            width: 20px;
+            flex-shrink: 0;
+            text-align: center;
+            font-size: 9px;
+            line-height: 1.2;
+        }
+
+        .attendance-header-player {
+            flex: 1;
+            font-size: 11px;
+        }
+
+        .attendance-header-captain {
+            width: auto;
+            min-width: 60px;
+            flex-shrink: 0;
+            text-align: center;
+            font-size: 10px;
+            line-height: 1.2;
+            color: var(--accent-warm);
         }
 
         .attendance-item {
@@ -2874,20 +2921,82 @@
                         <div class="session-header">
                             <span class="session-number">M${String(matchesUpToThis).padStart(2, '0')}</span>
                             <div class="match-type-badge ${matchTypeBadgeClass}">${matchTypeLabel}</div>
-                            <h2 class="session-date">${formatDate(session.date)}</h2>
-                            ${session.cupStage ? `<div class="cup-stage">${session.cupStage}</div>` : ''}
+                            ${editMode ? `
+                                <div class="session-date-edit">
+                                    <label>Date:</label>
+                                    <input type="date" class="session-date-input" value="${session.date ? new Date(session.date).toISOString().split('T')[0] : ''}" data-session="${session.id}" data-field="date" onclick="event.stopPropagation()" />
+                                </div>
+                            ` : `
+                                <h2 class="session-date">${formatDate(session.date)}</h2>
+                            `}
+                            ${session.cupStage && !editMode ? `<div class="cup-stage">${session.cupStage}</div>` : ''}
                         </div>
-                        <div class="opponent-name">vs ${session.opponent || defaults.opponent}</div>
+                        ${editMode ? `
+                            <div class="match-input-group">
+                                <label class="match-input-label">Opponent Team</label>
+                                <input type="text" class="match-input" value="${session.opponent || ''}" data-session="${session.id}" data-field="opponent" placeholder="Enter opponent team name" onclick="event.stopPropagation()" />
+                            </div>
+                            <div class="match-input-group">
+                                <label class="match-input-label">Match Type</label>
+                                <select class="match-type-select" data-session="${session.id}" data-field="matchType" onclick="event.stopPropagation()" onchange="handleMatchTypeChange(${session.id}, this.value)">
+                                    <option value="friendly" ${session.matchType === 'friendly' ? 'selected' : ''}>Friendly</option>
+                                    <option value="league" ${session.matchType === 'league' ? 'selected' : ''}>League</option>
+                                    <option value="cup" ${session.matchType === 'cup' ? 'selected' : ''}>Cup</option>
+                                </select>
+                            </div>
+                            <div class="match-input-group ${session.matchType === 'cup' ? '' : 'hidden'}" id="match-cup-stage-${session.id}">
+                                <label class="match-input-label">Cup Stage</label>
+                                <input type="text" class="match-input" value="${session.cupStage || ''}" data-session="${session.id}" data-field="cupStage" placeholder="e.g., Quarter-finals, Semi-final, Final" onclick="event.stopPropagation()" />
+                            </div>
+                        ` : `
+                            <div class="opponent-name">vs ${session.opponent || defaults.opponent}</div>
+                        `}
                         <div class="session-meta">
-                            <div class="meta-item">
-                                <span class="meta-icon">📍</span>
-                                <span>${session.location || 'The Aura'}</span>
-                            </div>
-                            <div class="meta-item">
-                                <span class="meta-icon">🕢</span>
-                                <span>${session.time || '7:30 PM - 8:30 PM'}</span>
-                            </div>
+                            ${editMode ? `
+                                <div class="meta-item meta-item-edit">
+                                    <span class="meta-icon">📍</span>
+                                    <input type="text" class="meta-input" value="${session.location || 'The Aura'}" data-session="${session.id}" data-field="location" placeholder="Location" onclick="event.stopPropagation()" />
+                                </div>
+                                <div class="meta-item meta-item-edit">
+                                    <span class="meta-icon">🕢</span>
+                                    <input type="text" class="meta-input" value="${session.time || '7:30 PM - 8:30 PM'}" data-session="${session.id}" data-field="time" placeholder="Time" onclick="event.stopPropagation()" />
+                                </div>
+                            ` : `
+                                <div class="meta-item">
+                                    <span class="meta-icon">📍</span>
+                                    <span>${session.location || 'The Aura'}</span>
+                                </div>
+                                <div class="meta-item">
+                                    <span class="meta-icon">🕢</span>
+                                    <span>${session.time || '7:30 PM - 8:30 PM'}</span>
+                                </div>
+                            `}
                         </div>
+                        ${session.cancelled && !editMode ? `
+                            <div style="padding: 12px 20px; background: rgba(239, 68, 68, 0.1); border-top: 1px solid var(--border-color); display: flex; align-items: center; gap: 10px; margin-top: 16px;">
+                                <span style="font-size: 18px;">🚫</span>
+                                <div style="flex: 1;">
+                                    <div style="font-size: 12px; font-weight: 700; color: #ef4444; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px;">Match Cancelled</div>
+                                    <div style="font-size: 14px; color: var(--text-secondary);">${session.cancelReason || 'No reason provided'}</div>
+                                </div>
+                            </div>
+                        ` : ''}
+                        ${editMode ? `
+                            <div class="session-cancel-controls" style="margin-top: 16px;">
+                                <div class="cancel-toggle-group">
+                                    <label for="cancel-${session.id}" class="cancel-toggle-label">Cancel this match</label>
+                                    <div class="cancel-toggle-switch">
+                                        <input type="checkbox" id="cancel-${session.id}" ${session.cancelled ? 'checked' : ''} data-session="${session.id}" onclick="event.stopPropagation()" />
+                                        <span class="cancel-toggle-slider"></span>
+                                    </div>
+                                </div>
+                                <input type="text" class="cancel-reason-input" id="cancel-reason-${session.id}" placeholder="Reason for cancellation..." value="${session.cancelReason || ''}" data-session="${session.id}" ${!session.cancelled ? 'disabled' : ''} onclick="event.stopPropagation()" />
+                                <button class="delete-session-btn" onclick="event.stopPropagation(); handleDeleteSession(${session.id})" data-session="${session.id}">
+                                    <span class="delete-icon">🗑️</span>
+                                    <span>Delete Match</span>
+                                </button>
+                            </div>
+                        ` : ''}
                     </div>
                     <div class="session-card-back">
                         ${generateMatchBackContent(session)}
@@ -2916,7 +3025,12 @@
             
             return `
                 <div class="attendance-section">
-                    <h3 class="attendance-section-title">Match Attendance & Captain</h3>
+                    <h3 class="attendance-section-title">Match Attendance</h3>
+                    <div class="attendance-header">
+                        <span class="attendance-header-label">✓</span>
+                        <span class="attendance-header-player">Player</span>
+                        <span class="attendance-header-captain">Captain</span>
+                    </div>
                     <div class="attendance-checklist" id="attendance-list-${session.id}">
                         ${activePlayers.map(p => `
                             <div class="attendance-item">
@@ -2954,8 +3068,6 @@
                             `).join('') : '<p style="text-align: center; color: var(--text-muted); padding: 20px;">No players attending yet</p>'}
                         </div>
                     </div>
-                    
-                    <button class="save-match-btn" onclick="event.stopPropagation(); saveMatchData(${session.id})">Save Match Data</button>
                 </div>
             `;
         }
@@ -3005,11 +3117,33 @@
             }
         };
 
+        // Handle match type change in edit mode
+        window.handleMatchTypeChange = function(sessionId, matchType) {
+            const session = sessions.find(s => s.id === sessionId);
+            if (session) {
+                session.matchType = matchType;
+                
+                // Show/hide cup stage field
+                const cupStageGroup = document.getElementById(`match-cup-stage-${sessionId}`);
+                if (cupStageGroup) {
+                    if (matchType === 'cup') {
+                        cupStageGroup.classList.remove('hidden');
+                    } else {
+                        cupStageGroup.classList.add('hidden');
+                        // Clear cup stage if not a cup match
+                        session.cupStage = '';
+                        const cupStageInput = cupStageGroup.querySelector('input');
+                        if (cupStageInput) cupStageInput.value = '';
+                    }
+                }
+            }
+        };
+
         // Handle match card click for flipping
         window.handleMatchCardClick = function(event, sessionId) {
             // Don't flip if clicking on interactive elements
             const target = event.target;
-            if (target.closest('input, button, select, .attendance-checkbox, .captain-checkbox, .goal-btn, .save-match-btn, .captain-selector')) {
+            if (target.closest('input, button, select, .attendance-checkbox, .captain-checkbox, .goal-btn, .captain-selector')) {
                 return; // Don't stop propagation here, let the event bubble to the specific handlers
             }
             
@@ -3055,6 +3189,9 @@
             
             // Update goal scorers display
             updateGoalScorersDisplay(sessionId);
+            
+            // Auto-save
+            saveMatchData(sessionId);
         };
 
         // Handle captain selection change
@@ -3085,6 +3222,9 @@
                     session.captain = '';
                 }
             }
+            
+            // Auto-save
+            saveMatchData(sessionId);
         };
 
         // Update goals for a player
@@ -3105,17 +3245,20 @@
                 session.matchGoals[playerName] = newGoals;
             }
             
-            // Update the specific goal count display
-            const goalCountEl = document.querySelector(`#goal-scorers-${sessionId} .goal-scorer-item .goal-scorer-name:contains("${playerName}")`);
-            if (goalCountEl) {
-                const goalScorrerItem = goalCountEl.closest('.goal-scorer-item');
-                if (goalScorrerItem) {
-                    const countEl = goalScorrerItem.querySelector('.goal-count');
-                    const minusBtn = goalScorrerItem.querySelector('.goal-btn:first-child');
+            // Update the specific goal count display - find by matching text content
+            const goalScorerItems = document.querySelectorAll(`#goal-scorers-${sessionId} .goal-scorer-item`);
+            goalScorerItems.forEach(item => {
+                const nameEl = item.querySelector('.goal-scorer-name');
+                if (nameEl && nameEl.textContent.trim() === playerName) {
+                    const countEl = item.querySelector('.goal-count');
+                    const minusBtn = item.querySelector('.goal-btn:first-child');
                     if (countEl) countEl.textContent = newGoals;
                     if (minusBtn) minusBtn.disabled = newGoals === 0;
                 }
-            }
+            });
+            
+            // Auto-save
+            saveMatchData(sessionId);
         };
 
         // Update captain selector options based on attendance
@@ -3197,12 +3340,27 @@
             const matchDate = session.date ? new Date(session.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
             const matchGoals = session.matchGoals || {};
             
-            // Add goals to each player's record
+            // Set goals for each player's record (not add, to avoid duplicates)
             for (const [playerName, goalCount] of Object.entries(matchGoals)) {
                 if (goalCount > 0) {
-                    addGoals(playerName, matchDate, goalCount);
+                    setGoals(playerName, matchDate, goalCount);
+                } else {
+                    // If goals were removed, delete the entry
+                    deleteGoal(playerName, matchDate);
                 }
             }
+            
+            // Also clear goals for players who were removed from the match
+            const attendingPlayers = session.attendance || [];
+            attendingPlayers.forEach(playerName => {
+                if (!matchGoals[playerName] || matchGoals[playerName] === 0) {
+                    // Check if this player has a goal entry for this match date and remove it
+                    const goals = getPlayerGoals(playerName);
+                    if (goals[matchDate]) {
+                        deleteGoal(playerName, matchDate);
+                    }
+                }
+            });
             
             // Save session data
             await saveData();
@@ -3210,7 +3368,7 @@
             
             showSaveIndicator();
             
-            // Refresh player display if on players tab
+            // Always refresh player display if on players tab
             const playersTab = document.getElementById('players-tab');
             if (playersTab && playersTab.classList.contains('active')) {
                 renderPlayers();
@@ -3288,6 +3446,18 @@
                         } else {
                             session[field] = e.target.value;
                         }
+                        saveSessionsList();
+                    }
+                });
+            });
+            
+            // Handle match-specific field inputs (opponent, matchType, cupStage)
+            document.querySelectorAll('.match-input, .match-type-select').forEach(input => {
+                input.addEventListener('change', e => {
+                    const session = sessions.find(s => s.id === parseInt(e.target.dataset.session));
+                    const field = e.target.dataset.field;
+                    if (session && field) {
+                        session[field] = e.target.value;
                         saveSessionsList();
                     }
                 });
@@ -3613,6 +3783,15 @@
                         }
                     });
                     
+                    // Save match-specific fields (opponent, matchType, cupStage)
+                    document.querySelectorAll('.match-input, .match-type-select').forEach(input => {
+                        const session = sessions.find(s => s.id === parseInt(input.dataset.session));
+                        const field = input.dataset.field;
+                        if (session && field) {
+                            session[field] = input.value;
+                        }
+                    });
+                    
                     saveData();
                     saveSessionsList();
                 }
@@ -3799,6 +3978,13 @@
             const goals = getPlayerGoals(playerName);
             const currentCount = goals[date] || 0;
             goals[date] = currentCount + parseInt(count);
+            savePlayerGoals(playerName, goals);
+            return goals;
+        }
+
+        function setGoals(playerName, date, count) {
+            const goals = getPlayerGoals(playerName);
+            goals[date] = parseInt(count);
             savePlayerGoals(playerName, goals);
             return goals;
         }
@@ -4038,25 +4224,6 @@
             return svg;
         }
 
-        function renderGoalsList(goals, playerName, cardIndex) {
-            const goalEntries = Object.entries(goals);
-            if (goalEntries.length === 0) {
-                return '<div class="no-goals">No goals logged yet</div>';
-            }
-            
-            // Sort by date (newest first)
-            goalEntries.sort((a, b) => new Date(b[0]) - new Date(a[0]));
-            
-            return goalEntries.map(([date, count]) => `
-                <div class="goal-item">
-                    <span class="goal-date">
-                        ${formatGoalDate(date)} - ${count} ${count === 1 ? 'goal' : 'goals'}
-                    </span>
-                    <button class="delete-goal-btn" onclick="handleDeleteGoal('${playerName}', ${cardIndex}, '${date}')">×</button>
-                </div>
-            `).join('');
-        }
-
         function renderPlayers() {
             const container = document.getElementById('players-container');
             
@@ -4185,21 +4352,8 @@
                                 </div>
                             </div>
                             <div class="player-card-back">
-                                <div class="goal-log-title">Goal Log - ${playerName}</div>
-                                <div class="total-goals">
-                                    <div class="total-goals-label">Total Goals</div>
-                                    <div>${getTotalGoals(goals)}</div>
-                                </div>
-                                <div class="goal-input-group">
-                                    <input type="date" class="goal-date-input" id="goal-date-${index}" value="${new Date().toISOString().split('T')[0]}" />
-                                    <input type="number" class="goal-count-input" id="goal-count-${index}" min="1" value="" />
-                                </div>
-                                <button class="add-goal-btn" onclick="handleAddGoals('${playerName}', ${index})">Add Goals</button>
-                                <div class="goals-list" id="goals-list-${index}">
-                                    ${renderGoalsList(goals, playerName, index)}
-                                </div>
-                                <div class="notes-section" style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-color);">
-                                    <div class="notes-label">Notes</div>
+                                <div class="notes-section">
+                                    <div class="notes-label">Notes - ${playerName}</div>
                                     <textarea class="notes-textarea" id="notes-${index}" placeholder="Add notes about this player...">${getPlayerNotes(playerName)}</textarea>
                                     <button class="save-notes-btn" onclick="handleSaveNotes('${playerName}', ${index})">Save Notes</button>
                                 </div>
@@ -4233,7 +4387,7 @@
                             // Don't return here, let it proceed to flip
                         } else if (isClickingOnBack) {
                             // Check if clicking on interactive elements - if so, don't flip
-                            const isClickingOnInteractive = clickedElement.closest('input, button, textarea, .goal-input-group, .notes-section, .goals-list, .total-goals') !== null;
+                            const isClickingOnInteractive = clickedElement.closest('input, button, textarea') !== null;
                             if (isClickingOnInteractive) {
                                 e.stopPropagation();
                                 return;
@@ -4250,25 +4404,17 @@
                         return;
                     }
                     
-                    // Check if any element in the path is an input, button, textarea, or within those containers
+                    // Check if any element in the path is an input, button, textarea
                     const isInteractiveElement = path.some(el => {
                         if (!el || !el.tagName) return false;
                         const tag = el.tagName.toUpperCase();
                         return tag === 'INPUT' || 
                                tag === 'BUTTON' || 
-                               tag === 'TEXTAREA' ||
-                               el.classList?.contains('goal-input-group') ||
-                               el.classList?.contains('notes-section') ||
-                               el.classList?.contains('goal-date-input') ||
-                               el.classList?.contains('goal-count-input') ||
-                               el.classList?.contains('notes-textarea') ||
-                               el.classList?.contains('add-goal-btn') ||
-                               el.classList?.contains('save-notes-btn') ||
-                               el.closest && (el.closest('input, button, textarea, .goal-input-group, .notes-section') !== null);
+                               tag === 'TEXTAREA';
                     }) || clickedElement.tagName === 'INPUT' || 
                         clickedElement.tagName === 'BUTTON' || 
                         clickedElement.tagName === 'TEXTAREA' ||
-                        clickedElement.closest('input, button, textarea, .goal-input-group, .notes-section') !== null;
+                        clickedElement.closest('input, button, textarea') !== null;
                     
                     if (isInteractiveElement) {
                         e.stopPropagation();
@@ -4353,11 +4499,8 @@
             // Set default date to today for all date inputs and prevent card flip on click
             const today = new Date();
             const todayStr = today.toISOString().split('T')[0];
-            container.querySelectorAll('.goal-date-input, .goal-count-input, .notes-textarea, .goal-input-group, .notes-section').forEach(input => {
-                if (input.classList.contains('goal-date-input') && !input.value) {
-                    input.value = todayStr;
-                }
-                // Prevent card flip when clicking on inputs and their containers
+            container.querySelectorAll('.notes-textarea').forEach(input => {
+                // Prevent card flip when clicking on interactive elements
                 // Use capture phase to stop propagation early
                 input.addEventListener('click', function(e) {
                     e.stopPropagation();
@@ -4377,79 +4520,6 @@
             
             // Don't add event listeners to buttons - let onclick handlers work normally
             // The card's click handler will check for buttons and not flip
-            
-            // Add focus handlers to scroll inputs into view on mobile
-            container.querySelectorAll('.goal-date-input, .goal-count-input').forEach(input => {
-                input.addEventListener('focus', function() {
-                    // Small delay to ensure date picker is opening
-                    setTimeout(() => {
-                        // Scroll the input into view
-                        this.scrollIntoView({ 
-                            behavior: 'smooth', 
-                            block: 'center',
-                            inline: 'start'
-                        });
-                        
-                        // Also ensure the wrapper is in view
-                        const wrapper = this.closest('.player-card-wrapper');
-                        if (wrapper) {
-                            wrapper.scrollIntoView({ 
-                                behavior: 'smooth', 
-                                block: 'nearest',
-                                inline: 'nearest'
-                            });
-                        }
-                        
-                        // Ensure the input stays within bounds
-                        const rect = this.getBoundingClientRect();
-                        if (rect.left < 0 || rect.right > window.innerWidth) {
-                            window.scrollTo({
-                                left: window.scrollX + rect.left - 20,
-                                behavior: 'smooth'
-                            });
-                        }
-                    }, 150);
-                });
-            });
-        }
-
-        function handleAddGoals(playerName, index) {
-            const dateInput = document.getElementById(`goal-date-${index}`);
-            const countInput = document.getElementById(`goal-count-${index}`);
-            const date = dateInput.value;
-            const countValue = countInput.value.trim();
-            
-            if (!date) {
-                alert('Please select a date');
-                return;
-            }
-            
-            if (!countValue || countValue === '') {
-                alert('Please enter the number of goals');
-                countInput.focus();
-                return;
-            }
-            
-            const count = parseInt(countValue);
-            if (isNaN(count) || count < 1) {
-                alert('Please enter a valid number of goals (must be 1 or more)');
-                countInput.focus();
-                return;
-            }
-            
-            const goals = addGoals(playerName, date, count);
-            // Set today's date and clear count
-            const today = new Date();
-            dateInput.value = today.toISOString().split('T')[0];
-            countInput.value = ''; // Clear count input
-            
-            // Re-render the goals list and total
-            updateGoalDisplay(playerName, index, goals);
-        }
-
-        function handleDeleteGoal(playerName, cardIndex, date) {
-            const goals = deleteGoal(playerName, date);
-            updateGoalDisplay(playerName, cardIndex, goals);
         }
 
         function handleSaveNotes(playerName, index) {
@@ -4677,83 +4747,6 @@
             renderPlayers();
         };
 
-        function updateGoalDisplay(playerName, index, goals) {
-            // Update goals list
-            const goalsList = document.getElementById(`goals-list-${index}`);
-            goalsList.innerHTML = renderGoalsList(goals, playerName, index);
-            
-            // Update total goals on back
-            const totalGoalsEl = document.querySelector(`.player-card[data-index="${index}"] .total-goals div:last-child`);
-            if (totalGoalsEl) {
-                totalGoalsEl.textContent = getTotalGoals(goals);
-            }
-            
-            // Update goal count and statistics on front of card
-            const card = document.querySelector(`.player-card[data-index="${index}"]`);
-            const frontDetails = card.querySelector('.player-card-front .player-details');
-            const totalGoals = getTotalGoals(goals);
-            
-            // Remove existing goal-related items (Total Goals, Statistics, and Chart)
-            const existingGoalItems = frontDetails.querySelectorAll('.player-detail-item, .player-statistics, .goals-chart');
-            existingGoalItems.forEach(item => {
-                if (item.textContent.includes('Total Goals') || item.classList.contains('player-statistics') || item.classList.contains('goals-chart')) {
-                    item.remove();
-                }
-            });
-            
-            if (totalGoals > 0) {
-                // Add Total Goals item
-                const goalItem = document.createElement('div');
-                goalItem.className = 'player-detail-item';
-                goalItem.style.cssText = 'margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-color);';
-                goalItem.innerHTML = `
-                    <span class="player-detail-label">Total Goals</span>
-                    <span class="player-detail-value" style="color: var(--accent-primary); font-weight: 600;">${totalGoals}</span>
-                `;
-                frontDetails.appendChild(goalItem);
-                
-                // Add Statistics section
-                const statsSection = document.createElement('div');
-                statsSection.className = 'player-statistics';
-                statsSection.style.cssText = 'margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-color);';
-                
-                const goalsThisMonth = getGoalsThisMonth(goals);
-                const recentGoals = getRecentGoals(goals, 3);
-                
-                statsSection.innerHTML = `
-                    <div class="stat-item">
-                        <span class="stat-label">Goals/Game</span>
-                        <span class="stat-value">${getGoalsPerGame(goals)}</span>
-                    </div>
-                    ${goalsThisMonth > 0 ? `
-                        <div class="stat-item">
-                            <span class="stat-label">This Month</span>
-                            <span class="stat-value">${goalsThisMonth}</span>
-                        </div>
-                    ` : ''}
-                    ${recentGoals.length > 0 ? `
-                        <div class="recent-goals">
-                            <span class="stat-label">Recent:</span>
-                            <div class="recent-goals-list">
-                                ${recentGoals.map(recent => `
-                                    <span class="recent-goal-item">${formatGoalDate(recent.date)} (${recent.count})</span>
-                                `).join('')}
-                            </div>
-                        </div>
-                    ` : ''}
-                `;
-                frontDetails.appendChild(statsSection);
-                
-                // Add goals chart
-                const chartHtml = renderGoalsChart(goals);
-                if (chartHtml) {
-                    const chartContainer = document.createElement('div');
-                    chartContainer.innerHTML = chartHtml;
-                    frontDetails.appendChild(chartContainer.firstElementChild);
-                }
-            }
-        }
-
         function renderStats() {
             const container = document.getElementById('stats-container');
             
@@ -4901,10 +4894,11 @@
                 </div>
             `;
             
-            // Generate attendance chart
+            // Generate attendance chart and captain history
             const attendanceChart = generateAttendanceChart(filteredPlayers);
+            const captainHistory = generateCaptainHistoryChart();
             
-            container.innerHTML = attendanceChart + svg;
+            container.innerHTML = attendanceChart + captainHistory + svg;
         }
 
         function generateAttendanceChart(filteredPlayers) {
@@ -4913,8 +4907,8 @@
             
             if (matches.length === 0) {
                 return `
-                    <div class="attendance-chart-container">
-                        <div class="attendance-chart-title">Match Attendance</div>
+                    <div class="stats-chart-container">
+                        <div class="stats-chart-title">Match Attendance</div>
                         <div class="stats-empty" style="padding: 40px;">
                             <p>No matches recorded yet</p>
                             <small>Match attendance will appear here once matches are added.</small>
@@ -4948,8 +4942,8 @@
             
             if (playerAttendance.length === 0) {
                 return `
-                    <div class="attendance-chart-container">
-                        <div class="attendance-chart-title">Match Attendance</div>
+                    <div class="stats-chart-container">
+                        <div class="stats-chart-title">Match Attendance</div>
                         <div class="stats-empty" style="padding: 40px;">
                             <p>No attendance recorded yet</p>
                             <small>Mark attendance in match cards to see stats here.</small>
@@ -4958,18 +4952,30 @@
                 `;
             }
             
-            // Chart dimensions
+            // Find the longest player name to calculate proper spacing (same as goals chart)
+            const longestName = playerAttendance.reduce((longest, player) => 
+                player.name.length > longest.length ? player.name : longest, '');
+            const longestNameLength = longestName.length;
+            const fontSize = 28; // Same as goals chart
+            const nameSpaceNeeded = (fontSize * longestNameLength * 0.6) + 20;
+            
+            // Chart dimensions - match goals chart exactly
             const chartWidth = 800;
-            const chartHeight = 500;
-            const padding = { top: 60, right: 40, bottom: 180, left: 80 };
-            const barWidth = Math.min(60, (chartWidth - padding.left - padding.right) / playerAttendance.length - 10);
+            const chartHeight = 600;
+            const padding = { 
+                top: 40, 
+                right: 40, 
+                bottom: Math.max(200, nameSpaceNeeded + 10),
+                left: 80
+            };
+            const barWidth = (chartWidth - padding.left - padding.right) / playerAttendance.length - 10;
             const maxAttended = Math.max(...playerAttendance.map(p => p.attended), 1);
             const barHeight = chartHeight - padding.top - padding.bottom;
             
             let svg = `
-                <div class="attendance-chart-container">
-                    <div class="attendance-chart-title">Match Attendance (${matches.length} ${matches.length === 1 ? 'match' : 'matches'})</div>
-                    <div class="attendance-chart-svg-container">
+                <div class="stats-chart-container">
+                    <div class="stats-chart-title">Match Attendance (${matches.length} ${matches.length === 1 ? 'match' : 'matches'})</div>
+                    <div class="stats-chart-svg-container">
                         <svg viewBox="0 0 ${chartWidth} ${chartHeight}" preserveAspectRatio="xMidYMid meet">
                             <!-- Y-axis label -->
                             <text class="stats-chart-axis-label" 
@@ -4982,11 +4988,11 @@
                             <!-- X-axis label -->
                             <text class="stats-chart-axis-label" 
                                   x="${chartWidth / 2}" 
-                                  y="${chartHeight - 35}" 
+                                  y="${(chartHeight - padding.bottom + 5) + 30}" 
                                   text-anchor="middle">Players</text>
                             
                             <!-- Y-axis grid lines and labels -->
-                            ${Array.from({ length: Math.min(6, maxAttended + 1) }, (_, i) => {
+                            ${Array.from({ length: 6 }, (_, i) => {
                                 const value = Math.ceil(maxAttended / 5) * i;
                                 const y = chartHeight - padding.bottom - (value / maxAttended) * barHeight;
                                 return `
@@ -5007,20 +5013,12 @@
                             <!-- Bars -->
                             ${playerAttendance.map((player, index) => {
                                 const barHeightValue = (player.attended / maxAttended) * barHeight;
-                                const x = padding.left + (chartWidth - padding.left - padding.right - playerAttendance.length * barWidth) / 2 + index * (barWidth + 10);
+                                const x = padding.left + index * (barWidth + 10);
                                 const y = chartHeight - padding.bottom - barHeightValue;
-                                
-                                // Determine bar color based on attendance percentage
-                                let barClass = 'attendance-bar low';
-                                if (player.percentage >= 75) {
-                                    barClass = 'attendance-bar high';
-                                } else if (player.percentage >= 50) {
-                                    barClass = 'attendance-bar medium';
-                                }
                                 
                                 return `
                                     <g>
-                                        <rect class="${barClass}" 
+                                        <rect class="stats-chart-bar" 
                                               x="${x}" 
                                               y="${y}" 
                                               width="${barWidth}" 
@@ -5028,26 +5026,14 @@
                                               rx="4">
                                             <title>${player.name}: ${player.attended}/${matches.length} matches (${player.percentage}%)</title>
                                         </rect>
-                                        <text class="attendance-value-label" 
+                                        <text class="stats-chart-goal-value" 
                                               x="${x + barWidth / 2}" 
                                               y="${y - 8}">${player.attended}</text>
-                                        <text class="attendance-player-label" 
-                                              x="${x + barWidth / 2 - 35}" 
-                                              y="${chartHeight - padding.bottom + 80}"
-                                              transform="rotate(-90, ${x + barWidth / 2}, ${chartHeight - padding.bottom + 80})"
+                                        <text class="stats-chart-player-label" 
+                                              x="${(x + barWidth / 2) - 40}" 
+                                              y="${chartHeight - padding.bottom + (nameSpaceNeeded * 0.4)}"
+                                              transform="rotate(-90, ${x + barWidth / 2}, ${chartHeight - padding.bottom + (nameSpaceNeeded * 0.4)})"
                                               text-anchor="middle">${player.name}</text>
-                                        <text class="attendance-player-label" 
-                                              style="font-size: 10px; fill: var(--text-muted);"
-                                              x="${x + barWidth / 2 - 50}" 
-                                              y="${chartHeight - padding.bottom + 80}"
-                                              transform="rotate(-90, ${x + barWidth / 2}, ${chartHeight - padding.bottom + 80})"
-                                              text-anchor="middle">${player.percentage}%</text>
-                                        ${player.captainCount > 0 ? `
-                                            <polygon class="captain-star" 
-                                                     points="${x + barWidth / 2},${y - 25} ${x + barWidth / 2 + 5},${y - 15} ${x + barWidth / 2 + 15},${y - 15} ${x + barWidth / 2 + 7},${y - 8} ${x + barWidth / 2 + 10},${y + 2} ${x + barWidth / 2},${y - 3} ${x + barWidth / 2 - 10},${y + 2} ${x + barWidth / 2 - 7},${y - 8} ${x + barWidth / 2 - 15},${y - 15} ${x + barWidth / 2 - 5},${y - 15}">
-                                                <title>Captain ${player.captainCount} ${player.captainCount === 1 ? 'time' : 'times'}</title>
-                                            </polygon>
-                                        ` : ''}
                                     </g>
                                 `;
                             }).join('')}
@@ -5057,6 +5043,50 @@
             `;
             
             return svg;
+        }
+
+        function generateCaptainHistoryChart() {
+            // Get all matches that have a captain
+            const matches = sessions.filter(s => s.type === 'match' && !s.deleted && s.captain);
+            
+            if (matches.length === 0) {
+                return `
+                    <div class="stats-chart-container">
+                        <div class="stats-chart-title">Captain History</div>
+                        <div class="stats-empty" style="padding: 40px;">
+                            <p>No captains recorded yet</p>
+                            <small>Assign captains in match cards to see history here.</small>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // Sort matches by date (most recent first for display)
+            const sortedMatches = [...matches].sort((a, b) => new Date(b.date) - new Date(a.date));
+            
+            return `
+                <div class="stats-chart-container">
+                    <div class="stats-chart-title">Captain History (${matches.length} ${matches.length === 1 ? 'match' : 'matches'})</div>
+                    <div style="padding: 20px;">
+                        <div style="display: grid; grid-template-columns: 1fr 2fr 2fr; gap: 12px; font-size: 13px; font-weight: 700; color: var(--text-secondary); padding-bottom: 12px; border-bottom: 2px solid var(--border-color); text-transform: uppercase; letter-spacing: 0.5px;">
+                            <div style="text-align: center;">Date</div>
+                            <div>Opponent</div>
+                            <div style="display: flex; align-items: center; gap: 6px;"><span style="color: var(--accent-warm);">⭐</span> Captain</div>
+                        </div>
+                        ${sortedMatches.map(match => {
+                            const matchDate = new Date(match.date);
+                            const formattedDate = matchDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+                            return `
+                                <div style="display: grid; grid-template-columns: 1fr 2fr 2fr; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border-color); font-size: 14px; color: var(--text-primary); transition: all 0.2s ease;">
+                                    <div style="text-align: center; color: var(--text-secondary); font-weight: 500;">${formattedDate}</div>
+                                    <div style="font-weight: 500;">${match.opponent || 'Unknown'}</div>
+                                    <div style="color: var(--accent-primary); font-weight: 600;">${match.captain}</div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            `;
         }
 
         function setupTabs() {
@@ -5075,6 +5105,11 @@
                     // Update content
                     tabContents.forEach(content => content.classList.remove('active'));
                     document.getElementById(targetTab + '-tab').classList.add('active');
+                    
+                    // Render players when players tab is shown (to reflect any goal updates)
+                    if (targetTab === 'players') {
+                        renderPlayers();
+                    }
                     
                     // Setup show deleted players toggle if on players tab
                     if (targetTab === 'players') {
@@ -5353,6 +5388,10 @@
         }
 
         document.addEventListener('DOMContentLoaded', async () => {
+            // Load players first so they're available when rendering match cards
+            await loadPlayersFromFirebase();
+            await loadGoalsFromFirebase();
+            
             // Load sessions structure first, then session content
             await loadSessionsFromFirebase();
             await loadData();
@@ -5360,9 +5399,6 @@
             setupEditMode();
             scrollToClosestSession();
             setupTabs();
-            // Load players and goals from Firebase before rendering
-            await loadPlayersFromFirebase();
-            await loadGoalsFromFirebase();
             renderPlayers();
             setupPlayersControls();
             
