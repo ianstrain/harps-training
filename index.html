@@ -2386,17 +2386,233 @@
                 font-size: 6px;
             }
         }
+
+        /* Calendar Styles */
+        .calendar-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 30px;
+            padding: 0 20px;
+        }
+
+        .calendar-nav-btn {
+            background: var(--bg-card);
+            border: 2px solid var(--border-color);
+            color: var(--text-primary);
+            font-size: 32px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Inter', sans-serif;
+            font-weight: 300;
+        }
+
+        .calendar-nav-btn:hover {
+            background: var(--accent-primary);
+            border-color: var(--accent-primary);
+            transform: scale(1.1);
+        }
+
+        #calendarTitle {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 2.5rem;
+            letter-spacing: 3px;
+            background: linear-gradient(135deg, var(--text-primary) 0%, var(--accent-primary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin: 0;
+        }
+
+        .calendar {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 8px;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .calendar-day-header {
+            text-align: center;
+            font-weight: 700;
+            font-size: 14px;
+            color: var(--text-secondary);
+            padding: 12px 0;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .calendar-day {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 8px;
+            min-height: 100px;
+            height: 120px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+
+        .calendar-day:hover {
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 20px rgba(0, 212, 170, 0.1);
+        }
+
+        .calendar-day.other-month {
+            opacity: 0.3;
+        }
+
+        .calendar-day.today {
+            border: 2px solid var(--accent-primary);
+            box-shadow: 0 0 20px rgba(0, 212, 170, 0.2);
+        }
+
+        .calendar-day-number {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .calendar-events {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .calendar-event {
+            font-size: 10px;
+            padding: 3px 6px;
+            border-radius: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .calendar-event:hover {
+            transform: translateX(2px);
+        }
+
+        .calendar-event.training {
+            background: rgba(0, 212, 170, 0.2);
+            color: var(--accent-primary);
+            border-left: 3px solid var(--accent-primary);
+        }
+
+        .calendar-event.match {
+            background: rgba(255, 170, 0, 0.2);
+            color: var(--accent-warm);
+            border-left: 3px solid var(--accent-warm);
+        }
+
+        .calendar-event.cancelled {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+            text-decoration: line-through;
+            opacity: 0.6;
+        }
+
+        @media (max-width: 768px) {
+            .calendar {
+                gap: 4px;
+                padding: 10px;
+            }
+
+            .calendar-day {
+                min-height: 70px;
+                height: 80px;
+                padding: 4px;
+            }
+
+            .calendar-day-number {
+                font-size: 12px;
+            }
+
+            .calendar-event {
+                font-size: 8px;
+                padding: 2px 4px;
+            }
+
+            .calendar-header {
+                padding: 0 10px;
+                margin-bottom: 20px;
+            }
+
+            .calendar-nav-btn {
+                width: 40px;
+                height: 40px;
+                font-size: 24px;
+            }
+
+            #calendarTitle {
+                font-size: 2rem;
+            }
+
+            .calendar-day-header {
+                font-size: 11px;
+                padding: 8px 0;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .calendar-day {
+                min-height: 60px;
+                height: 70px;
+                padding: 3px;
+            }
+
+            .calendar-day-number {
+                font-size: 10px;
+                margin-bottom: 2px;
+            }
+
+            .calendar-event {
+                font-size: 7px;
+                padding: 1px 2px;
+            }
+
+            .calendar-day-header {
+                font-size: 9px;
+                padding: 6px 0;
+            }
+
+            #calendarTitle {
+                font-size: 1.5rem;
+            }
+
+            .calendar-nav-btn {
+                width: 35px;
+                height: 35px;
+                font-size: 20px;
+            }
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>TRAINING SCHEDULE</h1>
-            <p class="subtitle">Weekly Training Program</p>
+            <h1>BALLYRAINE HARPS SCHEDULE</h1>
         </header>
 
         <nav class="tabs">
             <button class="tab-button active" data-tab="schedule">Schedule</button>
+            <button class="tab-button" data-tab="calendar">Calendar</button>
             <button class="tab-button" data-tab="players">Players</button>
             <button class="tab-button" data-tab="stats">Stats</button>
         </nav>
@@ -2418,6 +2634,15 @@
         <div class="tab-content active" id="schedule-tab">
             <main id="sessions"></main>
 
+        </div>
+
+        <div class="tab-content" id="calendar-tab">
+            <div class="calendar-header">
+                <button class="calendar-nav-btn" id="prevMonth" onclick="changeMonth(-1)">‹</button>
+                <h2 id="calendarTitle">CALENDAR</h2>
+                <button class="calendar-nav-btn" id="nextMonth" onclick="changeMonth(1)">›</button>
+            </div>
+            <div id="calendar-container"></div>
         </div>
 
         <div class="tab-content" id="players-tab">
@@ -2503,6 +2728,10 @@
         let showPastSessions = false;
         let showDeletedSessions = false;
         let showDeletedPlayers = false;
+        let showTraining = true;
+        let showMatches = true;
+        let currentCalendarMonth = new Date().getMonth();
+        let currentCalendarYear = new Date().getFullYear();
 
         function formatDate(date) {
             const options = { weekday: 'long', month: 'long', day: 'numeric' };
@@ -3339,6 +3568,7 @@
             // Integrate match goals with player goals
             const matchDate = session.date ? new Date(session.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
             const matchGoals = session.matchGoals || {};
+            const attendingPlayers = session.attendance || [];
             
             // Set goals for each player's record (not add, to avoid duplicates)
             for (const [playerName, goalCount] of Object.entries(matchGoals)) {
@@ -3350,11 +3580,14 @@
                 }
             }
             
-            // Also clear goals for players who were removed from the match
-            const attendingPlayers = session.attendance || [];
-            attendingPlayers.forEach(playerName => {
-                if (!matchGoals[playerName] || matchGoals[playerName] === 0) {
-                    // Check if this player has a goal entry for this match date and remove it
+            // Clear goals for any player who is not attending but has goals for this match date
+            // This handles cases where a player was removed from attendance after scoring
+            players.forEach(player => {
+                const playerName = player.player;
+                if (!playerName) return;
+                
+                // If player is not attending and not in matchGoals, check if they have goals for this date
+                if (!attendingPlayers.includes(playerName)) {
                     const goals = getPlayerGoals(playerName);
                     if (goals[matchDate]) {
                         deleteGoal(playerName, matchDate);
@@ -3397,6 +3630,15 @@
                 const sessionDate = new Date(session.date);
                 sessionDate.setHours(0, 0, 0, 0);
                 if (sessionDate < today && !showPastSessions) {
+                    return false;
+                }
+                
+                // Filter by session type
+                const sessionType = session.type || 'training';
+                if (sessionType === 'training' && !showTraining) {
+                    return false;
+                }
+                if (sessionType === 'match' && !showMatches) {
                     return false;
                 }
                 
@@ -3806,6 +4048,25 @@
                     setupCancelControls();
                 }
             });
+        }
+        
+        function setupFilterToggles() {
+            const showTrainingToggle = document.getElementById('showTraining');
+            const showMatchesToggle = document.getElementById('showMatches');
+            
+            if (showTrainingToggle) {
+                showTrainingToggle.addEventListener('change', () => {
+                    showTraining = showTrainingToggle.checked;
+                    renderSessions();
+                });
+            }
+            
+            if (showMatchesToggle) {
+                showMatchesToggle.addEventListener('change', () => {
+                    showMatches = showMatchesToggle.checked;
+                    renderSessions();
+                });
+            }
         }
         
         function setupCancelControls() {
@@ -5089,6 +5350,125 @@
             `;
         }
 
+        // Calendar functions
+        window.changeMonth = function(direction) {
+            currentCalendarMonth += direction;
+            if (currentCalendarMonth > 11) {
+                currentCalendarMonth = 0;
+                currentCalendarYear++;
+            } else if (currentCalendarMonth < 0) {
+                currentCalendarMonth = 11;
+                currentCalendarYear--;
+            }
+            renderCalendar();
+        };
+
+        function renderCalendar() {
+            const container = document.getElementById('calendar-container');
+            const title = document.getElementById('calendarTitle');
+            
+            const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                               'July', 'August', 'September', 'October', 'November', 'December'];
+            
+            title.textContent = `${monthNames[currentCalendarMonth]} ${currentCalendarYear}`;
+            
+            // Get first day of month and number of days
+            const firstDay = new Date(currentCalendarYear, currentCalendarMonth, 1);
+            const lastDay = new Date(currentCalendarYear, currentCalendarMonth + 1, 0);
+            const daysInMonth = lastDay.getDate();
+            const startDayOfWeek = firstDay.getDay();
+            
+            // Get days from previous month
+            const prevMonthLastDay = new Date(currentCalendarYear, currentCalendarMonth, 0).getDate();
+            const prevMonthDays = startDayOfWeek;
+            
+            // Get days for next month
+            const totalCells = Math.ceil((daysInMonth + startDayOfWeek) / 7) * 7;
+            const nextMonthDays = totalCells - daysInMonth - startDayOfWeek;
+            
+            // Build calendar HTML
+            let html = '<div class="calendar">';
+            
+            // Day headers
+            const dayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            dayHeaders.forEach(day => {
+                html += `<div class="calendar-day-header">${day}</div>`;
+            });
+            
+            // Previous month days
+            for (let i = prevMonthDays; i > 0; i--) {
+                const day = prevMonthLastDay - i + 1;
+                html += `<div class="calendar-day other-month"><div class="calendar-day-number">${day}</div></div>`;
+            }
+            
+            // Current month days
+            const today = new Date();
+            for (let day = 1; day <= daysInMonth; day++) {
+                const date = new Date(currentCalendarYear, currentCalendarMonth, day);
+                const dateStr = date.toISOString().split('T')[0];
+                const isToday = date.toDateString() === today.toDateString();
+                
+                // Get events for this day
+                const dayEvents = sessions.filter(s => {
+                    if (s.deleted) return false;
+                    const sessionDate = new Date(s.date);
+                    return sessionDate.toDateString() === date.toDateString();
+                }).sort((a, b) => {
+                    // Sort by time if available
+                    const timeA = a.time || '';
+                    const timeB = b.time || '';
+                    return timeA.localeCompare(timeB);
+                });
+                
+                html += `<div class="calendar-day ${isToday ? 'today' : ''}">`;
+                html += `<div class="calendar-day-number">${day}</div>`;
+                html += `<div class="calendar-events">`;
+                
+                dayEvents.forEach(event => {
+                    const type = event.type || 'training';
+                    const cancelled = event.cancelled ? 'cancelled' : '';
+                    let label = '';
+                    if (type === 'match') {
+                        label = event.opponent || 'Match';
+                    } else {
+                        label = event.time || 'Training';
+                    }
+                    html += `<div class="calendar-event ${type} ${cancelled}" onclick="scrollToSession(${event.id})" title="${label}">${label}</div>`;
+                });
+                
+                html += `</div></div>`;
+            }
+            
+            // Next month days
+            for (let day = 1; day <= nextMonthDays; day++) {
+                html += `<div class="calendar-day other-month"><div class="calendar-day-number">${day}</div></div>`;
+            }
+            
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        window.scrollToSession = function(sessionId) {
+            // Switch to schedule tab
+            const scheduleButton = document.querySelector('.tab-button[data-tab="schedule"]');
+            if (scheduleButton) {
+                scheduleButton.click();
+            }
+            
+            // Scroll to the session
+            setTimeout(() => {
+                const sessionCard = document.querySelector(`.session-card[data-session="${sessionId}"]`);
+                if (sessionCard) {
+                    sessionCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    // Briefly highlight the card
+                    sessionCard.style.boxShadow = '0 0 30px rgba(0, 212, 170, 0.5)';
+                    setTimeout(() => {
+                        sessionCard.style.boxShadow = '';
+                    }, 2000);
+                }
+            }, 300);
+        };
+
         function setupTabs() {
             const tabButtons = document.querySelectorAll('.tab-button');
             const tabContents = document.querySelectorAll('.tab-content');
@@ -5105,6 +5485,11 @@
                     // Update content
                     tabContents.forEach(content => content.classList.remove('active'));
                     document.getElementById(targetTab + '-tab').classList.add('active');
+                    
+                    // Render calendar when calendar tab is shown
+                    if (targetTab === 'calendar') {
+                        renderCalendar();
+                    }
                     
                     // Render players when players tab is shown (to reflect any goal updates)
                     if (targetTab === 'players') {
@@ -5305,6 +5690,25 @@
                         </div>
                     </div>
                     <div class="menu-section">
+                        <div class="menu-section-title">Filter</div>
+                        <div class="view-toggles">
+                            <div class="view-toggle">
+                                <label for="showTraining">Show Training</label>
+                                <div class="toggle-switch">
+                                    <input type="checkbox" id="showTraining">
+                                    <span class="toggle-slider"></span>
+                                </div>
+                            </div>
+                            <div class="view-toggle">
+                                <label for="showMatches">Show Matches</label>
+                                <div class="toggle-switch">
+                                    <input type="checkbox" id="showMatches">
+                                    <span class="toggle-slider"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="menu-section">
                         <div class="menu-section-title">View Options</div>
                         <div class="view-toggles">
                             <div class="view-toggle">
@@ -5376,10 +5780,15 @@
                 const editModeToggle = document.getElementById('editMode');
                 const showPastToggle = document.getElementById('showPastSessions');
                 const showDeletedToggle = document.getElementById('showDeletedSessions');
+                const showTrainingToggle = document.getElementById('showTraining');
+                const showMatchesToggle = document.getElementById('showMatches');
                 if (editModeToggle) editModeToggle.checked = editMode;
                 if (showPastToggle) showPastToggle.checked = showPastSessions;
                 if (showDeletedToggle) showDeletedToggle.checked = showDeletedSessions;
+                if (showTrainingToggle) showTrainingToggle.checked = showTraining;
+                if (showMatchesToggle) showMatchesToggle.checked = showMatches;
                 setupEditMode();
+                setupFilterToggles();
             } else if (activeTab === 'players') {
                 const showDeletedToggle = document.getElementById('showDeletedPlayers');
                 if (showDeletedToggle) showDeletedToggle.checked = showDeletedPlayers;
