@@ -716,6 +716,383 @@
             box-shadow: 0 0 30px rgba(0, 212, 170, 0.1);
         }
 
+        /* Match card specific styling */
+        .session-card.match-card {
+            border-left: 4px solid var(--accent-secondary);
+            position: relative;
+            cursor: pointer;
+        }
+
+        .session-card.match-card:hover {
+            border-color: var(--accent-secondary);
+            box-shadow: 0 0 30px rgba(14, 165, 233, 0.1);
+        }
+
+        .session-card.match-card.flipped .session-card-front {
+            display: none;
+        }
+
+        .session-card.match-card.flipped .session-card-back {
+            display: block;
+        }
+
+        .session-card-front,
+        .session-card-back {
+            width: 100%;
+        }
+
+        .session-card-back {
+            display: none;
+        }
+
+        .match-type-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+        }
+
+        .match-type-badge.friendly {
+            background: rgba(14, 165, 233, 0.15);
+            color: var(--accent-secondary);
+        }
+
+        .match-type-badge.league {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--success);
+        }
+
+        .match-type-badge.cup {
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--accent-warm);
+        }
+
+        .opponent-name {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin: 8px 0 12px 0;
+        }
+
+        .cup-stage {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+        }
+
+        /* Match card back - attendance tracking */
+        .attendance-section {
+            padding: 20px;
+        }
+
+        .attendance-section-title {
+            font-size: 14px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+        }
+
+        .attendance-checklist {
+            max-height: 250px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+            padding: 8px;
+            background: var(--bg-section);
+            border-radius: 8px;
+        }
+
+        .attendance-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px;
+            margin-bottom: 4px;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .attendance-item:hover {
+            background: var(--bg-card);
+        }
+
+        .attendance-checkbox {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            accent-color: var(--accent-primary);
+        }
+
+        .attendance-player-name {
+            flex: 1;
+            font-size: 14px;
+            color: var(--text-primary);
+        }
+
+        .captain-section {
+            margin-bottom: 20px;
+        }
+
+        .captain-selector {
+            width: 100%;
+            padding: 12px;
+            background: var(--bg-section);
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .captain-selector:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+        }
+
+        .goal-scorers-section {
+            margin-bottom: 20px;
+        }
+
+        .goal-scorer-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 12px;
+            margin-bottom: 8px;
+            background: var(--bg-section);
+            border-radius: 8px;
+        }
+
+        .goal-scorer-name {
+            font-size: 14px;
+            color: var(--text-primary);
+            flex: 1;
+        }
+
+        .goal-scorer-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .goal-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            border: 2px solid var(--border-color);
+            background: var(--bg-card);
+            color: var(--text-primary);
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .goal-btn:hover {
+            border-color: var(--accent-primary);
+            background: var(--accent-primary);
+            color: var(--bg-dark);
+        }
+
+        .goal-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .goal-count {
+            min-width: 32px;
+            text-align: center;
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--accent-primary);
+        }
+
+        .save-match-btn {
+            width: 100%;
+            padding: 12px;
+            background: var(--accent-primary);
+            border: none;
+            border-radius: 8px;
+            color: var(--bg-dark);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .save-match-btn:hover {
+            background: var(--accent-secondary);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 212, 170, 0.3);
+        }
+
+        /* Session type selector for new sessions/matches */
+        .session-type-selector {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+            padding: 16px;
+            background: var(--bg-section);
+            border-radius: 8px;
+        }
+
+        .type-option {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            font-size: 14px;
+            font-weight: 600;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .type-option:hover {
+            border-color: var(--accent-primary);
+        }
+
+        .type-option.selected {
+            border-color: var(--accent-primary);
+            background: rgba(0, 212, 170, 0.15);
+            color: var(--accent-primary);
+        }
+
+        .match-fields {
+            display: none;
+        }
+
+        .match-fields.active {
+            display: block;
+        }
+
+        .match-input-group {
+            margin-bottom: 12px;
+        }
+
+        .match-input-label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .match-input {
+            width: 100%;
+            padding: 10px 12px;
+            background: var(--bg-section);
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .match-input:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+        }
+
+        .match-type-select {
+            width: 100%;
+            padding: 10px 12px;
+            background: var(--bg-section);
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .match-type-select:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+        }
+
+        /* Attendance chart in Stats tab */
+        .attendance-chart-container {
+            background: var(--bg-card);
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+
+        .attendance-chart-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 20px;
+            text-align: center;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .attendance-chart-svg-container {
+            width: 100%;
+            height: 400px;
+            overflow: visible;
+        }
+
+        .attendance-bar {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .attendance-bar:hover {
+            opacity: 0.8;
+        }
+
+        .attendance-bar.high {
+            fill: var(--success);
+        }
+
+        .attendance-bar.medium {
+            fill: var(--accent-warm);
+        }
+
+        .attendance-bar.low {
+            fill: var(--accent-secondary);
+        }
+
+        .attendance-player-label {
+            font-size: 12px;
+            fill: var(--text-secondary);
+            text-anchor: middle;
+        }
+
+        .attendance-value-label {
+            font-size: 14px;
+            fill: var(--text-primary);
+            font-weight: 600;
+            text-anchor: middle;
+        }
+
+        .captain-star {
+            fill: var(--accent-warm);
+            stroke: var(--bg-dark);
+            stroke-width: 0.5;
+        }
+
         .session-card.cancelled {
             opacity: 0.7;
             border-color: var(--danger);
@@ -2049,7 +2426,11 @@
             desc: 'Add a description for this session...',
             warmup: 'General warm-up & stretching',
             drills: 'Tap edit mode to add drills...',
-            game: 'Full game play'
+            game: 'Full game play',
+            // Match defaults
+            opponent: 'Enter opponent team name',
+            matchType: 'friendly',
+            cupStage: ''
         };
 
         let editMode = false;
@@ -2098,7 +2479,15 @@
                         date: s.date ? new Date(s.date) : new Date(),
                         location: s.location || 'The Aura',
                         time: s.time || '7:30 PM - 8:30 PM',
-                        deleted: s.deleted || false
+                        deleted: s.deleted || false,
+                        // Match-specific fields
+                        type: s.type || 'training',
+                        opponent: s.opponent || '',
+                        matchType: s.matchType || 'friendly',
+                        cupStage: s.cupStage || '',
+                        attendance: s.attendance || [],
+                        captain: s.captain || '',
+                        matchGoals: s.matchGoals || {}
                     })).sort((a, b) => a.id - b.id);
                     console.log('Sessions structure loaded from Firebase:', sessions.length);
                 } else {
@@ -2135,10 +2524,15 @@
                         sessions.forEach(s => {
                             const sessionData = firebaseData[s.id];
                             if (sessionData) {
+                                // Training session fields
                                 s.desc = sessionData.desc || '';
                                 s.warmup = sessionData.warmup || '';
                                 s.drills = sessionData.drills || '';
                                 s.game = sessionData.game || '';
+                                // Match session fields
+                                s.attendance = sessionData.attendance || [];
+                                s.captain = sessionData.captain || '';
+                                s.matchGoals = sessionData.matchGoals || {};
                             }
                         });
                         // Cache in localStorage
@@ -2148,6 +2542,9 @@
                             data[s.id + '_warmup'] = s.warmup;
                             data[s.id + '_drills'] = s.drills;
                             data[s.id + '_game'] = s.game;
+                            data[s.id + '_attendance'] = JSON.stringify(s.attendance || []);
+                            data[s.id + '_captain'] = s.captain || '';
+                            data[s.id + '_matchGoals'] = JSON.stringify(s.matchGoals || {});
                         });
                         localStorage.setItem('trainingData', JSON.stringify(data));
                         renderSessions();
@@ -2167,33 +2564,11 @@
                     s.warmup = data[s.id + '_warmup'] || '';
                     s.drills = data[s.id + '_drills'] || '';
                     s.game = data[s.id + '_game'] || '';
+                    s.attendance = data[s.id + '_attendance'] ? JSON.parse(data[s.id + '_attendance']) : [];
+                    s.captain = data[s.id + '_captain'] || '';
+                    s.matchGoals = data[s.id + '_matchGoals'] ? JSON.parse(data[s.id + '_matchGoals']) : {};
                 });
                 renderSessions();
-            }
-        }
-
-        async function saveSessionsList() {
-            if (!database) {
-                return;
-            }
-            
-            try {
-                const sessionsListRef = database.ref('sessionsList');
-                const sessionsListData = {};
-                
-                    sessions.forEach(s => {
-                    sessionsListData[s.id] = {
-                        id: s.id,
-                        date: s.date ? s.date.toISOString() : new Date().toISOString(),
-                        cancelled: s.cancelled || false,
-                        cancelReason: s.cancelReason || ''
-                    };
-                });
-                
-                await sessionsListRef.set(sessionsListData);
-                console.log('Sessions list saved to Firebase');
-                } catch (e) {
-                console.error('Failed to save sessions list to Firebase:', e);
             }
         }
 
@@ -2214,7 +2589,12 @@
                         cancelReason: s.cancelReason || '',
                         location: s.location || 'The Aura',
                         time: s.time || '7:30 PM - 8:30 PM',
-                        deleted: s.deleted || false
+                        deleted: s.deleted || false,
+                        // Match-specific fields
+                        type: s.type || 'training',
+                        opponent: s.opponent || '',
+                        matchType: s.matchType || 'friendly',
+                        cupStage: s.cupStage || ''
                     };
                 });
                 
@@ -2232,6 +2612,9 @@
                 data[s.id + '_warmup'] = s.warmup;
                 data[s.id + '_drills'] = s.drills;
                 data[s.id + '_game'] = s.game;
+                data[s.id + '_attendance'] = JSON.stringify(s.attendance || []);
+                data[s.id + '_captain'] = s.captain || '';
+                data[s.id + '_matchGoals'] = JSON.stringify(s.matchGoals || {});
             });
             
             // Save to localStorage
@@ -2250,6 +2633,10 @@
                             warmup: s.warmup || '',
                             drills: s.drills || '',
                             game: s.game || '',
+                            // Match-specific fields
+                            attendance: s.attendance || [],
+                            captain: s.captain || '',
+                            matchGoals: s.matchGoals || {},
                             lastUpdated: new Date().toISOString()
                         };
                     });
@@ -2283,11 +2670,16 @@
             if (session._isNew) {
                 const tempId = session._tempId || '';
                 const defaultDateStr = session.date ? new Date(session.date).toISOString().split('T')[0] : '';
+                const sessionType = session.type || 'training';
                 
                 return `
                     <article class="session-card new-session-card" data-temp-id="${tempId}">
                         <div class="session-header">
                             <span class="session-number">New</span>
+                            <div class="session-type-selector">
+                                <div class="type-option ${sessionType === 'training' ? 'selected' : ''}" data-type="training" onclick="selectSessionType('${tempId}', 'training')">Training</div>
+                                <div class="type-option ${sessionType === 'match' ? 'selected' : ''}" data-type="match" onclick="selectSessionType('${tempId}', 'match')">Match</div>
+                            </div>
                             <div class="session-date-edit">
                                 <label>Date:</label>
                                 <input type="date" class="new-session-date-input" value="${defaultDateStr}" />
@@ -2301,6 +2693,24 @@
                             <div class="meta-item meta-item-edit">
                                 <span class="meta-icon">🕢</span>
                                 <input type="text" class="new-session-time-input" value="${session.time || '7:30 PM - 8:30 PM'}" placeholder="Time" />
+                            </div>
+                        </div>
+                        <div class="match-fields ${sessionType === 'match' ? 'active' : ''}">
+                            <div class="match-input-group">
+                                <label class="match-input-label">Opponent Team</label>
+                                <input type="text" class="match-input new-session-opponent-input" placeholder="Enter opponent team name" value="${session.opponent || ''}" />
+                            </div>
+                            <div class="match-input-group">
+                                <label class="match-input-label">Match Type</label>
+                                <select class="match-type-select new-session-matchtype-select">
+                                    <option value="friendly" ${session.matchType === 'friendly' ? 'selected' : ''}>Friendly</option>
+                                    <option value="league" ${session.matchType === 'league' ? 'selected' : ''}>League</option>
+                                    <option value="cup" ${session.matchType === 'cup' ? 'selected' : ''}>Cup</option>
+                                </select>
+                            </div>
+                            <div class="match-input-group ${session.matchType === 'cup' ? '' : 'hidden'}" id="cup-stage-group-${tempId}">
+                                <label class="match-input-label">Cup Stage</label>
+                                <input type="text" class="match-input new-session-cupstage-input" placeholder="e.g., Quarter-finals, Semi-final, Final" value="${session.cupStage || ''}" />
                             </div>
                         </div>
                         <div class="new-session-actions">
@@ -2327,6 +2737,15 @@
                 `;
             }
 
+            // Check if it's a match
+            const isMatch = session.type === 'match';
+            
+            if (isMatch) {
+                // Generate match card
+                return generateMatchCard(session);
+            }
+
+            // Generate training session card (existing logic)
             const descContent = session.desc ? parseContent(session.desc) : defaults.desc;
             const warmupContent = session.warmup ? parseContent(session.warmup) : defaults.warmup;
             const drillsContent = session.drills ? parseContent(session.drills) : defaults.drills;
@@ -2422,6 +2841,335 @@
                 </article>
             `;
         }
+
+        function generateMatchCard(session) {
+            const matchTypeBadgeClass = session.matchType || 'friendly';
+            const matchTypeLabel = session.matchType === 'cup' ? 'Cup Match' : session.matchType === 'league' ? 'League Match' : 'Friendly Match';
+            
+            return `
+                <article class="session-card match-card ${session.deleted ? 'deleted' : ''}" data-session="${session.id}" onclick="handleMatchCardClick(event, ${session.id})">
+                    <div class="session-card-front">
+                        <div class="session-header">
+                            <span class="session-number">${String(session.id).padStart(2, '0')}</span>
+                            <div class="match-type-badge ${matchTypeBadgeClass}">${matchTypeLabel}</div>
+                            <h2 class="session-date">${formatDate(session.date)}</h2>
+                            ${session.cupStage ? `<div class="cup-stage">${session.cupStage}</div>` : ''}
+                        </div>
+                        <div class="opponent-name">vs ${session.opponent || defaults.opponent}</div>
+                        <div class="session-meta">
+                            <div class="meta-item">
+                                <span class="meta-icon">📍</span>
+                                <span>${session.location || 'The Aura'}</span>
+                            </div>
+                            <div class="meta-item">
+                                <span class="meta-icon">🕢</span>
+                                <span>${session.time || '7:30 PM - 8:30 PM'}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="session-card-back">
+                        ${generateMatchBackContent(session)}
+                    </div>
+                </article>
+            `;
+        }
+
+        function generateMatchBackContent(session) {
+            const attendance = session.attendance || [];
+            const captain = session.captain || '';
+            const matchGoals = session.matchGoals || {};
+            
+            // Get all active players
+            const activePlayers = players.filter(p => {
+                const returning = (p.returning || '').toString().toLowerCase().trim();
+                const playerName = (p.player || '').toString().toLowerCase();
+                return p.player && 
+                       p.player !== '?' && 
+                       !playerName.includes('child') &&
+                       returning !== 'no' &&
+                       !p.deleted;
+            }).sort((a, b) => (a.player || '').localeCompare(b.player || ''));
+            
+            const attendingPlayers = activePlayers.filter(p => attendance.includes(p.player));
+            
+            return `
+                <div class="attendance-section">
+                    <h3 class="attendance-section-title">Match Attendance</h3>
+                    <div class="attendance-checklist" id="attendance-list-${session.id}">
+                        ${activePlayers.map(p => `
+                            <div class="attendance-item">
+                                <input type="checkbox" 
+                                       class="attendance-checkbox" 
+                                       data-session="${session.id}" 
+                                       data-player="${p.player}"
+                                       ${attendance.includes(p.player) ? 'checked' : ''}
+                                       onchange="handleAttendanceChange(${session.id}, '${p.player}', this.checked)">
+                                <span class="attendance-player-name">${p.player}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                    
+                    <div class="captain-section">
+                        <h3 class="attendance-section-title">Captain</h3>
+                        <select class="captain-selector" data-session="${session.id}" onchange="handleCaptainChange(${session.id}, this.value)">
+                            <option value="">Select captain...</option>
+                            ${attendingPlayers.map(p => `
+                                <option value="${p.player}" ${captain === p.player ? 'selected' : ''}>${p.player}</option>
+                            `).join('')}
+                        </select>
+                    </div>
+                    
+                    <div class="goal-scorers-section">
+                        <h3 class="attendance-section-title">Goal Scorers</h3>
+                        <div id="goal-scorers-${session.id}">
+                            ${attendingPlayers.length > 0 ? attendingPlayers.map(p => `
+                                <div class="goal-scorer-item">
+                                    <span class="goal-scorer-name">${p.player}</span>
+                                    <div class="goal-scorer-controls">
+                                        <button class="goal-btn" onclick="updateGoals(${session.id}, '${p.player}', -1)" ${(matchGoals[p.player] || 0) === 0 ? 'disabled' : ''}>−</button>
+                                        <span class="goal-count">${matchGoals[p.player] || 0}</span>
+                                        <button class="goal-btn" onclick="updateGoals(${session.id}, '${p.player}', 1)">+</button>
+                                    </div>
+                                </div>
+                            `).join('') : '<p style="text-align: center; color: var(--text-muted); padding: 20px;">No players attending yet</p>'}
+                        </div>
+                    </div>
+                    
+                    <button class="save-match-btn" onclick="saveMatchData(${session.id})">Save Match Data</button>
+                </div>
+            `;
+        }
+
+        // Helper function to select session type for new sessions
+        window.selectSessionType = function(tempId, type) {
+            const card = document.querySelector(`.session-card[data-temp-id="${tempId}"]`);
+            if (!card) return;
+            
+            // Update button states
+            card.querySelectorAll('.type-option').forEach(btn => {
+                btn.classList.remove('selected');
+                if (btn.dataset.type === type) {
+                    btn.classList.add('selected');
+                }
+            });
+            
+            // Show/hide match fields
+            const matchFields = card.querySelector('.match-fields');
+            if (matchFields) {
+                if (type === 'match') {
+                    matchFields.classList.add('active');
+                } else {
+                    matchFields.classList.remove('active');
+                }
+            }
+            
+            // Update session in array
+            const session = sessions.find(s => s._tempId === tempId);
+            if (session) {
+                session.type = type;
+            }
+            
+            // Handle match type select change to show/hide cup stage
+            const matchTypeSelect = card.querySelector('.new-session-matchtype-select');
+            if (matchTypeSelect) {
+                matchTypeSelect.addEventListener('change', function() {
+                    const cupStageGroup = document.getElementById(`cup-stage-group-${tempId}`);
+                    if (cupStageGroup) {
+                        if (this.value === 'cup') {
+                            cupStageGroup.classList.remove('hidden');
+                        } else {
+                            cupStageGroup.classList.add('hidden');
+                        }
+                    }
+                });
+            }
+        };
+
+        // Handle match card click for flipping
+        window.handleMatchCardClick = function(event, sessionId) {
+            // Don't flip if clicking on interactive elements
+            if (event.target.closest('input, button, select, .attendance-checkbox, .goal-btn, .save-match-btn, .captain-selector')) {
+                event.stopPropagation();
+                return;
+            }
+            
+            const card = event.currentTarget;
+            card.classList.toggle('flipped');
+            
+            // Update captain selector options when flipping to back
+            if (card.classList.contains('flipped')) {
+                updateCaptainSelector(sessionId);
+            }
+        };
+
+        // Handle attendance checkbox change
+        window.handleAttendanceChange = function(sessionId, playerName, isChecked) {
+            const session = sessions.find(s => s.id === sessionId);
+            if (!session) return;
+            
+            if (!session.attendance) {
+                session.attendance = [];
+            }
+            
+            if (isChecked) {
+                if (!session.attendance.includes(playerName)) {
+                    session.attendance.push(playerName);
+                }
+            } else {
+                session.attendance = session.attendance.filter(p => p !== playerName);
+                // If unchecked player was captain, clear captain
+                if (session.captain === playerName) {
+                    session.captain = '';
+                    const captainSelector = document.querySelector(`.captain-selector[data-session="${sessionId}"]`);
+                    if (captainSelector) {
+                        captainSelector.value = '';
+                    }
+                }
+                // Clear any goals for this player
+                if (session.matchGoals && session.matchGoals[playerName]) {
+                    delete session.matchGoals[playerName];
+                }
+            }
+            
+            // Update captain selector and goal scorers
+            updateCaptainSelector(sessionId);
+            updateGoalScorersDisplay(sessionId);
+        };
+
+        // Handle captain selection change
+        window.handleCaptainChange = function(sessionId, playerName) {
+            const session = sessions.find(s => s.id === sessionId);
+            if (!session) return;
+            
+            session.captain = playerName;
+        };
+
+        // Update goals for a player
+        window.updateGoals = function(sessionId, playerName, delta) {
+            const session = sessions.find(s => s.id === sessionId);
+            if (!session) return;
+            
+            if (!session.matchGoals) {
+                session.matchGoals = {};
+            }
+            
+            const currentGoals = session.matchGoals[playerName] || 0;
+            const newGoals = Math.max(0, currentGoals + delta);
+            
+            if (newGoals === 0) {
+                delete session.matchGoals[playerName];
+            } else {
+                session.matchGoals[playerName] = newGoals;
+            }
+            
+            // Update display
+            const goalCount = document.querySelector(`#goal-scorers-${sessionId} .goal-scorer-item:has(.goal-scorer-name:contains("${playerName}")) .goal-count`);
+            if (goalCount) {
+                goalCount.textContent = newGoals;
+            }
+            
+            // Update button states
+            updateGoalScorersDisplay(sessionId);
+        };
+
+        // Update captain selector options based on attendance
+        function updateCaptainSelector(sessionId) {
+            const session = sessions.find(s => s.id === sessionId);
+            if (!session) return;
+            
+            const captainSelector = document.querySelector(`.captain-selector[data-session="${sessionId}"]`);
+            if (!captainSelector) return;
+            
+            const attendance = session.attendance || [];
+            const currentCaptain = session.captain || '';
+            
+            // Get all active players
+            const activePlayers = players.filter(p => {
+                const returning = (p.returning || '').toString().toLowerCase().trim();
+                const playerName = (p.player || '').toString().toLowerCase();
+                return p.player && 
+                       p.player !== '?' && 
+                       !playerName.includes('child') &&
+                       returning !== 'no' &&
+                       !p.deleted;
+            }).filter(p => attendance.includes(p.player)).sort((a, b) => (a.player || '').localeCompare(b.player || ''));
+            
+            // Rebuild options
+            captainSelector.innerHTML = '<option value="">Select captain...</option>' +
+                activePlayers.map(p => `<option value="${p.player}" ${currentCaptain === p.player ? 'selected' : ''}>${p.player}</option>`).join('');
+        }
+
+        // Update goal scorers display based on attendance
+        function updateGoalScorersDisplay(sessionId) {
+            const session = sessions.find(s => s.id === sessionId);
+            if (!session) return;
+            
+            const goalScorersContainer = document.getElementById(`goal-scorers-${sessionId}`);
+            if (!goalScorersContainer) return;
+            
+            const attendance = session.attendance || [];
+            const matchGoals = session.matchGoals || {};
+            
+            // Get all active players who are attending
+            const activePlayers = players.filter(p => {
+                const returning = (p.returning || '').toString().toLowerCase().trim();
+                const playerName = (p.player || '').toString().toLowerCase();
+                return p.player && 
+                       p.player !== '?' && 
+                       !playerName.includes('child') &&
+                       returning !== 'no' &&
+                       !p.deleted &&
+                       attendance.includes(p.player);
+            }).sort((a, b) => (a.player || '').localeCompare(b.player || ''));
+            
+            if (activePlayers.length === 0) {
+                goalScorersContainer.innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 20px;">No players attending yet</p>';
+                return;
+            }
+            
+            goalScorersContainer.innerHTML = activePlayers.map(p => {
+                const goals = matchGoals[p.player] || 0;
+                return `
+                    <div class="goal-scorer-item">
+                        <span class="goal-scorer-name">${p.player}</span>
+                        <div class="goal-scorer-controls">
+                            <button class="goal-btn" onclick="updateGoals(${sessionId}, '${p.player}', -1)" ${goals === 0 ? 'disabled' : ''}>−</button>
+                            <span class="goal-count">${goals}</span>
+                            <button class="goal-btn" onclick="updateGoals(${sessionId}, '${p.player}', 1)">+</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Save match data
+        window.saveMatchData = async function(sessionId) {
+            const session = sessions.find(s => s.id === sessionId);
+            if (!session) return;
+            
+            // Integrate match goals with player goals
+            const matchDate = session.date ? new Date(session.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+            const matchGoals = session.matchGoals || {};
+            
+            // Add goals to each player's record
+            for (const [playerName, goalCount] of Object.entries(matchGoals)) {
+                if (goalCount > 0) {
+                    addGoals(playerName, matchDate, goalCount);
+                }
+            }
+            
+            // Save session data
+            await saveData();
+            await saveSessionsList();
+            
+            showSaveIndicator();
+            
+            // Refresh player display if on players tab
+            const playersTab = document.getElementById('players-tab');
+            if (playersTab && playersTab.classList.contains('active')) {
+                renderPlayers();
+            }
+        };
 
         function renderSessions() {
             const sessionsContainer = document.getElementById('sessions');
@@ -2587,14 +3335,23 @@
             const newSession = {
                 id: null, // Will be assigned when saved
                 date: defaultDate,
+                type: 'training', // Default to training
                 cancelled: false,
                 cancelReason: '',
                 location: 'The Aura',
                 time: '7:30 PM - 8:30 PM',
+                // Training fields
                 desc: '',
                 warmup: '',
                 drills: '',
                 game: '',
+                // Match fields
+                opponent: '',
+                matchType: 'friendly',
+                cupStage: '',
+                attendance: [],
+                captain: '',
+                matchGoals: {},
                 deleted: false,
                 _tempId: tempId,
                 _isNew: true
@@ -2645,6 +3402,34 @@
             if (sessionIndex !== -1) {
                 const session = sessions[sessionIndex];
                 
+                // Determine session type
+                const selectedType = sessionCard.querySelector('.type-option.selected');
+                const sessionType = selectedType ? selectedType.dataset.type : 'training';
+                
+                // Get match-specific fields if it's a match
+                if (sessionType === 'match') {
+                    const opponentInput = sessionCard.querySelector('.new-session-opponent-input');
+                    const matchTypeSelect = sessionCard.querySelector('.new-session-matchtype-select');
+                    const cupStageInput = sessionCard.querySelector('.new-session-cupstage-input');
+                    
+                    const opponent = opponentInput ? opponentInput.value.trim() : '';
+                    const matchType = matchTypeSelect ? matchTypeSelect.value : 'friendly';
+                    const cupStage = cupStageInput ? cupStageInput.value.trim() : '';
+                    
+                    if (!opponent) {
+                        alert('Please enter the opponent team name.');
+                        if (opponentInput) opponentInput.focus();
+                        return;
+                    }
+                    
+                    session.opponent = opponent;
+                    session.matchType = matchType;
+                    session.cupStage = matchType === 'cup' ? cupStage : '';
+                    session.attendance = [];
+                    session.captain = '';
+                    session.matchGoals = {};
+                }
+                
                 // Find the next available ID
                 const deletedSessions = sessions.filter(s => s.deleted && !s._isNew).sort((a, b) => a.id - b.id);
                 let newId;
@@ -2665,6 +3450,7 @@
                 session.date = newDate;
                 session.location = location || 'The Aura';
                 session.time = time || '7:30 PM - 8:30 PM';
+                session.type = sessionType;
                 delete session._tempId;
                 delete session._isNew;
             }
@@ -4064,7 +4850,162 @@
                 </div>
             `;
             
-            container.innerHTML = svg;
+            // Generate attendance chart
+            const attendanceChart = generateAttendanceChart(filteredPlayers);
+            
+            container.innerHTML = attendanceChart + svg;
+        }
+
+        function generateAttendanceChart(filteredPlayers) {
+            // Get all matches
+            const matches = sessions.filter(s => s.type === 'match' && !s.deleted);
+            
+            if (matches.length === 0) {
+                return `
+                    <div class="attendance-chart-container">
+                        <div class="attendance-chart-title">Match Attendance</div>
+                        <div class="stats-empty" style="padding: 40px;">
+                            <p>No matches recorded yet</p>
+                            <small>Match attendance will appear here once matches are added.</small>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // Calculate attendance stats for each player
+            const playerAttendance = filteredPlayers.map(p => {
+                const playerName = p.player || '';
+                let attended = 0;
+                let captainCount = 0;
+                
+                matches.forEach(match => {
+                    if (match.attendance && match.attendance.includes(playerName)) {
+                        attended++;
+                    }
+                    if (match.captain === playerName) {
+                        captainCount++;
+                    }
+                });
+                
+                return {
+                    name: playerName,
+                    attended: attended,
+                    captainCount: captainCount,
+                    percentage: matches.length > 0 ? (attended / matches.length * 100).toFixed(0) : 0
+                };
+            }).filter(p => p.attended > 0).sort((a, b) => b.attended - a.attended);
+            
+            if (playerAttendance.length === 0) {
+                return `
+                    <div class="attendance-chart-container">
+                        <div class="attendance-chart-title">Match Attendance</div>
+                        <div class="stats-empty" style="padding: 40px;">
+                            <p>No attendance recorded yet</p>
+                            <small>Mark attendance in match cards to see stats here.</small>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // Chart dimensions
+            const chartWidth = 800;
+            const chartHeight = 500;
+            const padding = { top: 60, right: 40, bottom: 180, left: 80 };
+            const barWidth = Math.min(60, (chartWidth - padding.left - padding.right) / playerAttendance.length - 10);
+            const maxAttended = Math.max(...playerAttendance.map(p => p.attended), 1);
+            const barHeight = chartHeight - padding.top - padding.bottom;
+            
+            let svg = `
+                <div class="attendance-chart-container">
+                    <div class="attendance-chart-title">Match Attendance (${matches.length} ${matches.length === 1 ? 'match' : 'matches'})</div>
+                    <div class="attendance-chart-svg-container">
+                        <svg viewBox="0 0 ${chartWidth} ${chartHeight}" preserveAspectRatio="xMidYMid meet">
+                            <!-- Y-axis label -->
+                            <text class="stats-chart-axis-label" 
+                                  x="20" 
+                                  y="${padding.top + (barHeight / 2)}" 
+                                  transform="rotate(-90, 20, ${padding.top + (barHeight / 2)})"
+                                  text-anchor="middle"
+                                  dominant-baseline="middle">Matches Attended</text>
+                            
+                            <!-- X-axis label -->
+                            <text class="stats-chart-axis-label" 
+                                  x="${chartWidth / 2}" 
+                                  y="${chartHeight - 35}" 
+                                  text-anchor="middle">Players</text>
+                            
+                            <!-- Y-axis grid lines and labels -->
+                            ${Array.from({ length: Math.min(6, maxAttended + 1) }, (_, i) => {
+                                const value = Math.ceil(maxAttended / 5) * i;
+                                const y = chartHeight - padding.bottom - (value / maxAttended) * barHeight;
+                                return `
+                                    <line x1="${padding.left}" 
+                                          y1="${y}" 
+                                          x2="${chartWidth - padding.right}" 
+                                          y2="${y}" 
+                                          stroke="var(--border-color)" 
+                                          stroke-width="0.5" 
+                                          opacity="0.3"/>
+                                    <text class="stats-chart-axis-label" 
+                                          x="${padding.left - 10}" 
+                                          y="${y + 4}" 
+                                          text-anchor="end">${value}</text>
+                                `;
+                            }).join('')}
+                            
+                            <!-- Bars -->
+                            ${playerAttendance.map((player, index) => {
+                                const barHeightValue = (player.attended / maxAttended) * barHeight;
+                                const x = padding.left + (chartWidth - padding.left - padding.right - playerAttendance.length * barWidth) / 2 + index * (barWidth + 10);
+                                const y = chartHeight - padding.bottom - barHeightValue;
+                                
+                                // Determine bar color based on attendance percentage
+                                let barClass = 'attendance-bar low';
+                                if (player.percentage >= 75) {
+                                    barClass = 'attendance-bar high';
+                                } else if (player.percentage >= 50) {
+                                    barClass = 'attendance-bar medium';
+                                }
+                                
+                                return `
+                                    <g>
+                                        <rect class="${barClass}" 
+                                              x="${x}" 
+                                              y="${y}" 
+                                              width="${barWidth}" 
+                                              height="${barHeightValue}"
+                                              rx="4">
+                                            <title>${player.name}: ${player.attended}/${matches.length} matches (${player.percentage}%)</title>
+                                        </rect>
+                                        <text class="attendance-value-label" 
+                                              x="${x + barWidth / 2}" 
+                                              y="${y - 8}">${player.attended}</text>
+                                        <text class="attendance-player-label" 
+                                              x="${x + barWidth / 2 - 35}" 
+                                              y="${chartHeight - padding.bottom + 80}"
+                                              transform="rotate(-90, ${x + barWidth / 2}, ${chartHeight - padding.bottom + 80})"
+                                              text-anchor="middle">${player.name}</text>
+                                        <text class="attendance-player-label" 
+                                              style="font-size: 10px; fill: var(--text-muted);"
+                                              x="${x + barWidth / 2 - 50}" 
+                                              y="${chartHeight - padding.bottom + 80}"
+                                              transform="rotate(-90, ${x + barWidth / 2}, ${chartHeight - padding.bottom + 80})"
+                                              text-anchor="middle">${player.percentage}%</text>
+                                        ${player.captainCount > 0 ? `
+                                            <polygon class="captain-star" 
+                                                     points="${x + barWidth / 2},${y - 25} ${x + barWidth / 2 + 5},${y - 15} ${x + barWidth / 2 + 15},${y - 15} ${x + barWidth / 2 + 7},${y - 8} ${x + barWidth / 2 + 10},${y + 2} ${x + barWidth / 2},${y - 3} ${x + barWidth / 2 - 10},${y + 2} ${x + barWidth / 2 - 7},${y - 8} ${x + barWidth / 2 - 15},${y - 15} ${x + barWidth / 2 - 5},${y - 15}">
+                                                <title>Captain ${player.captainCount} ${player.captainCount === 1 ? 'time' : 'times'}</title>
+                                            </polygon>
+                                        ` : ''}
+                                    </g>
+                                `;
+                            }).join('')}
+                        </svg>
+                    </div>
+                </div>
+            `;
+            
+            return svg;
         }
 
         function setupTabs() {
