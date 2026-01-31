@@ -5488,6 +5488,9 @@
                     
                     // Render calendar when calendar tab is shown
                     if (targetTab === 'calendar') {
+                        // Reset to current month
+                        currentCalendarMonth = new Date().getMonth();
+                        currentCalendarYear = new Date().getFullYear();
                         renderCalendar();
                     }
                     
