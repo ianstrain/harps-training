@@ -114,16 +114,6 @@
                 width: 36px;
                 height: 36px;
             }
-            
-            .tabs {
-                gap: 4px;
-                padding: 10px 50px 10px 8px;
-            }
-            
-            .tab-button {
-                padding: 10px 8px;
-                font-size: 11px;
-            }
         }
 
         .menu-toggle:hover {
@@ -2625,7 +2615,6 @@
             <button class="tab-button active" data-tab="schedule">Schedule</button>
             <button class="tab-button" data-tab="calendar">Calendar</button>
             <button class="tab-button" data-tab="players">Players</button>
-            <button class="tab-button" data-tab="stats">Stats</button>
         </nav>
         <button class="menu-toggle" id="menuToggle" onclick="toggleMenu()">
             <span></span>
@@ -5681,10 +5670,30 @@
             menuDrawer.classList.remove('active');
         }
 
+        window.switchToStats = function() {
+            // Show the stats tab content
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            document.getElementById('stats-tab').classList.add('active');
+            
+            // Remove active state from all tab buttons (since stats is no longer a tab button)
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+            
+            // Render stats
+            renderStats();
+        };
+
         function updateMenuContent() {
             const menuContent = document.getElementById('menuContent');
             const menuTitle = document.getElementById('menuTitle');
-            const activeTab = document.querySelector('.tab-button.active')?.dataset.tab || 'schedule';
+            
+            // Determine which tab is active based on active content (not just button)
+            let activeTab = 'schedule';
+            if (document.getElementById('stats-tab').classList.contains('active')) {
+                activeTab = 'stats';
+            } else {
+                const activeButton = document.querySelector('.tab-button.active');
+                activeTab = activeButton?.dataset.tab || 'schedule';
+            }
             
             let html = '';
             
@@ -5747,6 +5756,20 @@
                             ➕ New Session
                         </button>
                     </div>
+                    <div class="menu-section">
+                        <button class="add-player-btn" onclick="switchToStats(); closeMenu();" title="View goal statistics">
+                            📊 View Stats
+                        </button>
+                    </div>
+                `;
+            } else if (activeTab === 'calendar') {
+                menuTitle.textContent = 'Calendar Options';
+                html = `
+                    <div class="menu-section">
+                        <button class="add-player-btn" onclick="switchToStats(); closeMenu();" title="View goal statistics">
+                            📊 View Stats
+                        </button>
+                    </div>
                 `;
             } else if (activeTab === 'players') {
                 menuTitle.textContent = 'Player Options';
@@ -5772,13 +5795,27 @@
                             ➕ Add Player
                         </button>
                     </div>
+                    <div class="menu-section">
+                        <button class="add-player-btn" onclick="switchToStats(); closeMenu();" title="View goal statistics">
+                            📊 View Stats
+                        </button>
+                    </div>
                 `;
-            } else {
-                menuTitle.textContent = 'Stats';
+            } else if (activeTab === 'stats') {
+                menuTitle.textContent = 'Statistics';
                 html = `
                     <div class="menu-section">
                         <p style="color: var(--text-secondary); font-size: 14px; margin: 0;">
-                            View goal statistics for all players.
+                            Viewing statistics for all players including goals and attendance.
+                        </p>
+                    </div>
+                `;
+            } else {
+                menuTitle.textContent = 'Options';
+                html = `
+                    <div class="menu-section">
+                        <p style="color: var(--text-secondary); font-size: 14px; margin: 0;">
+                            No options available.
                         </p>
                     </div>
                 `;
