@@ -826,12 +826,31 @@
             height: 20px;
             cursor: pointer;
             accent-color: var(--accent-primary);
+            flex-shrink: 0;
         }
 
         .attendance-player-name {
             flex: 1;
             font-size: 14px;
             color: var(--text-primary);
+        }
+
+        .captain-checkbox {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            accent-color: var(--accent-warm);
+            flex-shrink: 0;
+            position: relative;
+        }
+
+        .captain-checkbox:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .captain-checkbox:checked {
+            accent-color: var(--accent-warm);
         }
 
         .captain-section {
@@ -2846,11 +2865,14 @@
             const matchTypeBadgeClass = session.matchType || 'friendly';
             const matchTypeLabel = session.matchType === 'cup' ? 'Cup Match' : session.matchType === 'league' ? 'League Match' : 'Friendly Match';
             
+            // Calculate match number (count only matches up to this one)
+            const matchesUpToThis = sessions.filter(s => s.type === 'match' && !s.deleted && s.id <= session.id).length;
+            
             return `
                 <article class="session-card match-card ${session.deleted ? 'deleted' : ''}" data-session="${session.id}" onclick="handleMatchCardClick(event, ${session.id})">
                     <div class="session-card-front">
                         <div class="session-header">
-                            <span class="session-number">${String(session.id).padStart(2, '0')}</span>
+                            <span class="session-number">M${String(matchesUpToThis).padStart(2, '0')}</span>
                             <div class="match-type-badge ${matchTypeBadgeClass}">${matchTypeLabel}</div>
                             <h2 class="session-date">${formatDate(session.date)}</h2>
                             ${session.cupStage ? `<div class="cup-stage">${session.cupStage}</div>` : ''}
@@ -2894,7 +2916,7 @@
             
             return `
                 <div class="attendance-section">
-                    <h3 class="attendance-section-title">Match Attendance</h3>
+                    <h3 class="attendance-section-title">Match Attendance & Captain</h3>
                     <div class="attendance-checklist" id="attendance-list-${session.id}">
                         ${activePlayers.map(p => `
                             <div class="attendance-item">
@@ -2903,20 +2925,18 @@
                                        data-session="${session.id}" 
                                        data-player="${p.player}"
                                        ${attendance.includes(p.player) ? 'checked' : ''}
-                                       onchange="handleAttendanceChange(${session.id}, '${p.player}', this.checked)">
+                                       onclick="event.stopPropagation(); handleAttendanceChange(${session.id}, '${p.player}', this.checked)">
                                 <span class="attendance-player-name">${p.player}</span>
+                                <input type="checkbox" 
+                                       class="captain-checkbox" 
+                                       data-session="${session.id}" 
+                                       data-player="${p.player}"
+                                       ${captain === p.player ? 'checked' : ''}
+                                       ${!attendance.includes(p.player) ? 'disabled' : ''}
+                                       onclick="event.stopPropagation(); handleCaptainCheckbox(${session.id}, '${p.player}', this.checked)"
+                                       title="Captain">
                             </div>
                         `).join('')}
-                    </div>
-                    
-                    <div class="captain-section">
-                        <h3 class="attendance-section-title">Captain</h3>
-                        <select class="captain-selector" data-session="${session.id}" onchange="handleCaptainChange(${session.id}, this.value)">
-                            <option value="">Select captain...</option>
-                            ${attendingPlayers.map(p => `
-                                <option value="${p.player}" ${captain === p.player ? 'selected' : ''}>${p.player}</option>
-                            `).join('')}
-                        </select>
                     </div>
                     
                     <div class="goal-scorers-section">
@@ -2926,16 +2946,16 @@
                                 <div class="goal-scorer-item">
                                     <span class="goal-scorer-name">${p.player}</span>
                                     <div class="goal-scorer-controls">
-                                        <button class="goal-btn" onclick="updateGoals(${session.id}, '${p.player}', -1)" ${(matchGoals[p.player] || 0) === 0 ? 'disabled' : ''}>−</button>
+                                        <button class="goal-btn" onclick="event.stopPropagation(); updateGoals(${session.id}, '${p.player}', -1)" ${(matchGoals[p.player] || 0) === 0 ? 'disabled' : ''}>−</button>
                                         <span class="goal-count">${matchGoals[p.player] || 0}</span>
-                                        <button class="goal-btn" onclick="updateGoals(${session.id}, '${p.player}', 1)">+</button>
+                                        <button class="goal-btn" onclick="event.stopPropagation(); updateGoals(${session.id}, '${p.player}', 1)">+</button>
                                     </div>
                                 </div>
                             `).join('') : '<p style="text-align: center; color: var(--text-muted); padding: 20px;">No players attending yet</p>'}
                         </div>
                     </div>
                     
-                    <button class="save-match-btn" onclick="saveMatchData(${session.id})">Save Match Data</button>
+                    <button class="save-match-btn" onclick="event.stopPropagation(); saveMatchData(${session.id})">Save Match Data</button>
                 </div>
             `;
         }
@@ -2988,18 +3008,13 @@
         // Handle match card click for flipping
         window.handleMatchCardClick = function(event, sessionId) {
             // Don't flip if clicking on interactive elements
-            if (event.target.closest('input, button, select, .attendance-checkbox, .goal-btn, .save-match-btn, .captain-selector')) {
-                event.stopPropagation();
-                return;
+            const target = event.target;
+            if (target.closest('input, button, select, .attendance-checkbox, .captain-checkbox, .goal-btn, .save-match-btn, .captain-selector')) {
+                return; // Don't stop propagation here, let the event bubble to the specific handlers
             }
             
             const card = event.currentTarget;
             card.classList.toggle('flipped');
-            
-            // Update captain selector options when flipping to back
-            if (card.classList.contains('flipped')) {
-                updateCaptainSelector(sessionId);
-            }
         };
 
         // Handle attendance checkbox change
@@ -3015,15 +3030,22 @@
                 if (!session.attendance.includes(playerName)) {
                     session.attendance.push(playerName);
                 }
+                // Enable captain checkbox
+                const captainCheckbox = document.querySelector(`.captain-checkbox[data-session="${sessionId}"][data-player="${playerName}"]`);
+                if (captainCheckbox) {
+                    captainCheckbox.disabled = false;
+                }
             } else {
                 session.attendance = session.attendance.filter(p => p !== playerName);
                 // If unchecked player was captain, clear captain
                 if (session.captain === playerName) {
                     session.captain = '';
-                    const captainSelector = document.querySelector(`.captain-selector[data-session="${sessionId}"]`);
-                    if (captainSelector) {
-                        captainSelector.value = '';
-                    }
+                }
+                // Disable and uncheck captain checkbox
+                const captainCheckbox = document.querySelector(`.captain-checkbox[data-session="${sessionId}"][data-player="${playerName}"]`);
+                if (captainCheckbox) {
+                    captainCheckbox.checked = false;
+                    captainCheckbox.disabled = true;
                 }
                 // Clear any goals for this player
                 if (session.matchGoals && session.matchGoals[playerName]) {
@@ -3031,8 +3053,7 @@
                 }
             }
             
-            // Update captain selector and goal scorers
-            updateCaptainSelector(sessionId);
+            // Update goal scorers display
             updateGoalScorersDisplay(sessionId);
         };
 
@@ -3042,6 +3063,28 @@
             if (!session) return;
             
             session.captain = playerName;
+        };
+
+        // Handle captain checkbox change
+        window.handleCaptainCheckbox = function(sessionId, playerName, isChecked) {
+            const session = sessions.find(s => s.id === sessionId);
+            if (!session) return;
+            
+            // Only one captain at a time - uncheck all others
+            if (isChecked) {
+                session.captain = playerName;
+                // Uncheck all other captain checkboxes
+                document.querySelectorAll(`.captain-checkbox[data-session="${sessionId}"]`).forEach(cb => {
+                    if (cb.dataset.player !== playerName) {
+                        cb.checked = false;
+                    }
+                });
+            } else {
+                // If unchecking the current captain, clear it
+                if (session.captain === playerName) {
+                    session.captain = '';
+                }
+            }
         };
 
         // Update goals for a player
@@ -3062,14 +3105,17 @@
                 session.matchGoals[playerName] = newGoals;
             }
             
-            // Update display
-            const goalCount = document.querySelector(`#goal-scorers-${sessionId} .goal-scorer-item:has(.goal-scorer-name:contains("${playerName}")) .goal-count`);
-            if (goalCount) {
-                goalCount.textContent = newGoals;
+            // Update the specific goal count display
+            const goalCountEl = document.querySelector(`#goal-scorers-${sessionId} .goal-scorer-item .goal-scorer-name:contains("${playerName}")`);
+            if (goalCountEl) {
+                const goalScorrerItem = goalCountEl.closest('.goal-scorer-item');
+                if (goalScorrerItem) {
+                    const countEl = goalScorrerItem.querySelector('.goal-count');
+                    const minusBtn = goalScorrerItem.querySelector('.goal-btn:first-child');
+                    if (countEl) countEl.textContent = newGoals;
+                    if (minusBtn) minusBtn.disabled = newGoals === 0;
+                }
             }
-            
-            // Update button states
-            updateGoalScorersDisplay(sessionId);
         };
 
         // Update captain selector options based on attendance
@@ -3133,9 +3179,9 @@
                     <div class="goal-scorer-item">
                         <span class="goal-scorer-name">${p.player}</span>
                         <div class="goal-scorer-controls">
-                            <button class="goal-btn" onclick="updateGoals(${sessionId}, '${p.player}', -1)" ${goals === 0 ? 'disabled' : ''}>−</button>
+                            <button class="goal-btn" onclick="event.stopPropagation(); updateGoals(${sessionId}, '${p.player}', -1)" ${goals === 0 ? 'disabled' : ''}>−</button>
                             <span class="goal-count">${goals}</span>
-                            <button class="goal-btn" onclick="updateGoals(${sessionId}, '${p.player}', 1)">+</button>
+                            <button class="goal-btn" onclick="event.stopPropagation(); updateGoals(${sessionId}, '${p.player}', 1)">+</button>
                         </div>
                     </div>
                 `;
@@ -3197,6 +3243,11 @@
                 }
                 
                 return true;
+            }).sort((a, b) => {
+                // Sort by date (ascending - earliest first)
+                const dateA = new Date(a.date);
+                const dateB = new Date(b.date);
+                return dateA - dateB;
             });
             
             let html = filteredSessions.map(generateSessionCard).join('');
