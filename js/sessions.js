@@ -19,6 +19,9 @@ function generateTrainingBackContent(session) {
     return `
         <div class="attendance-section">
             <h3 class="attendance-section-title">Training Attendance</h3>
+            <div class="attendance-summary" style="text-align: center; margin-bottom: 15px; font-size: 16px; color: var(--text-secondary);">
+                <span style="font-size: 24px; font-weight: bold; color: var(--accent-primary);">${attendance.length}</span> of ${activePlayers.length} players attending
+            </div>
             <div class="attendance-header">
                 <span class="attendance-header-label">✓</span>
                 <span class="attendance-header-player">Player</span>
@@ -126,9 +129,13 @@ function generateSessionCard(session) {
     const warmupContent = session.warmup ? parseContent(session.warmup) : defaults.warmup;
     const drillsContent = session.drills ? parseContent(session.drills) : defaults.drills;
     const gameContent = session.game ? parseContent(session.game) : defaults.game;
+    
+    // Check if this is the next upcoming session
+    const isNextSession = window.currentNextSessionId === session.id;
 
     return `
-        <article class="session-card ${session.cancelled ? 'cancelled' : ''} ${session.deleted ? 'deleted' : ''}" data-session="${session.id}" onclick="handleMatchCardClick(event, ${session.id})">
+        <article class="session-card ${session.cancelled ? 'cancelled' : ''} ${session.deleted ? 'deleted' : ''} ${isNextSession ? 'next-session' : ''}" data-session="${session.id}" onclick="handleMatchCardClick(event, ${session.id})">
+            ${isNextSession ? '<span class="next-session-badge">Next Up</span>' : ''}
             <div class="session-card-front">
                 <div class="session-header">
                     <span class="session-number">${String(session.id).padStart(2, '0')}</span>
@@ -223,9 +230,58 @@ function generateSessionCard(session) {
     `;
 }
 
+// Find the next upcoming session ID
+function findNextSessionId() {
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    
+    // Find upcoming sessions
+    const upcomingSessions = sessions.filter(s => {
+        if (s.deleted || s.cancelled || s._isNew) return false;
+        const sessionDate = new Date(s.date);
+        sessionDate.setHours(0, 0, 0, 0);
+        return sessionDate >= now;
+    }).sort((a, b) => new Date(a.date) - new Date(b.date));
+    
+    return upcomingSessions.length > 0 ? upcomingSessions[0].id : null;
+}
+
+// Generate countdown HTML
+function generateCountdownHtml(sessionDate) {
+    const now = new Date();
+    const target = new Date(sessionDate);
+    const diff = target - now;
+    
+    if (diff <= 0) return ''; // Session is today or past
+    
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    
+    return `
+        <div class="next-session-countdown">
+            <div class="countdown-item">
+                <div class="countdown-value">${days}</div>
+                <div class="countdown-label">${days === 1 ? 'Day' : 'Days'}</div>
+            </div>
+            <div class="countdown-item">
+                <div class="countdown-value">${hours}</div>
+                <div class="countdown-label">${hours === 1 ? 'Hour' : 'Hours'}</div>
+            </div>
+            <div class="countdown-item">
+                <div class="countdown-value">${minutes}</div>
+                <div class="countdown-label">${minutes === 1 ? 'Min' : 'Mins'}</div>
+            </div>
+        </div>
+    `;
+}
+
 // Render all sessions
 async function renderSessions() {
     const sessionsContainer = document.getElementById('sessions');
+    
+    // Find the next upcoming session
+    const nextSessionId = findNextSessionId();
     
     // Filter sessions based on showPastSessions and showDeletedSessions flags
     const today = new Date();
@@ -265,6 +321,9 @@ async function renderSessions() {
         const dateB = new Date(b.date);
         return dateA - dateB;
     });
+    
+    // Store the next session ID globally for use in card generation
+    window.currentNextSessionId = nextSessionId;
     
     let html = filteredSessions.map(generateSessionCard).join('');
     

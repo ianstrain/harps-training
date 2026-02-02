@@ -2,6 +2,74 @@
 // STATISTICS AND CHARTS
 // ============================================
 
+// Sort state for charts
+let goalsSortBy = 'goals-desc'; // Default: sort by goals descending
+let matchAttendanceSortBy = 'attended-desc'; // Default: sort by attended descending
+let trainingAttendanceSortBy = 'attended-desc'; // Default: sort by attended descending
+
+// Sorting functions
+function sortPlayerData(data, sortBy, valueKey = 'total') {
+    const sorted = [...data];
+    switch(sortBy) {
+        case 'name-asc':
+            return sorted.sort((a, b) => a.name.localeCompare(b.name));
+        case 'name-desc':
+            return sorted.sort((a, b) => b.name.localeCompare(a.name));
+        case 'goals-asc':
+        case 'attended-asc':
+            return sorted.sort((a, b) => a[valueKey] - b[valueKey]);
+        case 'goals-desc':
+        case 'attended-desc':
+        default:
+            return sorted.sort((a, b) => b[valueKey] - a[valueKey]);
+    }
+}
+
+// Generate sort controls HTML
+function generateSortControls(chartId, currentSort, isAttendance = false) {
+    const sortOptions = isAttendance ? [
+        { value: 'attended-desc', label: 'Attendance (High to Low)' },
+        { value: 'attended-asc', label: 'Attendance (Low to High)' },
+        { value: 'name-asc', label: 'Name (A-Z)' },
+        { value: 'name-desc', label: 'Name (Z-A)' }
+    ] : [
+        { value: 'goals-desc', label: 'Goals (High to Low)' },
+        { value: 'goals-asc', label: 'Goals (Low to High)' },
+        { value: 'name-asc', label: 'Name (A-Z)' },
+        { value: 'name-desc', label: 'Name (Z-A)' }
+    ];
+    
+    return `
+        <div class="chart-sort-controls" style="display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 15px;">
+            <label style="font-size: 12px; color: var(--text-secondary); font-weight: 600;">Sort by:</label>
+            <select id="${chartId}-sort" onchange="handleChartSort('${chartId}', this.value)" 
+                    style="padding: 6px 12px; background: var(--bg-section); border: 1px solid var(--border-color); 
+                           border-radius: 6px; color: var(--text-primary); font-size: 12px; cursor: pointer;
+                           font-family: 'Inter', sans-serif;">
+                ${sortOptions.map(opt => `
+                    <option value="${opt.value}" ${currentSort === opt.value ? 'selected' : ''}>${opt.label}</option>
+                `).join('')}
+            </select>
+        </div>
+    `;
+}
+
+// Handle chart sort change
+window.handleChartSort = function(chartId, sortValue) {
+    switch(chartId) {
+        case 'goals':
+            goalsSortBy = sortValue;
+            break;
+        case 'match-attendance':
+            matchAttendanceSortBy = sortValue;
+            break;
+        case 'training-attendance':
+            trainingAttendanceSortBy = sortValue;
+            break;
+    }
+    renderStats();
+};
+
 // Render statistics
 function renderStats() {
     const container = document.getElementById('stats-container');
@@ -38,10 +106,12 @@ function renderStats() {
         };
     });
     
-    // Filter out players with 0 goals and sort by total (descending)
-    const playersWithGoals = playerGoals
-        .filter(p => p.total > 0)
-        .sort((a, b) => b.total - a.total);
+    // Filter out players with 0 goals and apply sorting
+    const playersWithGoals = sortPlayerData(
+        playerGoals.filter(p => p.total > 0),
+        goalsSortBy,
+        'total'
+    );
     
     // Find the longest player name to calculate proper spacing for goals chart
     const longestNameGoals = playersWithGoals.reduce((longest, player) => 
@@ -82,6 +152,7 @@ function renderStats() {
     let goalsSvg = `
         <div class="stats-chart-container">
             <div class="stats-chart-title">Goals Scored by Player</div>
+            ${generateSortControls('goals', goalsSortBy, false)}
             <div class="stats-chart-svg-container">
                 <svg viewBox="0 0 ${chartWidth} ${chartHeight}" preserveAspectRatio="xMidYMid meet">
                     <!-- Y-axis label -->
@@ -275,9 +346,12 @@ function generateAttendanceChart(filteredPlayers) {
             captainCount: captainCount,
             percentage: matches.length > 0 ? (attended / matches.length * 100).toFixed(0) : 0
         };
-    }).filter(p => p.attended > 0).sort((a, b) => b.attended - a.attended);
+    }).filter(p => p.attended > 0);
     
-    if (playerAttendance.length === 0) {
+    // Apply sorting
+    const sortedPlayerAttendance = sortPlayerData(playerAttendance, matchAttendanceSortBy, 'attended');
+    
+    if (sortedPlayerAttendance.length === 0) {
         return `
             <div class="stats-chart-container">
                 <div class="stats-chart-title">Match Attendance</div>
@@ -290,7 +364,7 @@ function generateAttendanceChart(filteredPlayers) {
     }
     
     // Find the longest player name to calculate proper spacing (same as goals chart)
-    const longestName = playerAttendance.reduce((longest, player) => 
+    const longestName = sortedPlayerAttendance.reduce((longest, player) => 
         player.name.length > longest.length ? player.name : longest, '');
     const longestNameLength = longestName.length;
     const fontSize = 28; // Same as goals chart
@@ -305,13 +379,14 @@ function generateAttendanceChart(filteredPlayers) {
         bottom: Math.max(200, nameSpaceNeeded + 10),
         left: 80
     };
-    const barWidth = (chartWidth - padding.left - padding.right) / playerAttendance.length - 10;
-    const maxAttended = Math.max(...playerAttendance.map(p => p.attended), 1);
+    const barWidth = (chartWidth - padding.left - padding.right) / sortedPlayerAttendance.length - 10;
+    const maxAttended = Math.max(...sortedPlayerAttendance.map(p => p.attended), 1);
     const barHeight = chartHeight - padding.top - padding.bottom;
     
     let svg = `
         <div class="stats-chart-container">
             <div class="stats-chart-title">Match Attendance (${matches.length} ${matches.length === 1 ? 'match' : 'matches'})</div>
+            ${generateSortControls('match-attendance', matchAttendanceSortBy, true)}
             <div class="stats-chart-svg-container">
                 <svg viewBox="0 0 ${chartWidth} ${chartHeight}" preserveAspectRatio="xMidYMid meet">
                     <!-- Y-axis label -->
@@ -348,7 +423,7 @@ function generateAttendanceChart(filteredPlayers) {
                     }).join('')}
                     
                     <!-- Bars -->
-                    ${playerAttendance.map((player, index) => {
+                    ${sortedPlayerAttendance.map((player, index) => {
                         const barHeightValue = (player.attended / maxAttended) * barHeight;
                         const x = padding.left + index * (barWidth + 10);
                         const y = chartHeight - padding.bottom - barHeightValue;
@@ -414,9 +489,12 @@ function generateTrainingAttendanceChart(filteredPlayers) {
             attended: attended,
             percentage: trainingSessions.length > 0 ? (attended / trainingSessions.length * 100).toFixed(0) : 0
         };
-    }).filter(p => p.attended > 0).sort((a, b) => b.attended - a.attended);
+    }).filter(p => p.attended > 0);
     
-    if (playerTrainingAttendance.length === 0) {
+    // Apply sorting
+    const sortedTrainingAttendance = sortPlayerData(playerTrainingAttendance, trainingAttendanceSortBy, 'attended');
+    
+    if (sortedTrainingAttendance.length === 0) {
         return `
             <div class="stats-chart-container">
                 <div class="stats-chart-title">Training Attendance</div>
@@ -429,7 +507,7 @@ function generateTrainingAttendanceChart(filteredPlayers) {
     }
     
     // Find the longest player name to calculate proper spacing
-    const longestName = playerTrainingAttendance.reduce((longest, player) => 
+    const longestName = sortedTrainingAttendance.reduce((longest, player) => 
         player.name.length > longest.length ? player.name : longest, '');
     const longestNameLength = longestName.length;
     const fontSize = 28; // Current font size for player labels
@@ -444,13 +522,14 @@ function generateTrainingAttendanceChart(filteredPlayers) {
         bottom: Math.max(200, nameSpaceNeeded + 10), 
         left: 80
     };
-    const barWidth = (chartWidth - padding.left - padding.right) / playerTrainingAttendance.length - 10;
-    const maxAttended = Math.max(...playerTrainingAttendance.map(p => p.attended), 1);
+    const barWidth = (chartWidth - padding.left - padding.right) / sortedTrainingAttendance.length - 10;
+    const maxAttended = Math.max(...sortedTrainingAttendance.map(p => p.attended), 1);
     const barHeight = chartHeight - padding.top - padding.bottom;
     
     let svg = `
         <div class="stats-chart-container">
             <div class="stats-chart-title">Training Attendance (${trainingSessions.length} ${trainingSessions.length === 1 ? 'session' : 'sessions'})</div>
+            ${generateSortControls('training-attendance', trainingAttendanceSortBy, true)}
             <div class="stats-chart-svg-container">
                 <svg viewBox="0 0 ${chartWidth} ${chartHeight}" preserveAspectRatio="xMidYMid meet">
                     <!-- Y-axis label -->
@@ -487,7 +566,7 @@ function generateTrainingAttendanceChart(filteredPlayers) {
                     }).join('')}
                     
                     <!-- Bars -->
-                    ${playerTrainingAttendance.map((player, index) => {
+                    ${sortedTrainingAttendance.map((player, index) => {
                         const barHeightValue = (player.attended / maxAttended) * barHeight;
                         const x = padding.left + index * (barWidth + 10);
                         const y = chartHeight - padding.bottom - barHeightValue;
@@ -519,6 +598,212 @@ function generateTrainingAttendanceChart(filteredPlayers) {
     `;
     
     return svg;
+}
+
+// Navigate to player profile
+window.navigateToPlayerProfile = function(playerName) {
+    // Store the current player name for the profile view
+    window.currentProfilePlayer = playerName;
+    switchToTab('player-profile');
+};
+
+// Render player profile page
+function renderPlayerProfile() {
+    const container = document.getElementById('player-profile-container');
+    const playerName = window.currentProfilePlayer;
+    
+    if (!playerName) {
+        container.innerHTML = `
+            <div class="player-profile-no-data">
+                <p>No player selected</p>
+                <button onclick="switchToTab('players')" style="margin-top: 15px; padding: 10px 20px; background: var(--accent-primary); color: var(--bg-dark); border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">
+                    View All Players
+                </button>
+            </div>
+        `;
+        return;
+    }
+    
+    // Find the player data
+    const player = players.find(p => p.player === playerName);
+    if (!player) {
+        container.innerHTML = `
+            <div class="player-profile-no-data">
+                <p>Player not found</p>
+                <button onclick="switchToTab('players')" style="margin-top: 15px; padding: 10px 20px; background: var(--accent-primary); color: var(--bg-dark); border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">
+                    View All Players
+                </button>
+            </div>
+        `;
+        return;
+    }
+    
+    // Get player goals
+    const goals = getPlayerGoals(playerName);
+    const totalGoals = getTotalGoals(goals);
+    
+    // Get attendance data
+    const allSessions = sessions.filter(s => !s.deleted);
+    const matchSessions = allSessions.filter(s => s.type === 'match');
+    const trainingSessions = allSessions.filter(s => s.type === 'training');
+    
+    // Calculate match attendance
+    let matchesAttended = 0;
+    let captainCount = 0;
+    const matchAttendanceRecords = [];
+    matchSessions.forEach(match => {
+        if (match.attendance && match.attendance.includes(playerName)) {
+            matchesAttended++;
+            const wasCaptain = match.captain === playerName;
+            if (wasCaptain) captainCount++;
+            matchAttendanceRecords.push({
+                date: match.date,
+                opponent: match.opponent || 'Unknown',
+                wasCaptain: wasCaptain,
+                type: 'match'
+            });
+        }
+    });
+    
+    // Calculate training attendance
+    let trainingsAttended = 0;
+    const trainingAttendanceRecords = [];
+    trainingSessions.forEach(session => {
+        if (session.attendance && session.attendance.includes(playerName)) {
+            trainingsAttended++;
+            trainingAttendanceRecords.push({
+                date: session.date,
+                location: session.location || 'The Aura',
+                type: 'training'
+            });
+        }
+    });
+    
+    // Calculate percentages
+    const matchAttendancePercent = matchSessions.length > 0 ? Math.round((matchesAttended / matchSessions.length) * 100) : 0;
+    const trainingAttendancePercent = trainingSessions.length > 0 ? Math.round((trainingsAttended / trainingSessions.length) * 100) : 0;
+    
+    // Get goal records sorted by date (most recent first)
+    const goalRecords = Object.entries(goals)
+        .map(([date, count]) => ({ date, count: parseInt(count) || 0 }))
+        .sort((a, b) => new Date(b.date) - new Date(a.date));
+    
+    // Get captain history
+    const captainHistory = matchSessions
+        .filter(m => m.captain === playerName)
+        .map(m => ({
+            date: m.date,
+            opponent: m.opponent || 'Unknown'
+        }))
+        .sort((a, b) => new Date(b.date) - new Date(a.date));
+    
+    // Combined attendance records sorted by date
+    const allAttendanceRecords = [...matchAttendanceRecords, ...trainingAttendanceRecords]
+        .sort((a, b) => new Date(b.date) - new Date(a.date));
+    
+    // Get initials for avatar
+    const initials = playerName.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+    
+    container.innerHTML = `
+        <div class="player-profile-header">
+            <button class="player-profile-back-btn" onclick="switchToTab('players')" title="Back to Players">←</button>
+            <div class="player-profile-avatar">${initials}</div>
+            <h1 class="player-profile-name">${playerName}</h1>
+            ${player.jersey ? `
+                <div class="player-profile-jersey">
+                    <span style="filter: hue-rotate(120deg) saturate(2) brightness(0.6);">👕</span>
+                    #${player.jersey}
+                </div>
+            ` : ''}
+        </div>
+        
+        <div class="player-profile-stats-grid">
+            <div class="player-profile-stat-card">
+                <div class="player-profile-stat-value">${totalGoals}</div>
+                <div class="player-profile-stat-label">Total Goals</div>
+            </div>
+            <div class="player-profile-stat-card">
+                <div class="player-profile-stat-value">${captainCount}</div>
+                <div class="player-profile-stat-label">Times Captain</div>
+            </div>
+            <div class="player-profile-stat-card">
+                <div class="player-profile-stat-value">${matchAttendancePercent}%</div>
+                <div class="player-profile-stat-label">Match Attendance</div>
+            </div>
+            <div class="player-profile-stat-card">
+                <div class="player-profile-stat-value">${trainingAttendancePercent}%</div>
+                <div class="player-profile-stat-label">Training Attendance</div>
+            </div>
+        </div>
+        
+        ${player.parent ? `
+            <div class="player-profile-section">
+                <div class="player-profile-section-title">👤 Player Information</div>
+                <div class="player-profile-section-content">
+                    <div style="display: flex; justify-content: space-between; padding: 8px 0;">
+                        <span style="color: var(--text-secondary);">Parent/Guardian</span>
+                        <span style="color: var(--text-primary); font-weight: 500;">${player.parent}</span>
+                    </div>
+                    ${player.year ? `
+                        <div style="display: flex; justify-content: space-between; padding: 8px 0; border-top: 1px solid var(--border-color);">
+                            <span style="color: var(--text-secondary);">Year</span>
+                            <span style="color: var(--text-primary); font-weight: 500;">${player.year}</span>
+                        </div>
+                    ` : ''}
+                </div>
+            </div>
+        ` : ''}
+        
+        <div class="player-profile-section">
+            <div class="player-profile-section-title">⚽ Goals Scored (${totalGoals})</div>
+            <div class="player-profile-section-content">
+                ${goalRecords.length > 0 ? goalRecords.map(record => `
+                    <div class="player-profile-goal-item">
+                        <span class="player-profile-goal-date">${formatDate(new Date(record.date))}</span>
+                        <span class="player-profile-goal-count">${record.count} ${record.count === 1 ? 'goal' : 'goals'}</span>
+                    </div>
+                `).join('') : `
+                    <div class="player-profile-no-data">No goals recorded yet</div>
+                `}
+            </div>
+        </div>
+        
+        <div class="player-profile-section">
+            <div class="player-profile-section-title">⭐ Captain History (${captainCount})</div>
+            <div class="player-profile-section-content">
+                ${captainHistory.length > 0 ? captainHistory.map(record => `
+                    <div class="player-profile-attendance-item">
+                        <span class="player-profile-attendance-date">${formatDate(new Date(record.date))}</span>
+                        <span class="player-profile-captain-badge">⭐ vs ${record.opponent}</span>
+                    </div>
+                `).join('') : `
+                    <div class="player-profile-no-data">No captaincy records yet</div>
+                `}
+            </div>
+        </div>
+        
+        <div class="player-profile-section">
+            <div class="player-profile-section-title">📅 Attendance Record (${matchesAttended + trainingsAttended})</div>
+            <div class="player-profile-section-content" style="max-height: 400px; overflow-y: auto;">
+                ${allAttendanceRecords.length > 0 ? allAttendanceRecords.map(record => `
+                    <div class="player-profile-attendance-item">
+                        <div>
+                            <span class="player-profile-attendance-date">${formatDate(new Date(record.date))}</span>
+                            <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
+                                ${record.type === 'match' ? `vs ${record.opponent}` : record.location}
+                            </div>
+                        </div>
+                        <span class="player-profile-attendance-type ${record.type}">
+                            ${record.type === 'match' ? '🏆 Match' : '⚽ Training'}
+                            ${record.wasCaptain ? ' ⭐' : ''}
+                        </span>
+                    </div>
+                `).join('') : `
+                    <div class="player-profile-no-data">No attendance records yet</div>
+                `}
+            </div>
+        </div>
+    `;
 }
 
 // Generate captain history chart

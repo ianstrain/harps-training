@@ -204,8 +204,21 @@ function renderCalendar() {
     const totalCells = Math.ceil((daysInMonth + startDayOfWeek) / 7) * 7;
     const nextMonthDays = totalCells - daysInMonth - startDayOfWeek;
     
-    // Build calendar HTML
-    let html = '<div class="calendar">';
+    // Build calendar HTML with legend
+    let html = `
+        <div class="calendar-legend">
+            <div class="calendar-legend-item">
+                <span class="calendar-legend-dot training"></span>
+                <span>Training</span>
+            </div>
+            <div class="calendar-legend-item">
+                <span class="calendar-legend-dot match"></span>
+                <span>Match</span>
+            </div>
+        </div>
+    `;
+    
+    html += '<div class="calendar">';
     
     // Day headers
     const dayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -238,8 +251,24 @@ function renderCalendar() {
             return timeA.localeCompare(timeB);
         });
         
-        html += `<div class="calendar-day ${isToday ? 'today' : ''}">`;
+        // Determine day type classes for visual indicator
+        const hasTraining = dayEvents.some(e => (e.type || 'training') === 'training' && !e.cancelled);
+        const hasMatch = dayEvents.some(e => e.type === 'match' && !e.cancelled);
+        let dayTypeClass = '';
+        if (hasTraining && hasMatch) {
+            dayTypeClass = 'has-both';
+        } else if (hasMatch) {
+            dayTypeClass = 'has-match';
+        } else if (hasTraining) {
+            dayTypeClass = 'has-training';
+        }
+        
+        html += `<div class="calendar-day ${isToday ? 'today' : ''} ${dayTypeClass}">`;
         html += `<div class="calendar-day-number">${day}</div>`;
+        
+        // Add session button (only show when logged in and edit mode is potentially available)
+        html += `<button class="calendar-day-add-btn" onclick="event.stopPropagation(); addSessionFromCalendar('${dateStr}')" title="Add session on this date">+</button>`;
+        
         html += `<div class="calendar-events">`;
         
         dayEvents.forEach(event => {
@@ -265,6 +294,52 @@ function renderCalendar() {
     html += '</div>';
     container.innerHTML = html;
 }
+
+// Add session from calendar view
+window.addSessionFromCalendar = function(dateStr) {
+    // Parse the date
+    const selectedDate = new Date(dateStr);
+    
+    // Create a temporary new session with the selected date
+    const tempId = 'new-session-' + Date.now();
+    
+    const newSession = {
+        id: null,
+        date: selectedDate,
+        type: 'training',
+        cancelled: false,
+        cancelReason: '',
+        location: 'The Aura',
+        time: '7:30 PM - 8:30 PM',
+        desc: '',
+        warmup: '',
+        drills: '',
+        game: '',
+        opponent: '',
+        matchType: 'friendly',
+        cupStage: '',
+        attendance: [],
+        captain: '',
+        matchGoals: {},
+        deleted: false,
+        _tempId: tempId,
+        _isNew: true
+    };
+    
+    // Add to sessions array
+    sessions.push(newSession);
+    
+    // Switch to schedule tab to show the new session form
+    switchToTab('schedule');
+    
+    // Scroll to the new session card after a short delay
+    setTimeout(() => {
+        const newSessionCard = document.querySelector(`.session-card[data-temp-id="${tempId}"]`);
+        if (newSessionCard) {
+            newSessionCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }, 300);
+};
 
 // Scroll to session from calendar
 window.scrollToSession = function(sessionId) {

@@ -294,7 +294,7 @@ function renderPlayers() {
                     ${isDeleted ? '<div class="deleted-indicator">Deleted</div>' : ''}
                     <div class="player-card-front">
                         <div class="player-name">
-                            ${playerName}
+                            <span class="clickable-player-name" onclick="event.stopPropagation(); navigateToPlayerProfile('${playerName.replace(/'/g, "\\'")}')" title="View full profile">${playerName}</span>
                             <div class="player-name-actions">
                             ${p.jersey ? `<span class="jersey-number"><span class="jersey-icon">👕</span>${p.jersey}</span>` : ''}
                                 <button class="delete-player-btn" onclick="handleDeletePlayer('${playerName}')" title="Delete player">🗑️</button>

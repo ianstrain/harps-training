@@ -237,6 +237,8 @@ window.switchToTab = function(tabName) {
         renderStats();
     } else if (tabName === 'thisweek') {
         renderThisWeek();
+    } else if (tabName === 'player-profile') {
+        renderPlayerProfile();
     }
 };
 

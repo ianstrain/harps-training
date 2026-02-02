@@ -10,8 +10,12 @@ function generateMatchCard(session) {
     // Calculate match number (count only matches up to this one)
     const matchesUpToThis = sessions.filter(s => s.type === 'match' && !s.deleted && s.id <= session.id).length;
     
+    // Check if this is the next upcoming session
+    const isNextSession = window.currentNextSessionId === session.id;
+    
     return `
-        <article class="session-card match-card ${session.deleted ? 'deleted' : ''}" data-session="${session.id}" onclick="handleMatchCardClick(event, parseInt(${session.id}))">
+        <article class="session-card match-card ${session.deleted ? 'deleted' : ''} ${isNextSession ? 'next-session' : ''}" data-session="${session.id}" onclick="handleMatchCardClick(event, parseInt(${session.id}))">
+            ${isNextSession ? '<span class="next-session-badge">Next Up</span>' : ''}
             <div class="session-card-front">
                 <div class="session-header">
                     <span class="session-number">M${String(matchesUpToThis).padStart(2, '0')}</span>
@@ -172,6 +176,9 @@ function generateMatchBackContent(session) {
     return `
         <div class="attendance-section">
             <h3 class="attendance-section-title">Match Attendance</h3>
+            <div class="attendance-summary" style="text-align: center; margin-bottom: 15px; font-size: 16px; color: var(--text-secondary);">
+                <span style="font-size: 24px; font-weight: bold; color: var(--accent-primary);">${attendance.length}</span> of ${activePlayers.length} players attending
+            </div>
             <div class="attendance-header">
                 <span class="attendance-header-label">✓</span>
                 <span class="attendance-header-player">Player</span>

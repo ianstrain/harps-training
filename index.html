@@ -709,8 +709,15 @@
             border-radius: 16px;
             border: 1px solid var(--border-color);
             margin-bottom: 20px;
-            overflow: hidden;
+            overflow: visible;
             transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .session-card .session-card-front,
+        .session-card .session-card-back {
+            overflow: hidden;
+            border-radius: 16px;
         }
 
         .session-card:hover {
@@ -1665,7 +1672,11 @@
 
         .session-card {
             animation: fadeInUp 0.5s ease forwards;
-            opacity: 0;
+        }
+
+        /* Ensure cards become visible after animation completes */
+        .session-card.animated {
+            opacity: 1;
         }
 
         .session-card:nth-child(1) { animation-delay: 0.1s; }
@@ -1676,6 +1687,13 @@
         .session-card:nth-child(6) { animation-delay: 0.35s; }
         .session-card:nth-child(7) { animation-delay: 0.4s; }
         .session-card:nth-child(8) { animation-delay: 0.45s; }
+        
+        /* Fallback: ensure visibility after animation should have completed */
+        @supports (animation: fadeInUp) {
+            .session-card {
+                animation-fill-mode: forwards;
+            }
+        }
 
         .players-container {
             display: flex;
@@ -2532,6 +2550,139 @@
             opacity: 0.6;
         }
 
+        /* Calendar day type indicators */
+        .calendar-day.has-training::after {
+            content: '';
+            position: absolute;
+            bottom: 4px;
+            left: 4px;
+            width: 8px;
+            height: 8px;
+            background: var(--accent-primary);
+            border-radius: 50%;
+        }
+
+        .calendar-day.has-match::after {
+            content: '';
+            position: absolute;
+            bottom: 4px;
+            left: 4px;
+            width: 8px;
+            height: 8px;
+            background: var(--accent-warm);
+            border-radius: 50%;
+        }
+
+        .calendar-day.has-both::after {
+            content: '';
+            position: absolute;
+            bottom: 4px;
+            left: 4px;
+            width: 8px;
+            height: 8px;
+            background: linear-gradient(135deg, var(--accent-primary) 50%, var(--accent-warm) 50%);
+            border-radius: 50%;
+        }
+
+        .calendar-legend {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            margin-bottom: 20px;
+            padding: 12px 20px;
+            background: var(--bg-card);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+        }
+
+        .calendar-legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .calendar-legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .calendar-legend-dot.training {
+            background: var(--accent-primary);
+        }
+
+        .calendar-legend-dot.match {
+            background: var(--accent-warm);
+        }
+
+        /* Calendar add session button */
+        .calendar-day-add-btn {
+            display: none;
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            width: 20px;
+            height: 20px;
+            background: var(--accent-primary);
+            border: none;
+            border-radius: 4px;
+            color: var(--bg-dark);
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+        }
+
+        .calendar-day:hover .calendar-day-add-btn {
+            display: flex;
+        }
+
+        .calendar-day-add-btn:hover {
+            background: var(--accent-secondary);
+            transform: scale(1.1);
+        }
+
+        @media (max-width: 768px) {
+            .calendar-day-add-btn {
+                width: 18px;
+                height: 18px;
+                font-size: 12px;
+            }
+            
+            .calendar-legend {
+                gap: 16px;
+                padding: 10px 12px;
+            }
+            
+            .calendar-legend-item {
+                font-size: 11px;
+            }
+            
+            .calendar-legend-dot {
+                width: 10px;
+                height: 10px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .calendar-legend {
+                flex-wrap: wrap;
+                gap: 10px;
+            }
+            
+            .calendar-day-add-btn {
+                width: 16px;
+                height: 16px;
+                font-size: 10px;
+            }
+        }
+
         @media (max-width: 768px) {
             .calendar {
                 gap: 4px;
@@ -2644,6 +2795,349 @@
             background-color: #ef4444;
             box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
         }
+
+        /* Player Profile Page Styles */
+        .player-profile-container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .player-profile-header {
+            text-align: center;
+            padding: 30px 20px;
+            background: var(--bg-card);
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .player-profile-back-btn {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            background: var(--bg-section);
+            border: 2px solid var(--border-color);
+            color: var(--text-primary);
+            font-size: 18px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .player-profile-back-btn:hover {
+            background: var(--accent-primary);
+            border-color: var(--accent-primary);
+            color: var(--bg-dark);
+        }
+
+        .player-profile-avatar {
+            width: 100px;
+            height: 100px;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 16px;
+            font-size: 48px;
+            font-weight: 700;
+            color: var(--bg-dark);
+        }
+
+        .player-profile-name {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 2.5rem;
+            letter-spacing: 2px;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .player-profile-jersey {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--accent-primary);
+            background: var(--bg-section);
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: 2px solid var(--accent-primary);
+        }
+
+        .player-profile-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .player-profile-stat-card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            padding: 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .player-profile-stat-card:hover {
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 20px rgba(0, 212, 170, 0.1);
+        }
+
+        .player-profile-stat-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--accent-primary);
+            margin-bottom: 4px;
+        }
+
+        .player-profile-stat-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+
+        .player-profile-section {
+            background: var(--bg-card);
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        .player-profile-section-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text-primary);
+            padding: 16px 20px;
+            background: var(--bg-section);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .player-profile-section-content {
+            padding: 16px 20px;
+        }
+
+        .player-profile-attendance-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .player-profile-attendance-item:last-child {
+            border-bottom: none;
+        }
+
+        .player-profile-attendance-date {
+            font-size: 14px;
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        .player-profile-attendance-type {
+            font-size: 12px;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-weight: 600;
+        }
+
+        .player-profile-attendance-type.training {
+            background: rgba(0, 212, 170, 0.15);
+            color: var(--accent-primary);
+        }
+
+        .player-profile-attendance-type.match {
+            background: rgba(14, 165, 233, 0.15);
+            color: var(--accent-secondary);
+        }
+
+        .player-profile-goal-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .player-profile-goal-item:last-child {
+            border-bottom: none;
+        }
+
+        .player-profile-goal-date {
+            font-size: 14px;
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        .player-profile-goal-count {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--accent-primary);
+            background: var(--bg-section);
+            padding: 4px 12px;
+            border-radius: 8px;
+        }
+
+        .player-profile-captain-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--accent-warm);
+            background: rgba(245, 158, 11, 0.15);
+            padding: 6px 12px;
+            border-radius: 8px;
+        }
+
+        .player-profile-no-data {
+            text-align: center;
+            padding: 30px 20px;
+            color: var(--text-muted);
+            font-size: 14px;
+            font-style: italic;
+        }
+
+        .clickable-player-name {
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .clickable-player-name:hover {
+            color: var(--accent-primary);
+            text-decoration: underline;
+        }
+
+        /* Next Session Highlight */
+        .session-card.next-session {
+            position: relative;
+            border: 2px solid var(--accent-primary) !important;
+            margin-top: 20px;
+        }
+
+        .session-card.next-session::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            border-radius: 18px;
+            box-shadow: 0 0 30px rgba(0, 212, 170, 0.3), 0 0 60px rgba(0, 212, 170, 0.1);
+            animation: nextSessionPulse 3s ease-in-out infinite;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .session-card.next-session.match-card {
+            border-color: var(--accent-secondary) !important;
+        }
+
+        .session-card.next-session.match-card::before {
+            box-shadow: 0 0 30px rgba(14, 165, 233, 0.3), 0 0 60px rgba(14, 165, 233, 0.1);
+            animation: nextMatchPulse 3s ease-in-out infinite;
+        }
+
+        @keyframes nextSessionPulse {
+            0%, 100% {
+                box-shadow: 0 0 30px rgba(0, 212, 170, 0.3), 0 0 60px rgba(0, 212, 170, 0.1);
+            }
+            50% {
+                box-shadow: 0 0 40px rgba(0, 212, 170, 0.5), 0 0 80px rgba(0, 212, 170, 0.2);
+            }
+        }
+
+        @keyframes nextMatchPulse {
+            0%, 100% {
+                box-shadow: 0 0 30px rgba(14, 165, 233, 0.3), 0 0 60px rgba(14, 165, 233, 0.1);
+            }
+            50% {
+                box-shadow: 0 0 40px rgba(14, 165, 233, 0.5), 0 0 80px rgba(14, 165, 233, 0.2);
+            }
+        }
+
+        .next-session-badge {
+            position: absolute;
+            top: -14px;
+            left: 20px;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            color: var(--bg-dark);
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            padding: 6px 14px;
+            border-radius: 20px;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 4px 12px rgba(0, 212, 170, 0.4);
+        }
+
+        .next-session-badge::before {
+            content: '▶';
+            font-size: 9px;
+        }
+
+        .session-card.match-card .next-session-badge {
+            background: linear-gradient(135deg, var(--accent-secondary), var(--accent-warm));
+            box-shadow: 0 4px 12px rgba(14, 165, 233, 0.4);
+        }
+        
+        /* Ensure next session card is visible even if it's the first */
+        .session-card.next-session:first-child {
+            margin-top: 20px;
+        }
+
+        /* Countdown timer for next session */
+        .next-session-countdown {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            padding: 12px 20px;
+            background: var(--bg-section);
+            border-top: 1px solid var(--border-color);
+            margin-top: 12px;
+        }
+
+        .countdown-item {
+            text-align: center;
+        }
+
+        .countdown-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--accent-primary);
+            line-height: 1;
+        }
+
+        .countdown-label {
+            font-size: 10px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 4px;
+        }
+
+        .match-card .countdown-value {
+            color: var(--accent-secondary);
+        }
     </style>
 </head>
 <body>
@@ -2706,6 +3200,12 @@
                 <h2>GOALS STATISTICS</h2>
             </div>
             <div id="stats-container">
+            </div>
+        </div>
+
+        <div class="tab-content" id="player-profile-tab">
+            <div class="player-profile-container" id="player-profile-container">
+                <!-- Player profile content will be rendered here -->
             </div>
         </div>
     </div> <!-- End main-container -->
