@@ -2614,8 +2614,7 @@
         </header>
 
         <nav class="tabs">
-            <button class="tab-button active" data-tab="thisweek">This Week</button>
-            <button class="tab-button" data-tab="schedule">Schedule</button>
+            <button class="tab-button active" data-tab="schedule">Schedule</button>
             <button class="tab-button" data-tab="calendar">Calendar</button>
             <button class="tab-button" data-tab="players">Players</button>
         </nav>
@@ -2634,14 +2633,14 @@
             </div>
         </div>
 
-        <div class="tab-content active" id="thisweek-tab">
+        <div class="tab-content" id="thisweek-tab">
             <div class="thisweek-header">
                 <h2>THIS WEEK</h2>
             </div>
             <div id="thisweek-container"></div>
         </div>
 
-        <div class="tab-content" id="schedule-tab">
+        <div class="tab-content active" id="schedule-tab">
             <main id="sessions"></main>
 
         </div>
@@ -5771,53 +5770,7 @@
             tabButtons.forEach(button => {
                 button.addEventListener('click', () => {
                     const targetTab = button.getAttribute('data-tab');
-                    
-                    // Update buttons
-                    tabButtons.forEach(btn => btn.classList.remove('active'));
-                    button.classList.add('active');
-                    
-                    // Update content
-                    tabContents.forEach(content => content.classList.remove('active'));
-                    document.getElementById(targetTab + '-tab').classList.add('active');
-                    
-                    // Render this week when this week tab is shown
-                    if (targetTab === 'thisweek') {
-                        renderThisWeek();
-                    }
-                    
-                    // Render calendar when calendar tab is shown
-                    if (targetTab === 'calendar') {
-                        // Reset to current month
-                        currentCalendarMonth = new Date().getMonth();
-                        currentCalendarYear = new Date().getFullYear();
-                        renderCalendar();
-                    }
-                    
-                    // Render players when players tab is shown (to reflect any goal updates)
-                    if (targetTab === 'players') {
-                        renderPlayers();
-                    }
-                    
-                    // Setup show deleted players toggle if on players tab
-                    if (targetTab === 'players') {
-                        const showDeletedToggle = document.getElementById('showDeletedPlayers');
-                        if (showDeletedToggle) {
-                            showDeletedToggle.addEventListener('change', () => {
-                                showDeletedPlayers = showDeletedToggle.checked;
-                                renderPlayers();
-                            });
-                        }
-                    }
-                    
-                    // Render stats when stats tab is shown
-                    if (targetTab === 'stats') {
-                        renderStats();
-                    }
-                    
-                    // Setup show deleted players toggle if on players tab
-                    if (targetTab === 'players') {
-                        setupPlayersControls();
-                    }
+                    switchToTab(targetTab);
                 });
             });
             
@@ -5972,48 +5925,52 @@
             menuDrawer.classList.remove('active');
         }
 
-        window.switchToStats = function() {
-            // Show the stats tab content
+        window.switchToTab = function(tabName) {
+            // Update content
             document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-            document.getElementById('stats-tab').classList.add('active');
-            
-            // Remove active state from all tab buttons (since stats is no longer a tab button)
-            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
-            
-            // Render stats
-            renderStats();
+            document.getElementById(tabName + '-tab').classList.add('active');
+
+            // Update buttons only if the tab exists as a button
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                if (btn.dataset.tab === tabName) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+
+            // Render specific content
+            if (tabName === 'schedule') {
+                renderSessions();
+                scrollToClosestSession();
+            } else if (tabName === 'calendar') {
+                currentCalendarMonth = new Date().getMonth();
+                currentCalendarYear = new Date().getFullYear();
+                renderCalendar();
+            } else if (tabName === 'players') {
+                renderPlayers();
+            } else if (tabName === 'stats') {
+                renderStats();
+            } else if (tabName === 'thisweek') {
+                renderThisWeek();
+            }
+            updateMenuContent(); // Refresh menu options based on new active tab
         };
 
         function updateMenuContent() {
             const menuContent = document.getElementById('menuContent');
             const menuTitle = document.getElementById('menuTitle');
             
-            // Determine which tab is active based on active content (not just button)
+            // Determine which tab content is active
             let activeTab = 'schedule';
-            if (document.getElementById('stats-tab').classList.contains('active')) {
-                activeTab = 'stats';
-            } else {
-                const activeButton = document.querySelector('.tab-button.active');
-                activeTab = activeButton?.dataset.tab || 'schedule';
+            const activeContent = document.querySelector('.tab-content.active');
+            if (activeContent) {
+                activeTab = activeContent.id.replace('-tab', '');
             }
             
             let html = '';
             
-            if (activeTab === 'thisweek') {
-                menuTitle.textContent = 'This Week';
-                html = `
-                    <div class="menu-section">
-                        <p style="color: var(--text-secondary); font-size: 14px; margin: 0;">
-                            View and manage attendance for this week's upcoming event.
-                        </p>
-                    </div>
-                    <div class="menu-section">
-                        <button class="add-player-btn" onclick="switchToStats(); closeMenu();" title="View goal statistics">
-                            📊 View Stats
-                        </button>
-                    </div>
-                `;
-            } else if (activeTab === 'schedule') {
+            if (activeTab === 'schedule') {
                 menuTitle.textContent = 'Schedule Options';
                 html = `
                     <div class="menu-section">
@@ -6073,7 +6030,12 @@
                         </button>
                     </div>
                     <div class="menu-section">
-                        <button class="add-player-btn" onclick="switchToStats(); closeMenu();" title="View goal statistics">
+                        <button class="add-player-btn" onclick="switchToTab('thisweek'); closeMenu();" title="View this week's event">
+                            📅 This Week
+                        </button>
+                    </div>
+                    <div class="menu-section">
+                        <button class="add-player-btn" onclick="switchToTab('stats'); closeMenu();" title="View goal statistics">
                             📊 View Stats
                         </button>
                     </div>
@@ -6082,7 +6044,12 @@
                 menuTitle.textContent = 'Calendar Options';
                 html = `
                     <div class="menu-section">
-                        <button class="add-player-btn" onclick="switchToStats(); closeMenu();" title="View goal statistics">
+                        <button class="add-player-btn" onclick="switchToTab('thisweek'); closeMenu();" title="View this week's event">
+                            📅 This Week
+                        </button>
+                    </div>
+                    <div class="menu-section">
+                        <button class="add-player-btn" onclick="switchToTab('stats'); closeMenu();" title="View goal statistics">
                             📊 View Stats
                         </button>
                     </div>
@@ -6112,7 +6079,12 @@
                         </button>
                     </div>
                     <div class="menu-section">
-                        <button class="add-player-btn" onclick="switchToStats(); closeMenu();" title="View goal statistics">
+                        <button class="add-player-btn" onclick="switchToTab('thisweek'); closeMenu();" title="View this week's event">
+                            📅 This Week
+                        </button>
+                    </div>
+                    <div class="menu-section">
+                        <button class="add-player-btn" onclick="switchToTab('stats'); closeMenu();" title="View goal statistics">
                             📊 View Stats
                         </button>
                     </div>
@@ -6174,9 +6146,6 @@
             setupTabs();
             renderPlayers();
             setupPlayersControls();
-            
-            // Render This Week on initial load (it's the default tab)
-            renderThisWeek();
             
             // Update menu when tabs change
             document.querySelectorAll('.tab-button').forEach(button => {
