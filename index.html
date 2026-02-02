@@ -2819,10 +2819,10 @@
             } else {
                 // User is logged out
                 console.log('User is logged out.');
-                if (mainContainer) mainContainer.style.display = 'none';
-                if (loginPage) loginPage.style.display = 'flex';
-                if (tabsContainer) tabsContainer.style.display = 'none';
-                if (menuToggle) menuToggle.style.display = 'flex'; // Burger menu still visible for login button
+                if (mainContainer) mainContainer.style.display = 'block'; // Show main container for This Week tab
+                if (loginPage) loginPage.style.display = 'none'; // Hide login page
+                if (tabsContainer) tabsContainer.style.display = 'none'; // Hide main navigation tabs
+                if (menuToggle) menuToggle.style.display = 'flex'; // Burger menu still visible
                 if (saveIndicator) saveIndicator.style.display = 'none';
 
                 // Only show This Week content
