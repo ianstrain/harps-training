@@ -43,6 +43,13 @@ function renderStats() {
         .filter(p => p.total > 0)
         .sort((a, b) => b.total - a.total);
     
+    // Find the longest player name to calculate proper spacing for goals chart
+    const longestNameGoals = playersWithGoals.reduce((longest, player) => 
+        player.name.length > longest.length ? player.name : longest, '');
+    const longestNameLengthGoals = longestNameGoals.length;
+    const fontSize = 28; // Current font size for player labels
+    const nameSpaceNeededGoals = (fontSize * longestNameLengthGoals * 0.6) + 20;
+
     if (playersWithGoals.length === 0) {
         container.innerHTML = `
             <div class="stats-empty">
@@ -50,32 +57,29 @@ function renderStats() {
                 <small>Goals will appear here once players start scoring.</small>
             </div>
         `;
+        // If no goals, still render other charts
+        const seasonStats = generateSeasonStats();
+        const attendanceChart = generateAttendanceChart(filteredPlayers);
+        const trainingAttendanceChart = generateTrainingAttendanceChart(filteredPlayers);
+        const captainHistory = generateCaptainHistoryChart();
+        container.innerHTML = seasonStats + attendanceChart + trainingAttendanceChart + captainHistory;
         return;
     }
     
-    // Find the longest player name to calculate proper spacing
-    const longestName = playersWithGoals.reduce((longest, player) => 
-        player.name.length > longest.length ? player.name : longest, '');
-    const longestNameLength = longestName.length;
-    const fontSize = 28; // Current font size for player labels
-    // Calculate space needed: font size * number of characters + some padding
-    // When rotated -90 degrees, the text width becomes the height
-    const nameSpaceNeeded = (fontSize * longestNameLength * 0.6) + 20; // 0.6 is approximate character width ratio, +20 for padding (reduced)
-    
-    // Chart dimensions
+    // Chart dimensions for goals
     const chartWidth = 800;
     const chartHeight = 600; // Increased overall height for longer bars
-    const padding = { 
+    const paddingGoals = { 
         top: 40, 
         right: 40, 
-        bottom: Math.max(200, nameSpaceNeeded + 10), // Dynamic bottom padding based on longest name, minimal buffer
+        bottom: Math.max(200, nameSpaceNeededGoals + 10), // Dynamic bottom padding based on longest name, minimal buffer
         left: 80 // Increased left padding to prevent Goals text from being cut off
     };
-    const barWidth = (chartWidth - padding.left - padding.right) / playersWithGoals.length - 10;
+    const barWidth = (chartWidth - paddingGoals.left - paddingGoals.right) / playersWithGoals.length - 10;
     const maxGoals = Math.max(...playersWithGoals.map(p => p.total), 1);
-    const barHeight = chartHeight - padding.top - padding.bottom;
+    const barHeight = chartHeight - paddingGoals.top - paddingGoals.bottom;
     
-    let svg = `
+    let goalsSvg = `
         <div class="stats-chart-container">
             <div class="stats-chart-title">Goals Scored by Player</div>
             <div class="stats-chart-svg-container">
@@ -83,31 +87,31 @@ function renderStats() {
                     <!-- Y-axis label -->
                     <text class="stats-chart-axis-label" 
                           x="20" 
-                          y="${(padding.top + (barHeight / 2) )}" 
-                          transform="rotate(-90, 20, ${padding.top + (barHeight / 2)})"
+                          y="${(paddingGoals.top + (barHeight / 2) )}" 
+                          transform="rotate(-90, 20, ${paddingGoals.top + (barHeight / 2)})"
                           text-anchor="middle"
                           dominant-baseline="middle">Goals</text>
                     
                     <!-- X-axis label -->
                     <text class="stats-chart-axis-label" 
                           x="${chartWidth / 2}" 
-                          y="${(chartHeight - padding.bottom + 5) + 30}" 
+                          y="${(chartHeight - paddingGoals.bottom + 5) + 30}" 
                           text-anchor="middle">Players</text>
                     
                     <!-- Y-axis grid lines and labels -->
                     ${Array.from({ length: 6 }, (_, i) => {
                         const value = Math.ceil(maxGoals / 5) * i;
-                        const y = chartHeight - padding.bottom - (value / maxGoals) * barHeight;
+                        const y = chartHeight - paddingGoals.bottom - (value / maxGoals) * barHeight;
                         return `
-                            <line x1="${padding.left}" 
+                            <line x1="${paddingGoals.left}" 
                                   y1="${y}" 
-                                  x2="${chartWidth - padding.right}" 
+                                  x2="${chartWidth - paddingGoals.right}" 
                                   y2="${y}" 
                                   stroke="var(--border-color)" 
                                   stroke-width="0.5" 
                                   opacity="0.3"/>
                             <text class="stats-chart-axis-label" 
-                                  x="${padding.left - 10}" 
+                                  x="${paddingGoals.left - 10}" 
                                   y="${y + 4}" 
                                   text-anchor="end">${value}</text>
                         `;
@@ -116,8 +120,8 @@ function renderStats() {
                     <!-- Bars -->
                     ${playersWithGoals.map((player, index) => {
                         const barHeightValue = (player.total / maxGoals) * barHeight;
-                        const x = padding.left + index * (barWidth + 10);
-                        const y = chartHeight - padding.bottom - barHeightValue;
+                        const x = paddingGoals.left + index * (barWidth + 10);
+                        const y = chartHeight - paddingGoals.bottom - barHeightValue;
                         
                         // Truncate player name if too long
                         const displayName = player.name.length > 12 
@@ -139,8 +143,8 @@ function renderStats() {
                                       y="${y - 8}">${player.total}</text>
                                 <text class="stats-chart-player-label" 
                                       x="${(x + barWidth / 2) - 40}" 
-                                      y="${chartHeight - padding.bottom + (nameSpaceNeeded * 0.4)}"
-                                      transform="rotate(-90, ${x + barWidth / 2}, ${chartHeight - padding.bottom + (nameSpaceNeeded * 0.4)})"
+                                      y="${chartHeight - paddingGoals.bottom + (nameSpaceNeededGoals * 0.4)}"\
+                                      transform="rotate(-90, ${x + barWidth / 2}, ${chartHeight - paddingGoals.bottom + (nameSpaceNeededGoals * 0.4)})"
                                       text-anchor="middle">${player.name}</text>
                             </g>
                         `;
@@ -150,14 +154,15 @@ function renderStats() {
         </div>
     `;
     
-    // Generate attendance chart and captain history
+    // Generate attendance chart for matches and training
     const attendanceChart = generateAttendanceChart(filteredPlayers);
+    const trainingAttendanceChart = generateTrainingAttendanceChart(filteredPlayers); 
     const captainHistory = generateCaptainHistoryChart();
     
     // Generate season stats
     const seasonStats = generateSeasonStats();
     
-    container.innerHTML = seasonStats + attendanceChart + captainHistory + svg;
+    container.innerHTML = seasonStats + attendanceChart + trainingAttendanceChart + captainHistory + goalsSvg;
 }
 
 // Generate season statistics
@@ -177,31 +182,45 @@ function generateSeasonStats() {
             <h3 style="margin: 0 0 15px 0; color: var(--accent); font-size: 18px; text-align: center;">Season Match Statistics</h3>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 12px;">
                 <div class="stat-box" style="text-align: center; padding: 15px; background: var(--bg-card); border-radius: 8px;">
-                    <div style="font-size: 28px; font-weight: bold; color: var(--accent);">${completedMatches.length}</div>
+                    <div style="font-size: 28px; font-weight: bold; color: var(--accent);">
+                        ${completedMatches.length}
+                    </div>
                     <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Played</div>
                 </div>
                 <div class="stat-box" style="text-align: center; padding: 15px; background: var(--bg-card); border-radius: 8px;">
-                    <div style="font-size: 28px; font-weight: bold; color: #00ff64;">${wins}</div>
+                    <div style="font-size: 28px; font-weight: bold; color: #00ff64;">
+                        ${wins}
+                    </div>
                     <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Wins</div>
                 </div>
                 <div class="stat-box" style="text-align: center; padding: 15px; background: var(--bg-card); border-radius: 8px;">
-                    <div style="font-size: 28px; font-weight: bold; color: #ffc800;">${draws}</div>
+                    <div style="font-size: 28px; font-weight: bold; color: #ffc800;">
+                        ${draws}
+                    </div>
                     <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Draws</div>
                 </div>
                 <div class="stat-box" style="text-align: center; padding: 15px; background: var(--bg-card); border-radius: 8px;">
-                    <div style="font-size: 28px; font-weight: bold; color: #ff3232;">${losses}</div>
+                    <div style="font-size: 28px; font-weight: bold; color: #ff3232;">
+                        ${losses}
+                    </div>
                     <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Losses</div>
                 </div>
                 <div class="stat-box" style="text-align: center; padding: 15px; background: var(--bg-card); border-radius: 8px;">
-                    <div style="font-size: 28px; font-weight: bold; color: var(--accent);">${totalGoalsScored}</div>
+                    <div style="font-size: 28px; font-weight: bold; color: var(--accent);">
+                        ${totalGoalsScored}
+                    </div>
                     <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Goals For</div>
                 </div>
                 <div class="stat-box" style="text-align: center; padding: 15px; background: var(--bg-card); border-radius: 8px;">
-                    <div style="font-size: 28px; font-weight: bold; color: var(--text-secondary);">${totalGoalsConceded}</div>
+                    <div style="font-size: 28px; font-weight: bold; color: var(--text-secondary);">
+                        ${totalGoalsConceded}
+                    </div>
                     <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Goals Against</div>
                 </div>
                 <div class="stat-box" style="text-align: center; padding: 15px; background: var(--bg-card); border-radius: 8px; grid-column: span 1;">
-                    <div style="font-size: 28px; font-weight: bold; color: ${goalDiff > 0 ? '#00ff64' : goalDiff < 0 ? '#ff3232' : 'var(--accent)'};">${goalDiff > 0 ? '+' : ''}${goalDiff}</div>
+                    <div style="font-size: 28px; font-weight: bold; color: ${goalDiff > 0 ? '#00ff64' : goalDiff < 0 ? '#ff3232' : 'var(--accent)'};">
+                        ${goalDiff > 0 ? '+' : ''}${goalDiff}
+                    </div>
                     <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Goal Diff</div>
                 </div>
             </div>
@@ -349,7 +368,146 @@ function generateAttendanceChart(filteredPlayers) {
                                       y="${y - 8}">${player.attended}</text>
                                 <text class="stats-chart-player-label" 
                                       x="${(x + barWidth / 2) - 40}" 
-                                      y="${chartHeight - padding.bottom + (nameSpaceNeeded * 0.4)}"
+                                      y="${chartHeight - padding.bottom + (nameSpaceNeeded * 0.4)}"\
+                                      transform="rotate(-90, ${x + barWidth / 2}, ${chartHeight - padding.bottom + (nameSpaceNeeded * 0.4)})"
+                                      text-anchor="middle">${player.name}</text>
+                            </g>
+                        `;
+                    }).join('')}
+                </svg>
+            </div>
+        </div>
+    `;
+    
+    return svg;
+}
+
+// Generate training attendance chart
+function generateTrainingAttendanceChart(filteredPlayers) {
+    const trainingSessions = sessions.filter(s => s.type === 'training' && !s.deleted);
+    
+    if (trainingSessions.length === 0) {
+        return `
+            <div class="stats-chart-container">
+                <div class="stats-chart-title">Training Attendance</div>
+                <div class="stats-empty" style="padding: 40px;">
+                    <p>No training sessions recorded yet</p>
+                    <small>Training attendance will appear here once training sessions are added.</small>
+                </div>
+            </div>
+        `;
+    }
+    
+    // Calculate attendance stats for each player for training sessions
+    const playerTrainingAttendance = filteredPlayers.map(p => {
+        const playerName = p.player || '';
+        let attended = 0;
+        
+        trainingSessions.forEach(session => {
+            if (session.attendance && session.attendance.includes(playerName)) {
+                attended++;
+            }
+        });
+        
+        return {
+            name: playerName,
+            attended: attended,
+            percentage: trainingSessions.length > 0 ? (attended / trainingSessions.length * 100).toFixed(0) : 0
+        };
+    }).filter(p => p.attended > 0).sort((a, b) => b.attended - a.attended);
+    
+    if (playerTrainingAttendance.length === 0) {
+        return `
+            <div class="stats-chart-container">
+                <div class="stats-chart-title">Training Attendance</div>
+                <div class="stats-empty" style="padding: 40px;">
+                    <p>No attendance recorded yet</p>
+                    <small>Mark attendance in training session cards to see stats here.</small>
+                </div>
+            </div>
+        `;
+    }
+    
+    // Find the longest player name to calculate proper spacing
+    const longestName = playerTrainingAttendance.reduce((longest, player) => 
+        player.name.length > longest.length ? player.name : longest, '');
+    const longestNameLength = longestName.length;
+    const fontSize = 28; // Current font size for player labels
+    const nameSpaceNeeded = (fontSize * longestNameLength * 0.6) + 20;
+
+    // Chart dimensions
+    const chartWidth = 800;
+    const chartHeight = 600;
+    const padding = { 
+        top: 40, 
+        right: 40, 
+        bottom: Math.max(200, nameSpaceNeeded + 10), 
+        left: 80
+    };
+    const barWidth = (chartWidth - padding.left - padding.right) / playerTrainingAttendance.length - 10;
+    const maxAttended = Math.max(...playerTrainingAttendance.map(p => p.attended), 1);
+    const barHeight = chartHeight - padding.top - padding.bottom;
+    
+    let svg = `
+        <div class="stats-chart-container">
+            <div class="stats-chart-title">Training Attendance (${trainingSessions.length} ${trainingSessions.length === 1 ? 'session' : 'sessions'})</div>
+            <div class="stats-chart-svg-container">
+                <svg viewBox="0 0 ${chartWidth} ${chartHeight}" preserveAspectRatio="xMidYMid meet">
+                    <!-- Y-axis label -->
+                    <text class="stats-chart-axis-label" 
+                          x="20" 
+                          y="${padding.top + (barHeight / 2)}" 
+                          transform="rotate(-90, 20, ${padding.top + (barHeight / 2)})"
+                          text-anchor="middle"
+                          dominant-baseline="middle">Sessions Attended</text>
+                    
+                    <!-- X-axis label -->
+                    <text class="stats-chart-axis-label" 
+                          x="${chartWidth / 2}" 
+                          y="${(chartHeight - padding.bottom + 5) + 30}" 
+                          text-anchor="middle">Players</text>
+                    
+                    <!-- Y-axis grid lines and labels -->
+                    ${Array.from({ length: 6 }, (_, i) => {
+                        const value = Math.ceil(maxAttended / 5) * i;
+                        const y = chartHeight - padding.bottom - (value / maxAttended) * barHeight;
+                        return `
+                            <line x1="${padding.left}" 
+                                  y1="${y}" 
+                                  x2="${chartWidth - padding.right}" 
+                                  y2="${y}" 
+                                  stroke="var(--border-color)" 
+                                  stroke-width="0.5" 
+                                  opacity="0.3"/>
+                            <text class="stats-chart-axis-label" 
+                                  x="${padding.left - 10}" 
+                                  y="${y + 4}" 
+                                  text-anchor="end">${value}</text>
+                        `;
+                    }).join('')}
+                    
+                    <!-- Bars -->
+                    ${playerTrainingAttendance.map((player, index) => {
+                        const barHeightValue = (player.attended / maxAttended) * barHeight;
+                        const x = padding.left + index * (barWidth + 10);
+                        const y = chartHeight - padding.bottom - barHeightValue;
+                        
+                        return `
+                            <g>
+                                <rect class="stats-chart-bar" 
+                                      x="${x}" 
+                                      y="${y}" 
+                                      width="${barWidth}" 
+                                      height="${barHeightValue}"
+                                      rx="4">
+                                    <title>${player.name}: ${player.attended}/${trainingSessions.length} sessions (${player.percentage}%)</title>
+                                </rect>
+                                <text class="stats-chart-goal-value" 
+                                      x="${x + barWidth / 2}" 
+                                      y="${y - 8}">${player.attended}</text>
+                                <text class="stats-chart-player-label" 
+                                      x="${(x + barWidth / 2) - 40}" 
+                                      y="${chartHeight - padding.bottom + (nameSpaceNeeded * 0.4)}"\
                                       transform="rotate(-90, ${x + barWidth / 2}, ${chartHeight - padding.bottom + (nameSpaceNeeded * 0.4)})"
                                       text-anchor="middle">${player.name}</text>
                             </g>
