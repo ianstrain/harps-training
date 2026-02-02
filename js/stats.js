@@ -646,7 +646,12 @@ window.renderPlayerProfile = function() {
     const now = new Date();
     now.setHours(0, 0, 0, 0);
 
-    const allPastSessions = sessions.filter(s => !s.deleted && new Date(s.date) <= now);
+    const allPastSessions = sessions.filter(s => {
+        if (s.deleted) return false;
+        const sessionDate = new Date(s.date);
+        sessionDate.setHours(0, 0, 0, 0); // Normalize to start of day
+        return sessionDate <= now;
+    });
     const pastMatchSessions = allPastSessions.filter(s => s.type === 'match');
     const pastTrainingSessions = allPastSessions.filter(s => s.type === 'training');
     
