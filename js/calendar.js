@@ -16,7 +16,7 @@ window.changeMonth = function(direction) {
 };
 
 // Render This Week view
-function renderThisWeek() {
+window.renderThisWeek = function() {
     const container = document.getElementById('thisweek-container');
     
     // Get the start of this week (Monday)
@@ -70,7 +70,7 @@ function renderThisWeek() {
     container.innerHTML = html;
 }
 
-function createThisWeekSessionCardHtml(session, activePlayers) {
+window.createThisWeekSessionCardHtml = function(session, activePlayers) {
     const sessionDate = new Date(session.date);
     
     const attendance = session.attendance || [];
@@ -181,7 +181,7 @@ window.handleThisWeekAttendance = function(sessionId, playerName, isChecked) {
 };
 
 // Render calendar
-function renderCalendar() {
+window.renderCalendar = function() {
     const container = document.getElementById('calendar-container');
     const title = document.getElementById('calendarTitle');
     

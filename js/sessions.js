@@ -3,7 +3,7 @@
 // ============================================
 
 // Generate training back content (attendance)
-function generateTrainingBackContent(session) {
+window.generateTrainingBackContent = function(session) {
     const attendance = session.attendance || [];
     
     const activePlayers = players.filter(p => {
@@ -44,7 +44,7 @@ function generateTrainingBackContent(session) {
 }
 
 // Generate session card HTML
-function generateSessionCard(session) {
+window.generateSessionCard = function(session) {
     // If it's a new session, show an editable card
     if (session._isNew) {
         const tempId = session._tempId || '';
@@ -231,7 +231,7 @@ function generateSessionCard(session) {
 }
 
 // Find the next upcoming session ID
-function findNextSessionId() {
+window.findNextSessionId = function() {
     const now = new Date();
     now.setHours(0, 0, 0, 0);
     
@@ -247,7 +247,7 @@ function findNextSessionId() {
 }
 
 // Generate countdown HTML
-function generateCountdownHtml(sessionDate) {
+window.generateCountdownHtml = function(sessionDate) {
     const now = new Date();
     const target = new Date(sessionDate);
     const diff = target - now;
@@ -277,7 +277,7 @@ function generateCountdownHtml(sessionDate) {
 }
 
 // Render all sessions
-async function renderSessions() {
+window.renderSessions = async function() {
     const sessionsContainer = document.getElementById('sessions');
     
     // Find the next upcoming session
@@ -670,7 +670,7 @@ window.selectSessionType = function(tempId, type) {
 };
 
 // Scroll to closest session
-function scrollToClosestSession() {
+window.scrollToClosestSession = function() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     

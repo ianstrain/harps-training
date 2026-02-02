@@ -18,6 +18,7 @@ window.loginUser = async function() {
 
     try {
         await auth.signInWithEmailAndPassword(email, password);
+        localStorage.setItem('lastLoginTime', Date.now().toString()); // Store login timestamp
         console.log('User logged in!');
     } catch (error) {
         console.error('Login failed:', error.message);
@@ -34,6 +35,7 @@ window.logoutUser = async function() {
     }
     try {
         await auth.signOut();
+        localStorage.removeItem('lastLoginTime'); // Clear login timestamp
         console.log('User logged out!');
     } catch (error) {
         console.error('Logout failed:', error.message);
@@ -41,11 +43,33 @@ window.logoutUser = async function() {
 };
 
 // Auth state listener setup
-function setupAuthListener() {
+window.setupAuthListener = function() {
     if (auth) {
         auth.onAuthStateChanged(user => {
             currentUser = user;
-            updateUI(); // Function to update UI based on login state
+
+            if (currentUser) {
+                const lastLoginTime = localStorage.getItem('lastLoginTime');
+                if (lastLoginTime) {
+                    const loginTimestamp = parseInt(lastLoginTime, 10);
+                    const oneHour = 60 * 60 * 1000; // 1 hour in milliseconds
+                    if (Date.now() - loginTimestamp > oneHour) {
+                        console.log('Session expired, logging out...');
+                        window.logoutUser();
+                        localStorage.removeItem('lastLoginTime'); // Clear timestamp
+                    } else {
+                        updateUI();
+                    }
+                } else {
+                    // If no timestamp, assume session is fresh for now but will enforce on next login
+                    localStorage.setItem('lastLoginTime', Date.now().toString());
+                    updateUI();
+                }
+            } else {
+                // User is logged out - clear any stored timestamp
+                localStorage.removeItem('lastLoginTime');
+                updateUI();
+            }
         });
     } else {
         // If Firebase Auth is not initialized, assume logged out and render minimal UI

@@ -3,7 +3,7 @@
 // ============================================
 
 // Apply edit mode to UI elements
-function applyEditMode() {
+window.applyEditMode = function() {
     // Apply edit mode to activity inputs and displays (skip new session cards)
     document.querySelectorAll('.activity-input').forEach(el => {
         if (el.closest('.new-session-card')) return; // Skip new session cards
@@ -20,7 +20,7 @@ function applyEditMode() {
 }
 
 // Setup edit mode toggle
-function setupEditMode() {
+window.setupEditMode = function() {
     const toggle = document.getElementById('editMode');
     
     if (!toggle) return;
@@ -111,7 +111,7 @@ function setupEditMode() {
 }
 
 // Setup filter toggles
-function setupFilterToggles() {
+window.setupFilterToggles = function() {
     const showTrainingToggle = document.getElementById('showTraining');
     const showMatchesToggle = document.getElementById('showMatches');
     
@@ -131,7 +131,7 @@ function setupFilterToggles() {
 }
 
 // Setup cancel controls
-function setupCancelControls() {
+window.setupCancelControls = function() {
     // Handle cancel toggle changes
     document.querySelectorAll('.cancel-toggle-switch input').forEach(toggle => {
         toggle.addEventListener('change', function() {
@@ -148,7 +148,7 @@ function setupCancelControls() {
 }
 
 // Setup tabs
-function setupTabs() {
+window.setupTabs = function() {
     const tabButtons = document.querySelectorAll('.tab-button');
     const tabContents = document.querySelectorAll('.tab-content');
 
@@ -166,7 +166,7 @@ function setupTabs() {
 }
 
 // Setup players controls
-function setupPlayersControls() {
+window.setupPlayersControls = function() {
     const showDeletedToggle = document.getElementById('showDeletedPlayers');
     if (showDeletedToggle) {
         // Remove existing listeners to avoid duplicates
@@ -183,7 +183,7 @@ function setupPlayersControls() {
 }
 
 // Toggle menu
-function toggleMenu() {
+window.toggleMenu = function() {
     const menuToggle = document.getElementById('menuToggle');
     const menuOverlay = document.getElementById('menuOverlay');
     const menuDrawer = document.getElementById('menuDrawer');
@@ -198,7 +198,7 @@ function toggleMenu() {
 }
 
 // Close menu
-function closeMenu() {
+window.closeMenu = function() {
     const menuToggle = document.getElementById('menuToggle');
     const menuOverlay = document.getElementById('menuOverlay');
     const menuDrawer = document.getElementById('menuDrawer');
@@ -243,7 +243,7 @@ window.switchToTab = function(tabName) {
 };
 
 // Update menu content
-function updateMenuContent() {
+window.updateMenuContent = function() {
     const menuContent = document.getElementById('menuContent');
     const menuTitle = document.getElementById('menuTitle');
     
@@ -504,7 +504,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 // Helper to format date for clipboard
-function formatDateForClipboard(date) {
+window.formatDateForClipboard = function(date) {
     const d = new Date(date);
     const day = d.getDate();
     const month = d.getMonth() + 1; // Month is 0-indexed
@@ -557,7 +557,7 @@ window.copySessionInfoToClipboard = async function(sessionId) {
 };
 
 // Show a toast message
-function showToast(message, isError = false) {
+window.showToast = function(message, isError = false) {
     let toastContainer = document.getElementById('toast-container');
     if (!toastContainer) {
         toastContainer = document.createElement('div');

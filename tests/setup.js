@@ -21,14 +21,6 @@ global.firebase = {
     }))
 };
 
-// Mock localStorage
-const localStorageMock = {
-    getItem: jest.fn(),
-    setItem: jest.fn(),
-    removeItem: jest.fn(),
-    clear: jest.fn()
-};
-global.localStorage = localStorageMock;
 
 // Mock clipboard API
 Object.assign(navigator, {
@@ -86,7 +78,7 @@ document.body.innerHTML = `
     <div id="menuDrawer"></div>
     <div id="menuOverlay"></div>
     <div id="saveIndicator"></div>
-    <div id="sessions-container"></div>
+    <div id="sessions"></div>
     <div id="calendar-container"></div>
     <div id="players-container"></div>
     <div id="stats-container"></div>

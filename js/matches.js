@@ -3,7 +3,7 @@
 // ============================================
 
 // Generate match card HTML
-function generateMatchCard(session) {
+window.generateMatchCard = function(session) {
     const matchTypeBadgeClass = session.matchType || 'friendly';
     const matchTypeLabel = session.matchType === 'cup' ? 'Cup Match' : session.matchType === 'league' ? 'League Match' : 'Friendly Match';
     
@@ -155,7 +155,7 @@ function generateMatchCard(session) {
 }
 
 // Generate match back content (attendance and goal scorers)
-function generateMatchBackContent(session) {
+window.generateMatchBackContent = function(session) {
     const attendance = session.attendance || [];
     const captain = session.captain || '';
     const matchGoals = session.matchGoals || {};
@@ -384,7 +384,7 @@ window.updateGoals = function(sessionId, playerName, delta) {
 };
 
 // Update captain selector options based on attendance
-function updateCaptainSelector(sessionId) {
+window.updateCaptainSelector = function(sessionId) {
     const session = sessions.find(s => s.id === sessionId);
     if (!session) return;
     
@@ -438,7 +438,7 @@ window.updateMatchScore = function(sessionId, teamScore, opponentScore) {
 };
 
 // Update goal scorers display based on attendance
-function updateGoalScorersDisplay(sessionId) {
+window.updateGoalScorersDisplay = function(sessionId) {
     const session = sessions.find(s => s.id === parseInt(sessionId));
     if (!session) return;
     

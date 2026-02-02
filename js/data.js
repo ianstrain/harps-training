@@ -3,7 +3,7 @@
 // ============================================
 
 // Helper function to format dates
-function formatDate(date) {
+window.formatDate = function(date) {
     const options = { weekday: 'long', month: 'long', day: 'numeric' };
     const formatted = date.toLocaleDateString('en-IE', options);
     const day = date.getDate();
@@ -12,7 +12,7 @@ function formatDate(date) {
 }
 
 // Convert YouTube URLs to embedded videos
-function parseContent(text) {
+window.parseContent = function(text) {
     if (!text) return text;
     
     // YouTube URL patterns (including Shorts)
@@ -27,7 +27,7 @@ function parseContent(text) {
 }
 
 // Load sessions from Firebase
-async function loadSessionsFromFirebase() {
+window.loadSessionsFromFirebase = async function() {
     if (!database) {
         console.log('Firebase not configured - using empty sessions array');
         return;
@@ -57,7 +57,7 @@ async function loadSessionsFromFirebase() {
 }
 
 // Load session data (descriptions, warmups, drills, etc.)
-async function loadData() {
+window.loadData = async function() {
     // First try to load from Firebase
     if (database) {
         try {
@@ -112,7 +112,7 @@ async function loadData() {
 }
 
 // Save sessions list to Firebase
-async function saveSessionsList() {
+window.saveSessionsList = async function() {
     if (!database) {
         return;
     }
@@ -147,7 +147,7 @@ async function saveSessionsList() {
 }
 
 // Save session data to Firebase and localStorage
-async function saveData() {
+window.saveData = async function() {
     console.log('Entering saveData function');
     const data = {};
     sessions.forEach(s => {
@@ -204,7 +204,7 @@ async function saveData() {
 
 // Show save indicator
 let saveTimeout = null;
-function showSaveIndicator() {
+window.showSaveIndicator = function() {
     const indicator = document.getElementById('saveIndicator');
     // Clear any existing timeout
     if (saveTimeout) clearTimeout(saveTimeout);
@@ -217,7 +217,7 @@ function showSaveIndicator() {
 }
 
 // Load players from Firebase
-async function loadPlayersFromFirebase() {
+window.loadPlayersFromFirebase = async function() {
     if (!database) {
         console.log('Firebase not configured - using empty players array');
         return;
@@ -243,7 +243,7 @@ async function loadPlayersFromFirebase() {
 }
 
 // Load goals from Firebase
-async function loadGoalsFromFirebase() {
+window.loadGoalsFromFirebase = async function() {
     if (!database) {
         console.log('Firebase not configured - loading from localStorage only');
         return;
@@ -288,7 +288,7 @@ async function loadGoalsFromFirebase() {
 }
 
 // Save players list to Firebase
-async function savePlayersList() {
+window.savePlayersList = async function() {
     if (!database) {
         return;
     }
@@ -320,7 +320,7 @@ async function savePlayersList() {
 }
 
 // Save goals to Firebase
-async function saveGoalsToFirebase(playerName, goals) {
+window.saveGoalsToFirebase = async function(playerName, goals) {
     if (!database) {
         console.log('Firebase not configured - data saved to localStorage only');
         return;
@@ -362,7 +362,7 @@ async function saveGoalsToFirebase(playerName, goals) {
 }
 
 // Save notes to Firebase
-async function saveNotesToFirebase(playerName, notes) {
+window.saveNotesToFirebase = async function(playerName, notes) {
     if (!database) {
         console.log('Firebase not configured - data saved to localStorage only');
         return;
