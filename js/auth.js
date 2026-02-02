@@ -88,32 +88,19 @@ async function updateUI() {
         setupPlayersControls();
         updateMenuContent(); // Populate menu with full options
     } else {
-        // User is logged out
+        // User is logged out - show login page only
         console.log('User is logged out.');
-        if (mainContainer) mainContainer.style.display = 'block'; // Show main container for This Week tab
-        if (loginPage) loginPage.style.display = 'none'; // Hide login page
+        if (mainContainer) mainContainer.style.display = 'none'; // Hide main container
+        if (loginPage) loginPage.style.display = 'flex'; // Show login page
         if (tabsContainer) tabsContainer.style.display = 'none'; // Hide main navigation tabs
-        if (menuToggle) menuToggle.style.display = 'flex'; // Burger menu still visible
+        if (menuToggle) menuToggle.style.display = 'none'; // Hide burger menu
         if (saveIndicator) saveIndicator.style.display = 'none';
-
-        // Load data needed for This Week content
-        await loadPlayersFromFirebase();
-        await loadSessionsFromFirebase();
-        await loadGoalsFromFirebase(); // Load goals for players
-        await loadData(); // Load detailed session data including attendance
-
-        // Only show This Week content
-        document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-        document.getElementById('thisweek-tab').classList.add('active');
-        renderThisWeek();
         
-        // Clear other content
+        // Clear all content
         document.getElementById('sessions').innerHTML = '';
         document.getElementById('calendar-container').innerHTML = '';
         document.getElementById('players-container').innerHTML = '';
         document.getElementById('stats-container').innerHTML = '';
-        
-        // Update menu content for logged out state
-        updateMenuContent();
+        document.getElementById('thisweek-tab').innerHTML = '';
     }
 }

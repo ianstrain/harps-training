@@ -535,18 +535,14 @@ window.copySessionInfoToClipboard = async function(sessionId) {
 📅 ${formattedDate}
 ⌚ Meet up ${time.split('-')[0].trim()} at ${location}, Kickoff ${kickOffTime || 'TBD'}
 🏟 ${location}
-👕 Shinguards, Black shorts and socks
-
-Set attendance for the week here: https://ianstrain.github.io/harps-training/`;
+👕 Shinguards, Black shorts and socks`;
     } else {
         // Training session
         clipboardText = `⚽ Training Session
 
 📅 ${formattedDate}
 ⌚ ${time}
-🏟 ${location}
-
-Set attendance for the week here: https://ianstrain.github.io/harps-training/`;
+🏟 ${location}`;
     }
 
     try {
