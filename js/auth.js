@@ -74,6 +74,8 @@ async function updateUI() {
         if (saveIndicator) saveIndicator.style.display = 'flex';
 
         // Load all data and render everything
+        sessions = []; // Clear existing sessions to ensure fresh load
+        players = []; // Clear existing players to ensure fresh load
         await loadPlayersFromFirebase();
         await loadGoalsFromFirebase();
         await loadSessionsFromFirebase();
@@ -93,6 +95,12 @@ async function updateUI() {
         if (tabsContainer) tabsContainer.style.display = 'none'; // Hide main navigation tabs
         if (menuToggle) menuToggle.style.display = 'flex'; // Burger menu still visible
         if (saveIndicator) saveIndicator.style.display = 'none';
+
+        // Load data needed for This Week content
+        await loadPlayersFromFirebase();
+        await loadSessionsFromFirebase();
+        await loadGoalsFromFirebase(); // Load goals for players
+        await loadData(); // Load detailed session data including attendance
 
         // Only show This Week content
         document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));

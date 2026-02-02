@@ -2,6 +2,44 @@
 // SESSION RENDERING AND MANAGEMENT
 // ============================================
 
+// Generate training back content (attendance)
+function generateTrainingBackContent(session) {
+    const attendance = session.attendance || [];
+    
+    const activePlayers = players.filter(p => {
+        const returning = (p.returning || '').toString().toLowerCase().trim();
+        const playerName = (p.player || '').toString().toLowerCase();
+        return p.player && 
+               p.player !== '?' && 
+               !playerName.includes('child') &&
+               returning !== 'no' &&
+               !p.deleted;
+    }).sort((a, b) => (a.player || '').localeCompare(b.player || ''));
+    
+    return `
+        <div class="attendance-section">
+            <h3 class="attendance-section-title">Training Attendance</h3>
+            <div class="attendance-header">
+                <span class="attendance-header-label">✓</span>
+                <span class="attendance-header-player">Player</span>
+            </div>
+            <div class="attendance-checklist" id="attendance-list-${session.id}">
+                ${activePlayers.map(p => `
+                    <div class="attendance-item">
+                        <input type="checkbox" 
+                               class="attendance-checkbox" 
+                               data-session="${session.id}" 
+                               data-player="${p.player}"
+                               ${attendance.includes(p.player) ? 'checked' : ''}
+                               onclick="event.stopPropagation(); handleAttendanceChange(${session.id}, '${p.player.replace(/'/g, "\\'")}', this.checked)">
+                        <span class="attendance-player-name">${p.player}</span>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    `;
+}
+
 // Generate session card HTML
 function generateSessionCard(session) {
     // If it's a new session, show an editable card
@@ -83,105 +121,110 @@ function generateSessionCard(session) {
         return generateMatchCard(session);
     }
 
-    // Generate training session card (existing logic)
+    // Generate training session card
     const descContent = session.desc ? parseContent(session.desc) : defaults.desc;
     const warmupContent = session.warmup ? parseContent(session.warmup) : defaults.warmup;
     const drillsContent = session.drills ? parseContent(session.drills) : defaults.drills;
     const gameContent = session.game ? parseContent(session.game) : defaults.game;
 
     return `
-        <article class="session-card ${session.cancelled ? 'cancelled' : ''} ${session.deleted ? 'deleted' : ''}" data-session="${session.id}">
-            <div class="session-header">
-                <span class="session-number">${String(session.id).padStart(2, '0')}</span>
-                ${editMode ? `
-                    <div class="session-date-edit">
-                        <label>Date:</label>
-                        <input type="date" class="session-date-input" value="${session.date ? new Date(session.date).toISOString().split('T')[0] : ''}" data-session="${session.id}" data-field="date" />
-                    </div>
-                ` : `
-                <h2 class="session-date">${formatDate(session.date)}</h2>
-                `}
-                <div class="session-meta">
+        <article class="session-card ${session.cancelled ? 'cancelled' : ''} ${session.deleted ? 'deleted' : ''}" data-session="${session.id}" onclick="handleMatchCardClick(event, ${session.id})">
+            <div class="session-card-front">
+                <div class="session-header">
+                    <span class="session-number">${String(session.id).padStart(2, '0')}</span>
                     ${editMode ? `
-                        <div class="meta-item meta-item-edit">
-                            <span class="meta-icon">📍</span>
-                            <input type="text" class="meta-input" value="${session.location || 'The Aura'}" data-session="${session.id}" data-field="location" placeholder="Location" />
-                        </div>
-                        <div class="meta-item meta-item-edit">
-                            <span class="meta-icon">🕢</span>
-                            <input type="text" class="meta-input" value="${session.time || '7:30 PM - 8:30 PM'}" data-session="${session.id}" data-field="time" placeholder="Time" />
+                        <div class="session-date-edit">
+                            <label>Date:</label>
+                            <input type="date" class="session-date-input" value="${session.date ? new Date(session.date).toISOString().split('T')[0] : ''}" data-session="${session.id}" data-field="date" />
                         </div>
                     ` : `
-                    <div class="meta-item">
-                        <span class="meta-icon">📍</span>
-                            <span>${session.location || 'The Aura'}</span>
-                    </div>
-                    <div class="meta-item">
-                        <span class="meta-icon">🕢</span>
-                            <span>${session.time || '7:30 PM - 8:30 PM'}</span>
-                    </div>
+                        <h2 class="session-date">${formatDate(session.date)}</h2>
                     `}
+                    <div class="session-meta">
+                        ${editMode ? `
+                            <div class="meta-item meta-item-edit">
+                                <span class="meta-icon">📍</span>
+                                <input type="text" class="meta-input" value="${session.location || 'The Aura'}" data-session="${session.id}" data-field="location" placeholder="Location" />
+                            </div>
+                            <div class="meta-item meta-item-edit">
+                                <span class="meta-icon">🕢</span>
+                                <input type="text" class="meta-input" value="${session.time || '7:30 PM - 8:30 PM'}" data-session="${session.id}" data-field="time" placeholder="Time" />
+                            </div>
+                        ` : `
+                            <div class="meta-item">
+                                <span class="meta-icon">📍</span>
+                                <span>${session.location || 'The Aura'}</span>
+                            </div>
+                            <div class="meta-item">
+                                <span class="meta-icon">🕢</span>
+                                <span>${session.time || '7:30 PM - 8:30 PM'}</span>
+                            </div>
+                        `}
+                    </div>
+                    <div class="session-description">
+                        <div class="activity-content activity-display ${!session.desc ? 'placeholder' : ''}" data-session="${session.id}" data-field="desc">${descContent}</div>
+                        <textarea class="activity-input hidden" data-session="${session.id}" data-field="desc" placeholder="Add a description or focus for this session...">${session.desc}</textarea>
+                    </div>
                 </div>
-                <div class="session-description">
-                    <div class="activity-content activity-display ${!session.desc ? 'placeholder' : ''}" data-session="${session.id}" data-field="desc">${descContent}</div>
-                    <textarea class="activity-input hidden" data-session="${session.id}" data-field="desc" placeholder="Add a description or focus for this session...">${session.desc}</textarea>
+                <div class="session-activities">
+                    <div class="activity-block warmup">
+                        <div class="activity-header">
+                            <span class="activity-title">Warm-up</span>
+                            <span class="activity-duration">10 mins</span>
+                        </div>
+                        <div class="activity-content activity-display ${!session.warmup ? 'placeholder' : ''}" data-session="${session.id}" data-field="warmup">${warmupContent}</div>
+                        <textarea class="activity-input hidden" data-session="${session.id}" data-field="warmup" placeholder="Enter warm-up activities...">${session.warmup}</textarea>
+                    </div>
+                    <div class="activity-block drills">
+                        <div class="activity-header">
+                            <span class="activity-title">Drills</span>
+                            <span class="activity-duration">20 mins</span>
+                        </div>
+                        <div class="activity-content activity-display ${!session.drills ? 'placeholder' : ''}" data-session="${session.id}" data-field="drills">${drillsContent}</div>
+                        <textarea class="activity-input hidden" data-session="${session.id}" data-field="drills" placeholder="Enter drills for this session...">${session.drills}</textarea>
+                    </div>
+                    <div class="activity-block match">
+                        <div class="activity-header">
+                            <span class="activity-title">Match</span>
+                            <span class="activity-duration">30 mins</span>
+                        </div>
+                        <div class="activity-content activity-display ${!session.game ? 'placeholder' : ''}" data-session="${session.id}" data-field="game">${gameContent}</div>
+                        <textarea class="activity-input hidden" data-session="${session.id}" data-field="game" placeholder="Enter match details...">${session.game}</textarea>
+                    </div>
+                </div>
+                ${session.cancelled && !editMode ? `
+                    <div style="padding: 12px 20px; background: rgba(239, 68, 68, 0.1); border-top: 1px solid var(--border-color); display: flex; align-items: center; gap: 10px;">
+                        <span style="font-size: 18px;">🚫</span>
+                        <div style="flex: 1;">
+                            <div style="font-size: 12px; font-weight: 700; color: #ef4444; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px;">Session Cancelled</div>
+                            <div style="font-size: 14px; color: var(--text-secondary);">${session.cancelReason || 'No reason provided'}</div>
+                        </div>
+                    </div>
+                ` : ''}
+                <div class="session-cancel-controls hidden">
+                    <div class="cancel-toggle-group">
+                        <label for="cancel-${session.id}" class="cancel-toggle-label">Cancel this session</label>
+                        <div class="cancel-toggle-switch">
+                            <input type="checkbox" id="cancel-${session.id}" ${session.cancelled ? 'checked' : ''} data-session="${session.id}" />
+                            <span class="cancel-toggle-slider"></span>
+                        </div>
+                    </div>
+                    <input type="text" class="cancel-reason-input" id="cancel-reason-${session.id}" placeholder="Reason for cancellation..." value="${session.cancelReason || ''}" data-session="${session.id}" ${!session.cancelled ? 'disabled' : ''} />
+                    <button class="delete-session-btn" onclick="handleDeleteSession(${session.id})" data-session="${session.id}">
+                        <span class="delete-icon">🗑️</span>
+                        <span>Delete Session</span>
+                    </button>
                 </div>
             </div>
-            <div class="session-activities">
-                <div class="activity-block warmup">
-                    <div class="activity-header">
-                        <span class="activity-title">Warm-up</span>
-                        <span class="activity-duration">10 mins</span>
-                    </div>
-                    <div class="activity-content activity-display ${!session.warmup ? 'placeholder' : ''}" data-session="${session.id}" data-field="warmup">${warmupContent}</div>
-                    <textarea class="activity-input hidden" data-session="${session.id}" data-field="warmup" placeholder="Enter warm-up activities...">${session.warmup}</textarea>
-                </div>
-                <div class="activity-block drills">
-                    <div class="activity-header">
-                        <span class="activity-title">Drills</span>
-                        <span class="activity-duration">20 mins</span>
-                    </div>
-                    <div class="activity-content activity-display ${!session.drills ? 'placeholder' : ''}" data-session="${session.id}" data-field="drills">${drillsContent}</div>
-                    <textarea class="activity-input hidden" data-session="${session.id}" data-field="drills" placeholder="Enter drills for this session...">${session.drills}</textarea>
-                </div>
-                <div class="activity-block match">
-                    <div class="activity-header">
-                        <span class="activity-title">Match</span>
-                        <span class="activity-duration">30 mins</span>
-                    </div>
-                    <div class="activity-content activity-display ${!session.game ? 'placeholder' : ''}" data-session="${session.id}" data-field="game">${gameContent}</div>
-                    <textarea class="activity-input hidden" data-session="${session.id}" data-field="game" placeholder="Enter match details...">${session.game}</textarea>
-                </div>
-            </div>
-            ${session.cancelled && !editMode ? `
-                <div style="padding: 12px 20px; background: rgba(239, 68, 68, 0.1); border-top: 1px solid var(--border-color); display: flex; align-items: center; gap: 10px;">
-                    <span style="font-size: 18px;">🚫</span>
-                    <div style="flex: 1;">
-                        <div style="font-size: 12px; font-weight: 700; color: #ef4444; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px;">Session Cancelled</div>
-                        <div style="font-size: 14px; color: var(--text-secondary);">${session.cancelReason || 'No reason provided'}</div>
-                    </div>
-                </div>
-            ` : ''}
-            <div class="session-cancel-controls hidden">
-                <div class="cancel-toggle-group">
-                    <label for="cancel-${session.id}" class="cancel-toggle-label">Cancel this session</label>
-                    <div class="cancel-toggle-switch">
-                        <input type="checkbox" id="cancel-${session.id}" ${session.cancelled ? 'checked' : ''} data-session="${session.id}" />
-                        <span class="cancel-toggle-slider"></span>
-                    </div>
-                </div>
-                <input type="text" class="cancel-reason-input" id="cancel-reason-${session.id}" placeholder="Reason for cancellation..." value="${session.cancelReason || ''}" data-session="${session.id}" ${!session.cancelled ? 'disabled' : ''} />
-                <button class="delete-session-btn" onclick="handleDeleteSession(${session.id})" data-session="${session.id}">
-                    <span class="delete-icon">🗑️</span>
-                    <span>Delete Session</span>
-                </button>
+            <div class="session-card-back">
+                ${generateTrainingBackContent(session)}
             </div>
         </article>
     `;
 }
 
 // Render all sessions
-function renderSessions() {
+async function renderSessions() {
     const sessionsContainer = document.getElementById('sessions');
     
     // Filter sessions based on showPastSessions and showDeletedSessions flags

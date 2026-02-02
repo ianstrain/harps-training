@@ -147,6 +147,7 @@ async function saveSessionsList() {
 
 // Save session data to Firebase and localStorage
 async function saveData() {
+    console.log('Entering saveData function');
     const data = {};
     sessions.forEach(s => {
         data[s.id + '_desc'] = s.desc;
@@ -448,59 +449,3 @@ window.migrateSessionsToFirebase = async function() {
 };
 
 // Migration function to add players to Firebase
-window.migratePlayersToFirebase = async function() {
-    if (!database) {
-        console.error('Firebase not initialized - cannot migrate');
-        return;
-    }
-
-    const playersData = [
-        { parent: 'Ian Strain', phone: '+353 86 877 4663', player: 'Chloe Strain', year: '2014', jersey: '#', returning: 'Yes' },
-        { parent: 'Sinéad Giles', phone: '+353 86 343 2733', player: 'Aoibhin Giles', year: '', jersey: '#', returning: 'Yes' },
-        { parent: 'Mark McBride/Caroline McBride', phone: '+353 85 123 4231/+353 87 770 1206', player: 'Sarah McBride', year: '', jersey: '#', returning: 'Yes' },
-        { parent: 'Steven Gallagher/Deborah Callaghan', phone: '+353 85 712 2232', player: 'Eimear Gallagher', year: '', jersey: '#', returning: 'Yes' },
-        { parent: 'Aisling', phone: '+353 86 053 5867', player: 'Leah McClafferty', year: '', jersey: '#', returning: 'Yes' },
-        { parent: 'Annemarie McBride/Martin Kennedy', phone: '+353 87 963 4431/+353 86 400 3128', player: 'Sinéad Kennedy', year: '', jersey: '#', returning: 'Yes' },
-        { parent: 'Aoife', phone: '+353 87 940 3055', player: 'Lauren Diver', year: '', jersey: '#', returning: 'Yes' },
-        { parent: 'Bríd O\' Donnell', phone: '+353 86 196 7547', player: '?', year: '', jersey: '#', returning: 'No' },
-        { parent: 'Ciarán Ní Fearraigh/Sile Kelly', phone: '+353 87 984 9564/+353 86 201 8876', player: 'Aoibh Ní Fhearraigh', year: '', jersey: '#', returning: 'Yes' },
-        { parent: 'Clíona', phone: '+353 86 395 6987', player: 'Zoe and Molly', year: '', jersey: '#', returning: 'No' },
-        { parent: 'Fawzi', phone: '+353 87 263 2160', player: 'child has left', year: '', jersey: '#', returning: 'No' },
-        { parent: 'Jenny Duncan', phone: '+353 86 350 4064', player: 'Chelsea', year: '', jersey: '#', returning: 'No' },
-        { parent: 'Josie', phone: '+353 83 066 8724', player: 'Ella Toland', year: '', jersey: '#', returning: 'No' },
-        { parent: 'Laela Curran', phone: '+353 86 170 2485', player: 'Seva Curran', year: '', jersey: '#', returning: 'Yes' },
-        { parent: 'Louise/Justin Sterritt', phone: '+353 86 343 8505/+353 86 062 1717', player: 'Arianne Sherritt', year: '', jersey: '#', returning: 'Yes' },
-        { parent: 'Nicola', phone: '+353 86 086 0444', player: '?', year: '', jersey: '#', returning: 'No' },
-        { parent: 'Orlaith/Niall', phone: '+353 86 805 0155/+353 83 427 4881', player: 'Faela Kavannagh', year: '', jersey: '#', returning: 'Yes' },
-        { parent: 'Paddy Carr', phone: '+353 87 918 1128', player: 'Aoife Carr', year: '', jersey: '#', returning: 'Yes' },
-        { parent: 'Paddy McTeague', phone: '+353 87 640 9560', player: 'Aisling McTeague', year: '', jersey: '#', returning: 'Yes' },
-        { parent: 'Raymond Carey', phone: '+353 86 216 9856', player: 'Clara Carey', year: '', jersey: '#', returning: 'Yes' },
-        { parent: 'Sumalatha Aka', phone: '+353 85 178 9502', player: 'Poshita', year: '', jersey: '#', returning: 'Yes' },
-        { parent: 'Wego', phone: '+353 87 372 7683', player: 'child left club', year: '', jersey: '#', returning: 'No' },
-        { parent: 'Martina', phone: '+353 87 958 7465', player: 'Rebecca', year: '', jersey: '#', returning: 'No' },
-        { parent: 'Laura Muhandiramge', phone: '+353 87 396 4780', player: 'Eliana', year: '', jersey: '#', returning: 'Yes' }
-    ];
-    
-    try {
-        console.log('Starting players migration to Firebase...');
-        
-        // Convert array to object with index keys for Firebase
-        const playersObject = {};
-        playersData.forEach((player, index) => {
-            playersObject[index] = player;
-        });
-        
-        // Save to Firebase
-        const playersRef = database.ref('playersList');
-        await playersRef.set(playersObject);
-        
-        console.log('Players migration completed successfully!');
-        console.log('Migrated players:', playersData.length);
-        
-        alert('Players migration completed! Data has been transferred to Firebase.');
-        
-    } catch (error) {
-        console.error('Players migration failed:', error);
-        alert('Players migration failed: ' + error.message);
-    }
-};

@@ -11,7 +11,7 @@ function generateMatchCard(session) {
     const matchesUpToThis = sessions.filter(s => s.type === 'match' && !s.deleted && s.id <= session.id).length;
     
     return `
-        <article class="session-card match-card ${session.deleted ? 'deleted' : ''}" data-session="${session.id}" onclick="handleMatchCardClick(event, ${session.id})">
+        <article class="session-card match-card ${session.deleted ? 'deleted' : ''}" data-session="${session.id}" onclick="handleMatchCardClick(event, parseInt(${session.id}))">
             <div class="session-card-front">
                 <div class="session-header">
                     <span class="session-number">M${String(matchesUpToThis).padStart(2, '0')}</span>
@@ -126,7 +126,7 @@ function generateMatchCard(session) {
                             </div>
                         </div>
                         <input type="text" class="cancel-reason-input" id="cancel-reason-${session.id}" placeholder="Reason for cancellation..." value="${session.cancelReason || ''}" data-session="${session.id}" ${!session.cancelled ? 'disabled' : ''} onclick="event.stopPropagation()" />
-                        <button class="delete-session-btn" onclick="event.stopPropagation(); handleDeleteSession(${session.id})" data-session="${session.id}">
+                        <button class="delete-session-btn" onclick="event.stopPropagation(); handleDeleteSession(parseInt(${session.id}))" data-session="${session.id}">
                             <span class="delete-icon">🗑️</span>
                             <span>Delete Match</span>
                         </button>
@@ -210,7 +210,7 @@ function generateMatchBackContent(session) {
 
 // Handle match type change in edit mode
 window.handleMatchTypeChange = function(sessionId, matchType) {
-    const session = sessions.find(s => s.id === sessionId);
+    const session = sessions.find(s => s.id === parseInt(sessionId));
     if (session) {
         session.matchType = matchType;
         
@@ -244,7 +244,7 @@ window.handleMatchCardClick = function(event, sessionId) {
 
 // Handle attendance checkbox change
 window.handleAttendanceChange = function(sessionId, playerName, isChecked) {
-    const session = sessions.find(s => s.id === sessionId);
+    const session = sessions.find(s => s.id === parseInt(sessionId));
     if (!session) return;
     
     if (!session.attendance) {
@@ -283,11 +283,25 @@ window.handleAttendanceChange = function(sessionId, playerName, isChecked) {
     
     // Auto-save
     saveMatchData(sessionId);
+
+    // Re-render the back of the card to update attendance display
+    const card = document.querySelector(`.session-card[data-session="${sessionId}"]`);
+    if (card) {
+        const backContentDiv = card.querySelector('.session-card-back');
+        if (backContentDiv) {
+            // Use appropriate back content generator based on session type
+            if (session.type === 'match') {
+                backContentDiv.innerHTML = generateMatchBackContent(session);
+            } else {
+                backContentDiv.innerHTML = generateTrainingBackContent(session);
+            }
+        }
+    }
 };
 
 // Handle captain selection change
 window.handleCaptainChange = function(sessionId, playerName) {
-    const session = sessions.find(s => s.id === sessionId);
+    const session = sessions.find(s => s.id === parseInt(sessionId));
     if (!session) return;
     
     session.captain = playerName;
@@ -295,7 +309,7 @@ window.handleCaptainChange = function(sessionId, playerName) {
 
 // Handle captain checkbox change
 window.handleCaptainCheckbox = function(sessionId, playerName, isChecked) {
-    const session = sessions.find(s => s.id === sessionId);
+    const session = sessions.find(s => s.id === parseInt(sessionId));
     if (!session) return;
     
     // Only one captain at a time - uncheck all others
@@ -320,7 +334,7 @@ window.handleCaptainCheckbox = function(sessionId, playerName, isChecked) {
 
 // Update goals for a player
 window.updateGoals = function(sessionId, playerName, delta) {
-    const session = sessions.find(s => s.id === sessionId);
+    const session = sessions.find(s => s.id === parseInt(sessionId));
     if (!session) return;
     
     if (!session.matchGoals) {
@@ -381,7 +395,7 @@ function updateCaptainSelector(sessionId) {
 
 // Update match score
 window.updateMatchScore = function(sessionId, teamScore, opponentScore) {
-    const session = sessions.find(s => s.id == sessionId);
+    const session = sessions.find(s => s.id === parseInt(sessionId));
     if (!session) return;
     
     session.teamScore = teamScore;
@@ -408,7 +422,7 @@ window.updateMatchScore = function(sessionId, teamScore, opponentScore) {
 
 // Update goal scorers display based on attendance
 function updateGoalScorersDisplay(sessionId) {
-    const session = sessions.find(s => s.id === sessionId);
+    const session = sessions.find(s => s.id === parseInt(sessionId));
     if (!session) return;
     
     const goalScorersContainer = document.getElementById(`goal-scorers-${sessionId}`);
@@ -451,8 +465,12 @@ function updateGoalScorersDisplay(sessionId) {
 
 // Save match data
 window.saveMatchData = async function(sessionId) {
-    const session = sessions.find(s => s.id === sessionId);
-    if (!session) return;
+    console.log(`Entering saveMatchData for session ${sessionId}`);
+    const session = sessions.find(s => s.id === parseInt(sessionId));
+    if (!session) {
+        console.warn(`Session ${sessionId} not found in saveMatchData.`);
+        return;
+    }
     
     // Integrate match goals with player goals
     const matchDate = session.date ? new Date(session.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];

@@ -54,11 +54,7 @@ function renderThisWeek() {
         return;
     }
     
-    // Show only the next upcoming session
-    const nextSession = upcomingSessions[0];
-    const sessionDate = new Date(nextSession.date);
-    
-    // Get all active players
+    // Get all active players (needed for attendance lists)
     const activePlayers = players.filter(p => {
         const returning = (p.returning || '').toString().toLowerCase().trim();
         const playerName = (p.player || '').toString().toLowerCase();
@@ -68,32 +64,60 @@ function renderThisWeek() {
                (returning === 'yes' || returning === '1' || returning === 'true') &&
                !playerName.includes('child');
     }).sort((a, b) => a.player.localeCompare(b.player));
+
+    let html = upcomingSessions.map(session => createThisWeekSessionCardHtml(session, activePlayers)).join('');
+
+    container.innerHTML = html;
+}
+
+function createThisWeekSessionCardHtml(session, activePlayers) {
+    const sessionDate = new Date(session.date);
     
-    const attendance = nextSession.attendance || [];
+    const attendance = session.attendance || [];
     
-    const eventType = nextSession.type === 'match' ? 'Match' : 'Training';
-    const eventTitle = nextSession.type === 'match' 
-        ? `vs ${nextSession.opponent}` 
+    const eventType = session.type === 'match' ? 'Match' : 'Training';
+    const eventTitle = session.type === 'match' 
+        ? `vs ${session.opponent}` 
         : 'Training Session';
     
-    const eventBadgeColor = nextSession.type === 'match' ? '#ff6b6b' : 'var(--accent)';
+    const eventBadgeColor = session.type === 'match' ? '#ef4444' : 'var(--accent)'; // Changed color for matches
+
+    const matchScoreHtml = session.type === 'match' && session.teamScore !== undefined && session.teamScore !== '' 
+        ? `
+            <div class="match-result-display" style="text-align: center; margin: 15px 0 0;">
+                <div class="score-display" style="font-size: 32px; font-weight: bold; color: var(--accent);">
+                    ${session.teamScore} - ${session.opponentScore}
+                </div>
+                ${session.result ? `
+                    <div class="result-badge ${session.result}" style="display: inline-block; margin-top: 8px; padding: 6px 16px; border-radius: 16px; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
+                        ${session.result === 'win' ? 'background: rgba(0, 255, 100, 0.2); color: #00ff64;' : ''}
+                        ${session.result === 'draw' ? 'background: rgba(255, 200, 0, 0.2); color: #ffc800;' : ''}
+                        ${session.result === 'loss' ? 'background: rgba(255, 50, 50, 0.2); color: #ff3232;' : ''}">
+                        ${session.result}
+                    </div>
+                ` : ''}
+            </div>
+          `
+        : '';
     
-    container.innerHTML = `
-        <div class="thisweek-card" style="max-width: 600px; margin: 0 auto; padding: 20px;">
+    return `
+        <div class="thisweek-card" style="max-width: 600px; margin: 0 auto 30px; padding: 20px;">
             <div class="event-header" style="text-align: center; margin-bottom: 30px; padding: 20px; background: var(--bg-section); border-radius: 12px; border: 1px solid var(--border-color);">
-                <div class="event-type-badge" style="display: inline-block; padding: 6px 16px; background: ${eventBadgeColor}; color: var(--bg-primary); border-radius: 20px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px;">
-                    ${eventType}
+                <div class="event-type-badge" style="display: inline-block; padding: 6px 16px; background: ${eventBadgeColor}; color: var(--bg-dark); border-radius: 20px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px;">
+                    ${eventType} ${session.type === 'match' && session.matchType ? `(${session.matchType})` : ''}
                 </div>
                 <h2 style="margin: 10px 0; font-size: 28px; color: var(--text-primary);">${eventTitle}</h2>
+                ${session.type === 'match' && session.cupStage ? `<div class="cup-stage" style="font-size: 16px; color: var(--text-secondary);">${session.cupStage}</div>` : ''}
                 <div style="font-size: 18px; color: var(--text-secondary); margin: 12px 0;">
                     📅 ${formatDate(sessionDate)}
                 </div>
                 <div style="font-size: 20px; color: var(--accent); margin: 8px 0; font-weight: 600;">
-                    📍 ${nextSession.location || 'The Aura'}
+                    📍 ${session.location || 'The Aura'}
                 </div>
                 <div style="font-size: 20px; color: var(--accent); margin: 8px 0; font-weight: 600;">
-                    🕐 ${nextSession.time || '7:30 PM - 8:30 PM'}
+                    🕐 ${session.time || '7:30 PM - 8:30 PM'}
                 </div>
+                ${matchScoreHtml}
             </div>
             
             <div class="attendance-section" style="background: var(--bg-section); border-radius: 12px; padding: 20px; border: 1px solid var(--border-color);">
@@ -111,7 +135,7 @@ function renderThisWeek() {
                                     <div class="toggle-switch" style="position: relative; width: 50px; height: 26px;">
                                         <input type="checkbox" 
                                                ${isAttending ? 'checked' : ''}
-                                               onchange="handleThisWeekAttendance('${nextSession.id}', '${player.player.replace(/'/g, "\\'")}', this.checked)"
+                                               onchange="handleThisWeekAttendance('${session.id}', '${player.player.replace(/\'/g, "\\'")}', this.checked)"
                                                style="opacity: 0; width: 0; height: 0; position: absolute;">
                                         <span style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: ${isAttending ? 'var(--accent)' : 'var(--border-color)'}; transition: 0.3s; border-radius: 26px;">
                                             <span style="position: absolute; content: ''; height: 20px; width: 20px; left: ${isAttending ? '27px' : '3px'}; bottom: 3px; background-color: white; transition: 0.3s; border-radius: 50%;"></span>
@@ -129,7 +153,8 @@ function renderThisWeek() {
 
 // Handle This Week attendance change
 window.handleThisWeekAttendance = function(sessionId, playerName, isChecked) {
-    const session = sessions.find(s => s.id == sessionId);
+    console.log(`handleThisWeekAttendance called for session ${sessionId}, player ${playerName}, checked: ${isChecked}`);
+    const session = sessions.find(s => s.id === parseInt(sessionId));
     if (!session) return;
     
     if (!session.attendance) session.attendance = [];
@@ -152,6 +177,7 @@ window.handleThisWeekAttendance = function(sessionId, playerName, isChecked) {
     
     saveMatchData(sessionId);
     renderThisWeek();
+    renderSessions();
 };
 
 // Render calendar
