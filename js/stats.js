@@ -2,13 +2,13 @@
 // STATISTICS AND CHARTS
 // ============================================
 
-// Sort state for charts
-let goalsSortBy = 'goals-desc'; // Default: sort by goals descending
-let matchAttendanceSortBy = 'attended-desc'; // Default: sort by attended descending
-let trainingAttendanceSortBy = 'attended-desc'; // Default: sort by attended descending
+// Sort state for charts (global for testability)
+window.goalsSortBy = 'goals-desc'; // Default: sort by goals descending
+window.matchAttendanceSortBy = 'attended-desc'; // Default: sort by attended descending
+window.trainingAttendanceSortBy = 'attended-desc'; // Default: sort by attended descending
 
-// Sorting functions
-function sortPlayerData(data, sortBy, valueKey = 'total') {
+// Sorting functions (global for testability)
+window.sortPlayerData = function(data, sortBy, valueKey = 'total') {
     const sorted = [...data];
     switch(sortBy) {
         case 'name-asc':
@@ -25,8 +25,8 @@ function sortPlayerData(data, sortBy, valueKey = 'total') {
     }
 }
 
-// Generate sort controls HTML
-function generateSortControls(chartId, currentSort, isAttendance = false) {
+// Generate sort controls HTML (global for testability)
+window.generateSortControls = function(chartId, currentSort, isAttendance = false) {
     const sortOptions = isAttendance ? [
         { value: 'attended-desc', label: 'Attendance (High to Low)' },
         { value: 'attended-asc', label: 'Attendance (Low to High)' },
@@ -58,20 +58,20 @@ function generateSortControls(chartId, currentSort, isAttendance = false) {
 window.handleChartSort = function(chartId, sortValue) {
     switch(chartId) {
         case 'goals':
-            goalsSortBy = sortValue;
+            window.goalsSortBy = sortValue;
             break;
         case 'match-attendance':
-            matchAttendanceSortBy = sortValue;
+            window.matchAttendanceSortBy = sortValue;
             break;
         case 'training-attendance':
-            trainingAttendanceSortBy = sortValue;
+            window.trainingAttendanceSortBy = sortValue;
             break;
     }
     renderStats();
 };
 
-// Render statistics
-function renderStats() {
+// Render statistics (global for testability)
+window.renderStats = function() {
     const container = document.getElementById('stats-container');
     
     if (players.length === 0) {
@@ -107,9 +107,9 @@ function renderStats() {
     });
     
     // Filter out players with 0 goals and apply sorting
-    const playersWithGoals = sortPlayerData(
+    const playersWithGoals = window.sortPlayerData(
         playerGoals.filter(p => p.total > 0),
-        goalsSortBy,
+        window.goalsSortBy,
         'total'
     );
     
@@ -152,7 +152,7 @@ function renderStats() {
     let goalsSvg = `
         <div class="stats-chart-container">
             <div class="stats-chart-title">Goals Scored by Player</div>
-            ${generateSortControls('goals', goalsSortBy, false)}
+            ${window.generateSortControls('goals', window.goalsSortBy, false)}
             <div class="stats-chart-svg-container">
                 <svg viewBox="0 0 ${chartWidth} ${chartHeight}" preserveAspectRatio="xMidYMid meet">
                     <!-- Y-axis label -->
@@ -349,7 +349,7 @@ function generateAttendanceChart(filteredPlayers) {
     }).filter(p => p.attended > 0);
     
     // Apply sorting
-    const sortedPlayerAttendance = sortPlayerData(playerAttendance, matchAttendanceSortBy, 'attended');
+    const sortedPlayerAttendance = window.sortPlayerData(playerAttendance, window.matchAttendanceSortBy, 'attended');
     
     if (sortedPlayerAttendance.length === 0) {
         return `
@@ -386,7 +386,7 @@ function generateAttendanceChart(filteredPlayers) {
     let svg = `
         <div class="stats-chart-container">
             <div class="stats-chart-title">Match Attendance (${matches.length} ${matches.length === 1 ? 'match' : 'matches'})</div>
-            ${generateSortControls('match-attendance', matchAttendanceSortBy, true)}
+            ${window.generateSortControls('match-attendance', window.matchAttendanceSortBy, true)}
             <div class="stats-chart-svg-container">
                 <svg viewBox="0 0 ${chartWidth} ${chartHeight}" preserveAspectRatio="xMidYMid meet">
                     <!-- Y-axis label -->
@@ -492,7 +492,7 @@ function generateTrainingAttendanceChart(filteredPlayers) {
     }).filter(p => p.attended > 0);
     
     // Apply sorting
-    const sortedTrainingAttendance = sortPlayerData(playerTrainingAttendance, trainingAttendanceSortBy, 'attended');
+    const sortedTrainingAttendance = window.sortPlayerData(playerTrainingAttendance, window.trainingAttendanceSortBy, 'attended');
     
     if (sortedTrainingAttendance.length === 0) {
         return `
@@ -529,7 +529,7 @@ function generateTrainingAttendanceChart(filteredPlayers) {
     let svg = `
         <div class="stats-chart-container">
             <div class="stats-chart-title">Training Attendance (${trainingSessions.length} ${trainingSessions.length === 1 ? 'session' : 'sessions'})</div>
-            ${generateSortControls('training-attendance', trainingAttendanceSortBy, true)}
+            ${window.generateSortControls('training-attendance', window.trainingAttendanceSortBy, true)}
             <div class="stats-chart-svg-container">
                 <svg viewBox="0 0 ${chartWidth} ${chartHeight}" preserveAspectRatio="xMidYMid meet">
                     <!-- Y-axis label -->
@@ -608,7 +608,7 @@ window.navigateToPlayerProfile = function(playerName) {
 };
 
 // Render player profile page
-function renderPlayerProfile() {
+window.renderPlayerProfile = function() {
     const container = document.getElementById('player-profile-container');
     const playerName = window.currentProfilePlayer;
     
@@ -643,15 +643,18 @@ function renderPlayerProfile() {
     const totalGoals = getTotalGoals(goals);
     
     // Get attendance data
-    const allSessions = sessions.filter(s => !s.deleted);
-    const matchSessions = allSessions.filter(s => s.type === 'match');
-    const trainingSessions = allSessions.filter(s => s.type === 'training');
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+
+    const allPastSessions = sessions.filter(s => !s.deleted && new Date(s.date) <= now);
+    const pastMatchSessions = allPastSessions.filter(s => s.type === 'match');
+    const pastTrainingSessions = allPastSessions.filter(s => s.type === 'training');
     
     // Calculate match attendance
     let matchesAttended = 0;
     let captainCount = 0;
     const matchAttendanceRecords = [];
-    matchSessions.forEach(match => {
+    pastMatchSessions.forEach(match => {
         if (match.attendance && match.attendance.includes(playerName)) {
             matchesAttended++;
             const wasCaptain = match.captain === playerName;
@@ -668,7 +671,7 @@ function renderPlayerProfile() {
     // Calculate training attendance
     let trainingsAttended = 0;
     const trainingAttendanceRecords = [];
-    trainingSessions.forEach(session => {
+    pastTrainingSessions.forEach(session => {
         if (session.attendance && session.attendance.includes(playerName)) {
             trainingsAttended++;
             trainingAttendanceRecords.push({
@@ -680,8 +683,8 @@ function renderPlayerProfile() {
     });
     
     // Calculate percentages
-    const matchAttendancePercent = matchSessions.length > 0 ? Math.round((matchesAttended / matchSessions.length) * 100) : 0;
-    const trainingAttendancePercent = trainingSessions.length > 0 ? Math.round((trainingsAttended / trainingSessions.length) * 100) : 0;
+    const matchAttendancePercent = pastMatchSessions.length > 0 ? Math.round((matchesAttended / pastMatchSessions.length) * 100) : 0;
+    const trainingAttendancePercent = pastTrainingSessions.length > 0 ? Math.round((trainingsAttended / pastTrainingSessions.length) * 100) : 0;
     
     // Get goal records sorted by date (most recent first)
     const goalRecords = Object.entries(goals)
@@ -689,7 +692,7 @@ function renderPlayerProfile() {
         .sort((a, b) => new Date(b.date) - new Date(a.date));
     
     // Get captain history
-    const captainHistory = matchSessions
+    const captainHistory = pastMatchSessions
         .filter(m => m.captain === playerName)
         .map(m => ({
             date: m.date,

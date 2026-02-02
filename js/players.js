@@ -217,7 +217,7 @@ function renderGoalsChart(goals) {
 }
 
 // Render players
-function renderPlayers() {
+window.renderPlayers = function() {
     const container = document.getElementById('players-container');
     
     // Show message if no players loaded
@@ -296,17 +296,22 @@ function renderPlayers() {
                         <div class="player-name">
                             <span class="clickable-player-name" onclick="event.stopPropagation(); navigateToPlayerProfile('${playerName.replace(/'/g, "\\'")}')" title="View full profile">${playerName}</span>
                             <div class="player-name-actions">
-                            ${p.jersey ? `<span class="jersey-number"><span class="jersey-icon">👕</span>${p.jersey}</span>` : ''}
+                            ${editMode ? `<input type="text" class="player-jersey-input-edit" value="${p.jersey || ''}" data-player="${playerName}" data-field="jersey" placeholder="Jersey #" onclick="event.stopPropagation()">` : (p.jersey ? `<span class="jersey-number"><span class="jersey-icon">👕</span>${p.jersey}</span>` : '')}
                                 <button class="delete-player-btn" onclick="handleDeletePlayer('${playerName}')" title="Delete player">🗑️</button>
                             </div>
                         </div>
                         <div class="player-details">
-                            ${p.parent ? `
+                            ${editMode ? `
+                                <div class="player-detail-item">
+                                    <span class="player-detail-label">Parent</span>
+                                    <input type="text" class="player-parent-input-edit" value="${p.parent || ''}" data-player="${playerName}" data-field="parent" placeholder="Parent Name" onclick="event.stopPropagation()">
+                                </div>
+                            ` : (p.parent ? `
                                 <div class="player-detail-item">
                                     <span class="player-detail-label">Parent</span>
                                     <span class="player-detail-value">${p.parent}</span>
                                 </div>
-                            ` : ''}
+                            ` : '')}
                             <div class="player-detail-item">
                                 <span class="player-detail-label">Year</span>
                                 <span class="player-detail-value">${p.year || ''}</span>
@@ -488,6 +493,19 @@ function renderPlayers() {
             }
         });
     });
+
+    // Add event listeners for editing player info fields
+    container.querySelectorAll('.player-name-input, .player-jersey-input-edit, .player-parent-input-edit').forEach(input => {
+        input.addEventListener('change', e => {
+            const playerName = e.target.dataset.player;
+            const field = e.target.dataset.field;
+            const player = players.find(p => p.player === playerName);
+            if (player && field) {
+                player[field] = e.target.value.trim();
+                savePlayersList(); // Save changes immediately
+            }
+        });
+    });
     
     // Set default date to today for all date inputs and prevent card flip on click
     const today = new Date();
@@ -516,7 +534,7 @@ function renderPlayers() {
 }
 
 // Handle save notes
-function handleSaveNotes(playerName, index) {
+window.handleSaveNotes = function(playerName, index) {
     const notesTextarea = document.getElementById(`notes-${index}`);
     const notes = notesTextarea.value.trim();
     savePlayerNotes(playerName, notes);

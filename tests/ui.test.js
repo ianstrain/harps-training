@@ -159,22 +159,148 @@ describe('UI Functions', () => {
                 <div id="players-tab" class="tab-content"></div>
                 <div id="stats-tab" class="tab-content"></div>
                 <div id="thisweek-tab" class="tab-content"></div>
+                <div id="player-profile-tab" class="tab-content"></div>
             `;
         });
 
         test('should switch active tab content', () => {
+            // Mock render functions called by switchToTab
+            global.renderSessions = jest.fn();
+            global.renderCalendar = jest.fn();
+            global.renderPlayers = jest.fn();
+            global.renderStats = jest.fn();
+            global.renderThisWeek = jest.fn();
+            global.renderPlayerProfile = jest.fn();
+            
             function switchToTab(tabName) {
                 document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
                 const targetTab = document.getElementById(tabName + '-tab');
                 if (targetTab) {
                     targetTab.classList.add('active');
                 }
+                // Call relevant render function based on tabName
+                if (tabName === 'schedule') { renderSessions(); }
+                else if (tabName === 'calendar') { renderCalendar(); }
+                else if (tabName === 'players') { renderPlayers(); }
+                else if (tabName === 'stats') { renderStats(); }
+                else if (tabName === 'thisweek') { renderThisWeek(); }
+                else if (tabName === 'player-profile') { renderPlayerProfile(); }
             }
 
             switchToTab('players');
             
             expect(document.getElementById('schedule-tab').classList.contains('active')).toBe(false);
             expect(document.getElementById('players-tab').classList.contains('active')).toBe(true);
+            expect(global.renderPlayers).toHaveBeenCalled();
+            expect(global.renderSessions).not.toHaveBeenCalled();
         });
+
+        test('should call renderPlayerProfile when switching to player-profile tab', () => {
+            global.renderPlayerProfile = jest.fn();
+
+            function switchToTab(tabName) {
+                document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+                const targetTab = document.getElementById(tabName + '-tab');
+                if (targetTab) {
+                    targetTab.classList.add('active');
+                }
+                if (tabName === 'player-profile') { renderPlayerProfile(); }
+            }
+            
+            switchToTab('player-profile');
+            expect(global.renderPlayerProfile).toHaveBeenCalled();
+        });
+    });
+
+    describe('Chart Sorting', () => {
+        let mockPlayersData;
+        let originalRenderStats;
+        let originalGoalsSortBy, originalMatchAttendanceSortBy, originalTrainingAttendanceSortBy;
+
+        beforeAll(() => {
+            // Save original values
+            originalRenderStats = global.renderStats;
+            originalGoalsSortBy = global.goalsSortBy;
+            originalMatchAttendanceSortBy = global.matchAttendanceSortBy;
+            originalTrainingAttendanceSortBy = global.trainingAttendanceSortBy;
+
+            // Mock globals
+            global.renderStats = jest.fn();
+            global.goalsSortBy = 'goals-desc';
+            global.matchAttendanceSortBy = 'attended-desc';
+            global.trainingAttendanceSortBy = 'attended-desc';
+        });
+
+        afterAll(() => {
+            // Restore original values
+            global.renderStats = originalRenderStats;
+            global.goalsSortBy = originalGoalsSortBy;
+            global.matchAttendanceSortBy = originalMatchAttendanceSortBy;
+            global.trainingAttendanceSortBy = originalTrainingAttendanceSortBy;
+        });
+
+        beforeEach(() => {
+            mockPlayersData = [
+                { name: 'Charlie', total: 10, attended: 5 },
+                { name: 'Alice', total: 20, attended: 8 },
+                { name: 'Bob', total: 15, attended: 3 }
+            ];
+            global.renderStats.mockClear(); // Clear mock calls before each test
+        });
+
+        test('sortPlayerData should sort by total descending by default', () => {
+            // The actual sortPlayerData function is in stats.js, so we need to access it properly
+            const sorted = global.sortPlayerData(mockPlayersData, 'goals-desc', 'total');
+            expect(sorted.map(p => p.name)).toEqual(['Alice', 'Bob', 'Charlie']);
+        });
+
+        test('sortPlayerData should sort by total ascending', () => {
+            const sorted = global.sortPlayerData(mockPlayersData, 'goals-asc', 'total');
+            // Charlie (10), Bob (15), Alice (20) - ascending order
+            expect(sorted.map(p => p.name)).toEqual(['Charlie', 'Bob', 'Alice']);
+        });
+
+        test('sortPlayerData should sort by name ascending', () => {
+            const sorted = global.sortPlayerData(mockPlayersData, 'name-asc', 'total');
+            expect(sorted.map(p => p.name)).toEqual(['Alice', 'Bob', 'Charlie']);
+        });
+
+        test('sortPlayerData should sort by name descending', () => {
+            const sorted = global.sortPlayerData(mockPlayersData, 'name-desc', 'total');
+            expect(sorted.map(p => p.name)).toEqual(['Charlie', 'Bob', 'Alice']);
+        });
+
+        test('generateSortControls should produce correct HTML for goals', () => {
+            const html = global.generateSortControls('goals', 'goals-desc', false);
+            expect(html).toContain('<select id="goals-sort"');
+            expect(html).toContain('value="goals-desc" selected');
+            expect(html).toContain('Goals (High to Low)');
+        });
+
+        test('generateSortControls should produce correct HTML for attendance', () => {
+            const html = global.generateSortControls('match-attendance', 'attended-asc', true);
+            expect(html).toContain('<select id="match-attendance-sort"');
+            expect(html).toContain('value="attended-asc" selected');
+            expect(html).toContain('Attendance (Low to High)');
+        });
+
+        test('handleChartSort should update goalsSortBy and call renderStats', () => {
+            global.handleChartSort('goals', 'name-asc');
+            expect(global.goalsSortBy).toBe('name-asc');
+            expect(global.renderStats).toHaveBeenCalledTimes(1);
+        });
+
+        test('handleChartSort should update matchAttendanceSortBy and call renderStats', () => {
+            global.handleChartSort('match-attendance', 'name-desc');
+            expect(global.matchAttendanceSortBy).toBe('name-desc');
+            expect(global.renderStats).toHaveBeenCalledTimes(1);
+        });
+
+        test('handleChartSort should update trainingAttendanceSortBy and call renderStats', () => {
+            global.handleChartSort('training-attendance', 'attended-asc');
+            expect(global.trainingAttendanceSortBy).toBe('attended-asc');
+            expect(global.renderStats).toHaveBeenCalledTimes(1);
+        });
+
     });
 });

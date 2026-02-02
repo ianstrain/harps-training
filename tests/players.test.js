@@ -120,4 +120,96 @@ describe('Players', () => {
             expect(totalGoals).toBe(6);
         });
     });
+    
+    describe('Player Information Editing', () => {
+        beforeEach(() => {
+            global.players = [
+                { player: 'Test Player', jersey: '10', parent: 'Parent One', returning: 'yes', deleted: false }
+            ];
+            global.editMode = true;
+            document.body.innerHTML = '<div id="players-container"></div>';
+            global.savePlayersList.mockClear();
+        });
+        
+        test('should render jersey and parent as input fields in edit mode', () => {
+            global.renderPlayers(); // Call the actual render function
+            
+            const playerCard = document.querySelector('[data-player="Test Player"]');
+            expect(playerCard).not.toBeNull();
+            
+            const jerseyInput = playerCard.querySelector('.player-jersey-input-edit');
+            const parentInput = playerCard.querySelector('.player-parent-input-edit');
+            
+            expect(jerseyInput).not.toBeNull();
+            expect(jerseyInput.value).toBe('10');
+            expect(parentInput).not.toBeNull();
+            expect(parentInput.value).toBe('Parent One');
+        });
+        
+        test('should update player jersey on input change and save', () => {
+            global.renderPlayers();
+            
+            const jerseyInput = document.querySelector('.player-jersey-input-edit');
+            jerseyInput.value = '99';
+            jerseyInput.dispatchEvent(new Event('change'));
+            
+            expect(global.players[0].jersey).toBe('99');
+            expect(global.savePlayersList).toHaveBeenCalledTimes(1);
+        });
+        
+        test('should update player parent on input change and save', () => {
+            global.renderPlayers();
+            
+            const parentInput = document.querySelector('.player-parent-input-edit');
+            parentInput.value = 'Parent Two';
+            parentInput.dispatchEvent(new Event('change'));
+            
+            expect(global.players[0].parent).toBe('Parent Two');
+            expect(global.savePlayersList).toHaveBeenCalledTimes(1);
+        });
+    });
+    
+    describe('Player Profile Navigation', () => {
+        let originalSwitchToTab;
+
+        beforeAll(() => {
+            originalSwitchToTab = global.switchToTab;
+            // Mock switchToTab to prevent actual tab switching during tests
+            global.switchToTab = jest.fn();
+        });
+
+        afterAll(() => {
+            global.switchToTab = originalSwitchToTab;
+        });
+
+        beforeEach(() => {
+            global.players = [
+                { player: 'Profile Test', jersey: '7', parent: 'Profile Parent', returning: 'yes', deleted: false }
+            ];
+            global.switchToTab.mockClear();
+            global.currentProfilePlayer = undefined; // Reset before each test
+            document.body.innerHTML = '<div id="players-container"></div>';
+        });
+
+        test('navigateToPlayerProfile should set currentProfilePlayer and switch tab', () => {
+            global.navigateToPlayerProfile('Profile Test');
+            expect(global.currentProfilePlayer).toBe('Profile Test');
+            expect(global.switchToTab).toHaveBeenCalledWith('player-profile');
+        });
+
+        test('clicking player name should call navigateToPlayerProfile', () => {
+            // Spy on navigateToPlayerProfile to track calls
+            const navigateSpy = jest.spyOn(global, 'navigateToPlayerProfile');
+            
+            global.renderPlayers(); // Render players with actual function
+
+            const clickablePlayerName = document.querySelector('.clickable-player-name[title="View full profile"]');
+            expect(clickablePlayerName).not.toBeNull();
+
+            clickablePlayerName.click();
+            expect(navigateSpy).toHaveBeenCalledWith('Profile Test');
+            
+            navigateSpy.mockRestore();
+        });
+    });
 });
