@@ -2122,12 +2122,14 @@
             font-weight: 500;
         }
 
-        .players-header {
+        .players-header,
+        .thisweek-header {
             text-align: center;
             margin-bottom: 24px;
         }
 
-        .players-header h2 {
+        .players-header h2,
+        .thisweek-header h2 {
             font-family: 'Bebas Neue', sans-serif;
             font-size: 2.5rem;
             letter-spacing: 3px;
@@ -2612,7 +2614,8 @@
         </header>
 
         <nav class="tabs">
-            <button class="tab-button active" data-tab="schedule">Schedule</button>
+            <button class="tab-button active" data-tab="thisweek">This Week</button>
+            <button class="tab-button" data-tab="schedule">Schedule</button>
             <button class="tab-button" data-tab="calendar">Calendar</button>
             <button class="tab-button" data-tab="players">Players</button>
         </nav>
@@ -2631,7 +2634,14 @@
             </div>
         </div>
 
-        <div class="tab-content active" id="schedule-tab">
+        <div class="tab-content active" id="thisweek-tab">
+            <div class="thisweek-header">
+                <h2>THIS WEEK</h2>
+            </div>
+            <div id="thisweek-container"></div>
+        </div>
+
+        <div class="tab-content" id="schedule-tab">
             <main id="sessions"></main>
 
         </div>
@@ -2721,7 +2731,10 @@
             // Match defaults
             opponent: 'Enter opponent team name',
             matchType: 'friendly',
-            cupStage: ''
+            cupStage: '',
+            teamScore: '',
+            opponentScore: '',
+            result: '' // 'win', 'draw', 'loss', or ''
         };
 
         let editMode = false;
@@ -2828,6 +2841,10 @@
                                 s.attendance = sessionData.attendance || [];
                                 s.captain = sessionData.captain || '';
                                 s.matchGoals = sessionData.matchGoals || {};
+                                // Match score fields
+                                s.teamScore = sessionData.teamScore || '';
+                                s.opponentScore = sessionData.opponentScore || '';
+                                s.result = sessionData.result || '';
                             }
                         });
                         // Cache in localStorage
@@ -2840,6 +2857,9 @@
                             data[s.id + '_attendance'] = JSON.stringify(s.attendance || []);
                             data[s.id + '_captain'] = s.captain || '';
                             data[s.id + '_matchGoals'] = JSON.stringify(s.matchGoals || {});
+                            data[s.id + '_teamScore'] = s.teamScore || '';
+                            data[s.id + '_opponentScore'] = s.opponentScore || '';
+                            data[s.id + '_result'] = s.result || '';
                         });
                         localStorage.setItem('trainingData', JSON.stringify(data));
                         renderSessions();
@@ -2862,6 +2882,9 @@
                     s.attendance = data[s.id + '_attendance'] ? JSON.parse(data[s.id + '_attendance']) : [];
                     s.captain = data[s.id + '_captain'] || '';
                     s.matchGoals = data[s.id + '_matchGoals'] ? JSON.parse(data[s.id + '_matchGoals']) : {};
+                    s.teamScore = data[s.id + '_teamScore'] || '';
+                    s.opponentScore = data[s.id + '_opponentScore'] || '';
+                    s.result = data[s.id + '_result'] || '';
                 });
                 renderSessions();
             }
@@ -2910,6 +2933,9 @@
                 data[s.id + '_attendance'] = JSON.stringify(s.attendance || []);
                 data[s.id + '_captain'] = s.captain || '';
                 data[s.id + '_matchGoals'] = JSON.stringify(s.matchGoals || {});
+                data[s.id + '_teamScore'] = s.teamScore || '';
+                data[s.id + '_opponentScore'] = s.opponentScore || '';
+                data[s.id + '_result'] = s.result || '';
             });
             
             // Save to localStorage
@@ -2932,6 +2958,9 @@
                             attendance: s.attendance || [],
                             captain: s.captain || '',
                             matchGoals: s.matchGoals || {},
+                            teamScore: s.teamScore || '',
+                            opponentScore: s.opponentScore || '',
+                            result: s.result || '',
                             lastUpdated: new Date().toISOString()
                         };
                     });
@@ -3200,6 +3229,46 @@
                                     <span>${session.time || '7:30 PM - 8:30 PM'}</span>
                                 </div>
                             `}
+                        </div>
+                        <div class="match-score-section" style="padding: 10px 20px; margin-top: 10px;">
+                            ${editMode ? `
+                                <div class="score-inputs" style="display: flex; gap: 10px; align-items: center; justify-content: center;">
+                                    <span style="font-size: 14px; color: var(--text-secondary);">Score:</span>
+                                    <input type="number" 
+                                           class="score-input" 
+                                           value="${session.teamScore || ''}" 
+                                           placeholder="0"
+                                           min="0"
+                                           style="width: 50px; text-align: center; font-size: 18px; font-weight: bold; padding: 8px; border: 2px solid var(--border-color); border-radius: 6px; background: var(--bg-card); color: var(--text-primary);"
+                                           onclick="event.stopPropagation()"
+                                           onchange="updateMatchScore('${session.id}', this.value, document.getElementById('opponent-score-${session.id}').value)"
+                                           id="team-score-${session.id}">
+                                    <span style="font-size: 20px; font-weight: bold; color: var(--text-secondary);">-</span>
+                                    <input type="number" 
+                                           class="score-input" 
+                                           value="${session.opponentScore || ''}" 
+                                           placeholder="0"
+                                           min="0"
+                                           style="width: 50px; text-align: center; font-size: 18px; font-weight: bold; padding: 8px; border: 2px solid var(--border-color); border-radius: 6px; background: var(--bg-card); color: var(--text-primary);"
+                                           onclick="event.stopPropagation()"
+                                           onchange="updateMatchScore('${session.id}', document.getElementById('team-score-${session.id}').value, this.value)"
+                                           id="opponent-score-${session.id}">
+                                </div>
+                            ` : (session.teamScore !== undefined && session.teamScore !== '') ? `
+                                <div class="match-result-display" style="text-align: center; margin: 8px 0;">
+                                    <div class="score-display" style="font-size: 28px; font-weight: bold; color: var(--accent);">
+                                        ${session.teamScore} - ${session.opponentScore}
+                                    </div>
+                                    ${session.result ? `
+                                        <div class="result-badge ${session.result}" style="display: inline-block; margin-top: 5px; padding: 4px 12px; border-radius: 12px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
+                                            ${session.result === 'win' ? 'background: rgba(0, 255, 100, 0.2); color: #00ff64;' : ''}
+                                            ${session.result === 'draw' ? 'background: rgba(255, 200, 0, 0.2); color: #ffc800;' : ''}
+                                            ${session.result === 'loss' ? 'background: rgba(255, 50, 50, 0.2); color: #ff3232;' : ''}">
+                                            ${session.result}
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            ` : ''}
                         </div>
                         ${session.cancelled && !editMode ? `
                             <div style="padding: 12px 20px; background: rgba(239, 68, 68, 0.1); border-top: 1px solid var(--border-color); display: flex; align-items: center; gap: 10px; margin-top: 16px;">
@@ -3516,6 +3585,33 @@
             captainSelector.innerHTML = '<option value="">Select captain...</option>' +
                 activePlayers.map(p => `<option value="${p.player}" ${currentCaptain === p.player ? 'selected' : ''}>${p.player}</option>`).join('');
         }
+
+        // Update match score
+        window.updateMatchScore = function(sessionId, teamScore, opponentScore) {
+            const session = sessions.find(s => s.id == sessionId);
+            if (!session) return;
+            
+            session.teamScore = teamScore;
+            session.opponentScore = opponentScore;
+            
+            // Auto-calculate result
+            const team = parseInt(teamScore) || 0;
+            const opponent = parseInt(opponentScore) || 0;
+            
+            if (teamScore !== '' && opponentScore !== '') {
+                if (team > opponent) {
+                    session.result = 'win';
+                } else if (team < opponent) {
+                    session.result = 'loss';
+                } else {
+                    session.result = 'draw';
+                }
+            } else {
+                session.result = '';
+            }
+            
+            saveData();
+        };
 
         // Update goal scorers display based on attendance
         function updateGoalScorersDisplay(sessionId) {
@@ -5159,7 +5255,67 @@
             const attendanceChart = generateAttendanceChart(filteredPlayers);
             const captainHistory = generateCaptainHistoryChart();
             
-            container.innerHTML = attendanceChart + captainHistory + svg;
+            // Generate season stats
+            const seasonStats = generateSeasonStats();
+            
+            container.innerHTML = seasonStats + attendanceChart + captainHistory + svg;
+        }
+
+        function generateSeasonStats() {
+            // Calculate match statistics
+            const matchSessions = sessions.filter(s => s.type === 'match' && !s.deleted);
+            const completedMatches = matchSessions.filter(s => s.result);
+            const wins = completedMatches.filter(s => s.result === 'win').length;
+            const draws = completedMatches.filter(s => s.result === 'draw').length;
+            const losses = completedMatches.filter(s => s.result === 'loss').length;
+            const totalGoalsScored = completedMatches.reduce((sum, s) => sum + (parseInt(s.teamScore) || 0), 0);
+            const totalGoalsConceded = completedMatches.reduce((sum, s) => sum + (parseInt(s.opponentScore) || 0), 0);
+            const goalDiff = totalGoalsScored - totalGoalsConceded;
+
+            return `
+                <div class="season-stats-section" style="margin-bottom: 30px; padding: 20px; background: var(--bg-section); border-radius: 12px; border: 1px solid var(--border-color);">
+                    <h3 style="margin: 0 0 15px 0; color: var(--accent); font-size: 18px; text-align: center;">Season Match Statistics</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 12px;">
+                        <div class="stat-box" style="text-align: center; padding: 15px; background: var(--bg-card); border-radius: 8px;">
+                            <div style="font-size: 28px; font-weight: bold; color: var(--accent);">${completedMatches.length}</div>
+                            <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Played</div>
+                        </div>
+                        <div class="stat-box" style="text-align: center; padding: 15px; background: var(--bg-card); border-radius: 8px;">
+                            <div style="font-size: 28px; font-weight: bold; color: #00ff64;">${wins}</div>
+                            <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Wins</div>
+                        </div>
+                        <div class="stat-box" style="text-align: center; padding: 15px; background: var(--bg-card); border-radius: 8px;">
+                            <div style="font-size: 28px; font-weight: bold; color: #ffc800;">${draws}</div>
+                            <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Draws</div>
+                        </div>
+                        <div class="stat-box" style="text-align: center; padding: 15px; background: var(--bg-card); border-radius: 8px;">
+                            <div style="font-size: 28px; font-weight: bold; color: #ff3232;">${losses}</div>
+                            <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Losses</div>
+                        </div>
+                        <div class="stat-box" style="text-align: center; padding: 15px; background: var(--bg-card); border-radius: 8px;">
+                            <div style="font-size: 28px; font-weight: bold; color: var(--accent);">${totalGoalsScored}</div>
+                            <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Goals For</div>
+                        </div>
+                        <div class="stat-box" style="text-align: center; padding: 15px; background: var(--bg-card); border-radius: 8px;">
+                            <div style="font-size: 28px; font-weight: bold; color: var(--text-secondary);">${totalGoalsConceded}</div>
+                            <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Goals Against</div>
+                        </div>
+                        <div class="stat-box" style="text-align: center; padding: 15px; background: var(--bg-card); border-radius: 8px; grid-column: span 1;">
+                            <div style="font-size: 28px; font-weight: bold; color: ${goalDiff > 0 ? '#00ff64' : goalDiff < 0 ? '#ff3232' : 'var(--accent)'};">${goalDiff > 0 ? '+' : ''}${goalDiff}</div>
+                            <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Goal Diff</div>
+                        </div>
+                    </div>
+                    ${completedMatches.length > 0 ? `
+                        <div style="margin-top: 15px; text-align: center; font-size: 18px; font-weight: bold; color: var(--text-primary);">
+                            Record: ${wins}W - ${draws}D - ${losses}L
+                        </div>
+                    ` : `
+                        <div style="margin-top: 15px; text-align: center; font-size: 14px; color: var(--text-secondary);">
+                            No completed matches yet
+                        </div>
+                    `}
+                </div>
+            `;
         }
 
         function generateAttendanceChart(filteredPlayers) {
@@ -5363,6 +5519,144 @@
             renderCalendar();
         };
 
+        // This Week functions
+        function renderThisWeek() {
+            const container = document.getElementById('thisweek-container');
+            
+            // Get the start of this week (Monday)
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const dayOfWeek = today.getDay();
+            const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Sunday = 6 days from Monday
+            const weekStart = new Date(today);
+            weekStart.setDate(today.getDate() - daysFromMonday);
+            weekStart.setHours(0, 0, 0, 0);
+            
+            // Get the end of this week (Sunday)
+            const weekEnd = new Date(weekStart);
+            weekEnd.setDate(weekStart.getDate() + 6);
+            weekEnd.setHours(23, 59, 59, 999);
+            
+            // Find upcoming sessions this week (from today onwards)
+            const upcomingSessions = sessions
+                .filter(s => !s.deleted && !s.cancelled)
+                .filter(s => {
+                    const sessionDate = new Date(s.date);
+                    sessionDate.setHours(0, 0, 0, 0);
+                    return sessionDate >= today && sessionDate >= weekStart && sessionDate <= weekEnd;
+                })
+                .sort((a, b) => new Date(a.date) - new Date(b.date));
+            
+            if (upcomingSessions.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 40px 20px; color: var(--text-secondary);">
+                        <div style="font-size: 48px; margin-bottom: 10px;">📅</div>
+                        <h3 style="margin: 0 0 10px 0; color: var(--text-primary);">No Upcoming Events This Week</h3>
+                        <p style="margin: 0;">Check back Monday for next week's schedule</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Show only the next upcoming session
+            const nextSession = upcomingSessions[0];
+            const sessionDate = new Date(nextSession.date);
+            
+            // Get all active players
+            const activePlayers = players.filter(p => {
+                const returning = (p.returning || '').toString().toLowerCase().trim();
+                const playerName = (p.player || '').toString().toLowerCase();
+                return p.player && 
+                       p.player !== '?' &&
+                       !p.deleted &&
+                       (returning === 'yes' || returning === '1' || returning === 'true') &&
+                       !playerName.includes('child');
+            }).sort((a, b) => a.player.localeCompare(b.player));
+            
+            const attendance = nextSession.attendance || [];
+            
+            const eventType = nextSession.type === 'match' ? 'Match' : 'Training';
+            const eventTitle = nextSession.type === 'match' 
+                ? `vs ${nextSession.opponent}` 
+                : 'Training Session';
+            
+            const eventBadgeColor = nextSession.type === 'match' ? '#ff6b6b' : 'var(--accent)';
+            
+            container.innerHTML = `
+                <div class="thisweek-card" style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                    <div class="event-header" style="text-align: center; margin-bottom: 30px; padding: 20px; background: var(--bg-section); border-radius: 12px; border: 1px solid var(--border-color);">
+                        <div class="event-type-badge" style="display: inline-block; padding: 6px 16px; background: ${eventBadgeColor}; color: var(--bg-primary); border-radius: 20px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px;">
+                            ${eventType}
+                        </div>
+                        <h2 style="margin: 10px 0; font-size: 28px; color: var(--text-primary);">${eventTitle}</h2>
+                        <div style="font-size: 18px; color: var(--text-secondary); margin: 12px 0;">
+                            📅 ${formatDate(sessionDate)}
+                        </div>
+                        <div style="font-size: 20px; color: var(--accent); margin: 8px 0; font-weight: 600;">
+                            📍 ${nextSession.location || 'The Aura'}
+                        </div>
+                        <div style="font-size: 20px; color: var(--accent); margin: 8px 0; font-weight: 600;">
+                            🕐 ${nextSession.time || '7:30 PM - 8:30 PM'}
+                        </div>
+                    </div>
+                    
+                    <div class="attendance-section" style="background: var(--bg-section); border-radius: 12px; padding: 20px; border: 1px solid var(--border-color);">
+                        <h3 style="margin: 0 0 15px 0; color: var(--text-primary); text-align: center;">Player Attendance</h3>
+                        <div class="attendance-summary" style="text-align: center; margin-bottom: 20px; font-size: 16px; color: var(--text-secondary);">
+                            <span style="font-size: 24px; font-weight: bold; color: var(--accent);">${attendance.length}</span> of ${activePlayers.length} players attending
+                        </div>
+                        <div class="player-list">
+                            ${activePlayers.map(player => {
+                                const isAttending = attendance.includes(player.player);
+                                return `
+                                    <div class="player-attendance-item" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; margin-bottom: 8px; background: var(--bg-card); border-radius: 8px; border: 1px solid ${isAttending ? 'var(--accent)' : 'var(--border-color)'}; transition: all 0.2s ease;">
+                                        <span style="font-size: 16px; color: var(--text-primary); font-weight: ${isAttending ? '600' : '400'};">${player.player}</span>
+                                        <label class="attendance-toggle" style="display: flex; align-items: center; cursor: pointer; user-select: none;">
+                                            <div class="toggle-switch" style="position: relative; width: 50px; height: 26px;">
+                                                <input type="checkbox" 
+                                                       ${isAttending ? 'checked' : ''}
+                                                       onchange="handleThisWeekAttendance('${nextSession.id}', '${player.player.replace(/'/g, "\\'")}', this.checked)"
+                                                       style="opacity: 0; width: 0; height: 0; position: absolute;">
+                                                <span style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: ${isAttending ? 'var(--accent)' : 'var(--border-color)'}; transition: 0.3s; border-radius: 26px;">
+                                                    <span style="position: absolute; content: ''; height: 20px; width: 20px; left: ${isAttending ? '27px' : '3px'}; bottom: 3px; background-color: white; transition: 0.3s; border-radius: 50%;"></span>
+                                                </span>
+                                            </div>
+                                        </label>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        window.handleThisWeekAttendance = function(sessionId, playerName, isChecked) {
+            const session = sessions.find(s => s.id == sessionId);
+            if (!session) return;
+            
+            if (!session.attendance) session.attendance = [];
+            
+            if (isChecked) {
+                if (!session.attendance.includes(playerName)) {
+                    session.attendance.push(playerName);
+                }
+            } else {
+                session.attendance = session.attendance.filter(name => name !== playerName);
+                // Also clear captain if they're not attending
+                if (session.captain === playerName) {
+                    session.captain = '';
+                }
+                // Clear match goals if they had any
+                if (session.matchGoals && session.matchGoals[playerName]) {
+                    delete session.matchGoals[playerName];
+                }
+            }
+            
+            saveMatchData(sessionId);
+            renderThisWeek();
+        };
+
         function renderCalendar() {
             const container = document.getElementById('calendar-container');
             const title = document.getElementById('calendarTitle');
@@ -5485,6 +5779,11 @@
                     // Update content
                     tabContents.forEach(content => content.classList.remove('active'));
                     document.getElementById(targetTab + '-tab').classList.add('active');
+                    
+                    // Render this week when this week tab is shown
+                    if (targetTab === 'thisweek') {
+                        renderThisWeek();
+                    }
                     
                     // Render calendar when calendar tab is shown
                     if (targetTab === 'calendar') {
@@ -5700,7 +5999,21 @@
             
             let html = '';
             
-            if (activeTab === 'schedule') {
+            if (activeTab === 'thisweek') {
+                menuTitle.textContent = 'This Week';
+                html = `
+                    <div class="menu-section">
+                        <p style="color: var(--text-secondary); font-size: 14px; margin: 0;">
+                            View and manage attendance for this week's upcoming event.
+                        </p>
+                    </div>
+                    <div class="menu-section">
+                        <button class="add-player-btn" onclick="switchToStats(); closeMenu();" title="View goal statistics">
+                            📊 View Stats
+                        </button>
+                    </div>
+                `;
+            } else if (activeTab === 'schedule') {
                 menuTitle.textContent = 'Schedule Options';
                 html = `
                     <div class="menu-section">
@@ -5861,6 +6174,9 @@
             setupTabs();
             renderPlayers();
             setupPlayersControls();
+            
+            // Render This Week on initial load (it's the default tab)
+            renderThisWeek();
             
             // Update menu when tabs change
             document.querySelectorAll('.tab-button').forEach(button => {
