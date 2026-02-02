@@ -134,7 +134,8 @@ async function saveSessionsList() {
                 type: s.type || 'training',
                 opponent: s.opponent || '',
                 matchType: s.matchType || 'friendly',
-                cupStage: s.cupStage || ''
+                cupStage: s.cupStage || '',
+                kickOffTime: s.kickOffTime || ''
             };
         });
         
@@ -185,6 +186,7 @@ async function saveData() {
                     teamScore: s.teamScore || '',
                     opponentScore: s.opponentScore || '',
                     result: s.result || '',
+                    kickOffTime: s.kickOffTime || '',
                     lastUpdated: new Date().toISOString()
                 };
             });

@@ -2606,6 +2606,44 @@
                 font-size: 20px;
             }
         }
+        /* Toast Message Styles */
+        #toast-container {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: center;
+            pointer-events: none; /* Allow clicks to pass through */
+        }
+
+        .toast-message {
+            background-color: var(--accent-primary);
+            color: var(--bg-dark);
+            padding: 12px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0, 212, 170, 0.3);
+            font-size: 14px;
+            font-weight: 600;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+            max-width: 90vw;
+            text-align: center;
+        }
+
+        .toast-message.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .toast-message.error {
+            background-color: #ef4444;
+            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+        }
     </style>
 </head>
 <body>

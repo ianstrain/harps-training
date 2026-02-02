@@ -138,7 +138,7 @@ function generateSessionCard(session) {
                             <input type="date" class="session-date-input" value="${session.date ? new Date(session.date).toISOString().split('T')[0] : ''}" data-session="${session.id}" data-field="date" />
                         </div>
                     ` : `
-                        <h2 class="session-date">${formatDate(session.date)}</h2>
+                        <h2 class="session-date">${formatDate(session.date)} <button class="copy-info-btn" onclick="event.stopPropagation(); copySessionInfoToClipboard(${session.id})" title="Copy session info to clipboard">📋</button></h2>
                     `}
                     <div class="session-meta">
                         ${editMode ? `

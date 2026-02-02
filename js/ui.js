@@ -500,3 +500,86 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     // If auth is initialized, the onAuthStateChanged listener will call updateUI()
 });
+
+// Helper to format date for clipboard
+function formatDateForClipboard(date) {
+    const d = new Date(date);
+    const day = d.getDate();
+    const month = d.getMonth() + 1; // Month is 0-indexed
+    const year = d.getFullYear();
+    const dayOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][d.getDay()];
+    return `${dayOfWeek} - ${day}/${month}/${year}`;
+}
+
+// Copy session info to clipboard
+window.copySessionInfoToClipboard = async function(sessionId) {
+    const session = sessions.find(s => s.id === parseInt(sessionId));
+    if (!session) {
+        console.error('Session not found for clipboard copy:', sessionId);
+        return;
+    }
+
+    let clipboardText = '';
+    const formattedDate = formatDateForClipboard(session.date);
+    const location = session.location || 'The Aura';
+    const time = session.time || '7:30 PM - 8:30 PM';
+    const kickOffTime = session.kickOffTime || '';
+
+    if (session.type === 'match') {
+        // Calculate match day number
+        const matchesUpToThis = sessions.filter(s => s.type === 'match' && !s.deleted && s.id <= session.id).length;
+        const opponent = session.opponent || 'Opponent';
+
+        clipboardText = `🏆 Matchday #${String(matchesUpToThis).padStart(2, '0')} - ${opponent}
+
+📅 ${formattedDate}
+⌚ Meet up ${time.split('-')[0].trim()} at ${location}, Kickoff ${kickOffTime || 'TBD'}
+🏟 ${location}
+👕 Shinguards, Black shorts and socks
+
+Set attendance for the week here: https://ianstrain.github.io/harps-training/`;
+    } else {
+        // Training session
+        clipboardText = `⚽ Training Session
+
+📅 ${formattedDate}
+⌚ ${time}
+🏟 ${location}
+
+Set attendance for the week here: https://ianstrain.github.io/harps-training/`;
+    }
+
+    try {
+        await navigator.clipboard.writeText(clipboardText);
+        showToast('Session information copied to clipboard!');
+    } catch (err) {
+        console.error('Failed to copy session information: ', err);
+        showToast('Failed to copy session information to clipboard.', true);
+    }
+};
+
+// Show a toast message
+function showToast(message, isError = false) {
+    let toastContainer = document.getElementById('toast-container');
+    if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.id = 'toast-container';
+        document.body.appendChild(toastContainer);
+    }
+
+    const toast = document.createElement('div');
+    toast.className = `toast-message ${isError ? 'error' : ''}`;
+    toast.textContent = message;
+
+    toastContainer.appendChild(toast);
+
+    // Force reflow to ensure CSS transition works
+    toast.offsetHeight; 
+
+    toast.classList.add('show');
+
+    setTimeout(() => {
+        toast.classList.remove('show');
+        toast.addEventListener('transitionend', () => toast.remove());
+    }, 3000);
+}

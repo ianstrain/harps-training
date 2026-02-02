@@ -22,7 +22,7 @@ function generateMatchCard(session) {
                             <input type="date" class="session-date-input" value="${session.date ? new Date(session.date).toISOString().split('T')[0] : ''}" data-session="${session.id}" data-field="date" onclick="event.stopPropagation()" />
                         </div>
                     ` : `
-                        <h2 class="session-date">${formatDate(session.date)}</h2>
+                        <h2 class="session-date">${formatDate(session.date)} <button class="copy-info-btn" onclick="event.stopPropagation(); copySessionInfoToClipboard(${session.id})" title="Copy session info to clipboard">📋</button></h2>
                     `}
                     ${session.cupStage && !editMode ? `<div class="cup-stage">${session.cupStage}</div>` : ''}
                 </div>
@@ -56,6 +56,10 @@ function generateMatchCard(session) {
                             <span class="meta-icon">🕢</span>
                             <input type="text" class="meta-input" value="${session.time || '7:30 PM - 8:30 PM'}" data-session="${session.id}" data-field="time" placeholder="Time" onclick="event.stopPropagation()" />
                         </div>
+                        <div class="meta-item meta-item-edit">
+                            <span class="meta-icon">⏱️</span>
+                            <input type="time" class="meta-input" value="${session.kickOffTime || ''}" data-session="${session.id}" data-field="kickOffTime" placeholder="Kick-off Time" onclick="event.stopPropagation()" />
+                        </div>
                     ` : `
                         <div class="meta-item">
                             <span class="meta-icon">📍</span>
@@ -65,6 +69,12 @@ function generateMatchCard(session) {
                             <span class="meta-icon">🕢</span>
                             <span>${session.time || '7:30 PM - 8:30 PM'}</span>
                         </div>
+                        ${session.kickOffTime ? `
+                        <div class="meta-item">
+                            <span class="meta-icon">⏱️</span>
+                            <span>${session.kickOffTime} Kick Off</span>
+                        </div>
+                        ` : ''}
                     `}
                 </div>
                 <div class="match-score-section" style="padding: 10px 20px; margin-top: 10px;">
@@ -474,8 +484,9 @@ window.saveMatchData = async function(sessionId) {
     
     // Integrate match goals with player goals
     const matchDate = session.date ? new Date(session.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
-    const matchGoals = session.matchGoals || {};
-    const attendingPlayers = session.attendance || [];
+        const matchGoals = session.matchGoals || {};
+        const attendingPlayers = session.attendance || [];
+        const kickOffTime = session.kickOffTime || '';
     
     // Set goals for each player's record (not add, to avoid duplicates)
     for (const [playerName, goalCount] of Object.entries(matchGoals)) {
