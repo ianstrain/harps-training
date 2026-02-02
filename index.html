@@ -10,6 +10,7 @@
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <style>
         :root {
             --bg-dark: #0a0f1a;
@@ -2608,7 +2609,7 @@
     </style>
 </head>
 <body>
-    <div class="container">
+    <div class="container" id="main-container">
         <header>
             <h1>BALLYRAINE HARPS SCHEDULE</h1>
         </header>
@@ -2669,6 +2670,17 @@
             <div id="stats-container">
             </div>
         </div>
+    </div> <!-- End main-container -->
+
+    <div id="login-page" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-dark); z-index: 2000; display: flex; flex-direction: column; justify-content: center; align-items: center; color: var(--text-primary); text-align: center;">
+        <div class="login-container" style="background: var(--bg-card); padding: 40px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.4); max-width: 400px; width: 90%;">
+            <h2 style="font-family: 'Bebas Neue', sans-serif; font-size: 3rem; letter-spacing: 3px; margin-bottom: 30px; background: linear-gradient(135deg, var(--text-primary) 0%, var(--accent-primary) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">Admin Login</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 25px;">Enter your credentials to manage the full schedule.</p>
+            <input type="email" id="login-email" placeholder="Email" style="width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-section); color: var(--text-primary); font-size: 16px;" />
+            <input type="password" id="login-password" placeholder="Password" style="width: 100%; padding: 12px; margin-bottom: 20px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-section); color: var(--text-primary); font-size: 16px;" />
+            <button id="login-button" onclick="loginUser()" style="width: 100%; padding: 14px; background: var(--accent-primary); color: var(--bg-dark); border: none; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; transition: background 0.2s ease;">Login</button>
+            <p id="login-error" style="color: #ef4444; margin-top: 15px; font-size: 14px; display: none;">Invalid email or password.</p>
+        </div>
     </div>
 
     <div class="save-indicator" id="saveIndicator">
@@ -2702,20 +2714,130 @@
         
         // Initialize Firebase (only if config is provided and Firebase is loaded)
         let database = null;
+        let auth = null;
         if (typeof firebase !== 'undefined' && firebaseConfig.apiKey !== "YOUR_API_KEY") {
             try {
             firebase.initializeApp(firebaseConfig);
             database = firebase.database();
+            auth = firebase.auth();
             console.log('Firebase initialized');
             } catch (e) {
                 console.error('Failed to initialize Firebase:', e);
                 console.log('Using localStorage only');
             }
+        }
+
+        // Login/Logout Functions
+        window.loginUser = async function() {
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            const errorDisplay = document.getElementById('login-error');
+            errorDisplay.style.display = 'none';
+
+            if (!auth) {
+                errorDisplay.textContent = 'Firebase Auth not initialized.';
+                errorDisplay.style.display = 'block';
+                console.error('Firebase Auth not initialized.');
+                return;
+            }
+
+            try {
+                await auth.signInWithEmailAndPassword(email, password);
+                console.log('User logged in!');
+            } catch (error) {
+                console.error('Login failed:', error.message);
+                errorDisplay.textContent = 'Invalid email or password.';
+                errorDisplay.style.display = 'block';
+            }
+        };
+
+        window.logoutUser = async function() {
+            if (!auth) {
+                console.error('Firebase Auth not initialized. Cannot log out.');
+                return;
+            }
+            try {
+                await auth.signOut();
+                console.log('User logged out!');
+            } catch (error) {
+                console.error('Logout failed:', error.message);
+            }
+        };
+
+        // Auth state listener
+        let currentUser = null;
+        let mainContainer = null;
+        let loginPage = null;
+        let tabsContainer = null;
+        let menuToggle = null;
+        let menuDrawer = null;
+        let menuOverlay = null;
+        let saveIndicator = null;
+
+        if (auth) {
+            auth.onAuthStateChanged(user => {
+                currentUser = user;
+                updateUI(); // Function to update UI based on login state
+            });
         } else {
-            if (typeof firebase === 'undefined') {
-                console.warn('Firebase scripts not loaded - check internet connection. Using localStorage only.');
-        } else {
-            console.log('Firebase not configured - using localStorage only');
+            // If Firebase Auth is not initialized, assume logged out and render minimal UI
+            currentUser = null;
+            updateUI();
+        }
+
+        // Function to update UI based on authentication state
+        async function updateUI() {
+            mainContainer = document.getElementById('main-container');
+            loginPage = document.getElementById('login-page');
+            tabsContainer = document.querySelector('.tabs');
+            menuToggle = document.getElementById('menuToggle');
+            menuDrawer = document.getElementById('menuDrawer');
+            menuOverlay = document.getElementById('menuOverlay');
+            saveIndicator = document.getElementById('saveIndicator');
+
+            if (currentUser) {
+                // User is logged in
+                console.log('User is logged in:', currentUser.email);
+                if (mainContainer) mainContainer.style.display = 'block';
+                if (loginPage) loginPage.style.display = 'none';
+                if (tabsContainer) tabsContainer.style.display = 'flex';
+                if (menuToggle) menuToggle.style.display = 'flex';
+                if (saveIndicator) saveIndicator.style.display = 'flex';
+
+                // Load all data and render everything
+                await loadPlayersFromFirebase();
+                await loadGoalsFromFirebase();
+                await loadSessionsFromFirebase();
+                await loadData();
+                switchToTab('schedule'); // Default to schedule tab after login
+                setupEditMode();
+                scrollToClosestSession();
+                setupTabs();
+                renderPlayers();
+                setupPlayersControls();
+                updateMenuContent(); // Populate menu with full options
+            } else {
+                // User is logged out
+                console.log('User is logged out.');
+                if (mainContainer) mainContainer.style.display = 'none';
+                if (loginPage) loginPage.style.display = 'flex';
+                if (tabsContainer) tabsContainer.style.display = 'none';
+                if (menuToggle) menuToggle.style.display = 'flex'; // Burger menu still visible for login button
+                if (saveIndicator) saveIndicator.style.display = 'none';
+
+                // Only show This Week content
+                document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+                document.getElementById('thisweek-tab').classList.add('active');
+                renderThisWeek();
+                
+                // Clear other content
+                document.getElementById('sessions').innerHTML = '';
+                document.getElementById('calendar-container').innerHTML = '';
+                document.getElementById('players-container').innerHTML = '';
+                document.getElementById('stats-container').innerHTML = '';
+                
+                // Update menu content for logged out state
+                updateMenuContent();
             }
         }
 
@@ -5765,7 +5887,6 @@
         function setupTabs() {
             const tabButtons = document.querySelectorAll('.tab-button');
             const tabContents = document.querySelectorAll('.tab-content');
-            const tabs = document.querySelector('.tabs');
 
             tabButtons.forEach(button => {
                 button.addEventListener('click', () => {
@@ -5954,23 +6075,36 @@
             } else if (tabName === 'thisweek') {
                 renderThisWeek();
             }
-            updateMenuContent(); // Refresh menu options based on new active tab
         };
 
         function updateMenuContent() {
             const menuContent = document.getElementById('menuContent');
             const menuTitle = document.getElementById('menuTitle');
             
-            // Determine which tab content is active
-            let activeTab = 'schedule';
-            const activeContent = document.querySelector('.tab-content.active');
-            if (activeContent) {
-                activeTab = activeContent.id.replace('-tab', '');
+            // Determine which tab content is active, default to 'thisweek' for logged out
+            let activeTab = 'thisweek'; 
+            if (currentUser) {
+                const activeContent = document.querySelector('.tab-content.active');
+                if (activeContent) {
+                    activeTab = activeContent.id.replace('-tab', '');
+                }
             }
             
             let html = '';
             
-            if (activeTab === 'schedule') {
+            if (!currentUser) {
+                menuTitle.textContent = 'Login';
+                html = `
+                    <div class="menu-section">
+                        <p style="color: var(--text-secondary); font-size: 14px; margin: 0 0 15px 0;">
+                            You must be logged in to access full features.
+                        </p>
+                        <button class="login-menu-btn" onclick="document.getElementById('login-page').style.display='flex'; closeMenu();" style="width: 100%; padding: 12px; background: var(--accent-primary); color: var(--bg-dark); border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background 0.2s ease;">
+                            🔑 Login
+                        </button>
+                    </div>
+                `;
+            } else if (activeTab === 'schedule') {
                 menuTitle.textContent = 'Schedule Options';
                 html = `
                     <div class="menu-section">
@@ -6039,6 +6173,11 @@
                             📊 View Stats
                         </button>
                     </div>
+                    <div class="menu-section">
+                        <button class="logout-btn" onclick="logoutUser(); closeMenu();" title="Log out">
+                            🚪 Logout
+                        </button>
+                    </div>
                 `;
             } else if (activeTab === 'calendar') {
                 menuTitle.textContent = 'Calendar Options';
@@ -6051,6 +6190,11 @@
                     <div class="menu-section">
                         <button class="add-player-btn" onclick="switchToTab('stats'); closeMenu();" title="View goal statistics">
                             📊 View Stats
+                        </button>
+                    </div>
+                    <div class="menu-section">
+                        <button class="logout-btn" onclick="logoutUser(); closeMenu();" title="Log out">
+                            🚪 Logout
                         </button>
                     </div>
                 `;
@@ -6088,6 +6232,11 @@
                             📊 View Stats
                         </button>
                     </div>
+                    <div class="menu-section">
+                        <button class="logout-btn" onclick="logoutUser(); closeMenu();" title="Log out">
+                            🚪 Logout
+                        </button>
+                    </div>
                 `;
             } else if (activeTab === 'stats') {
                 menuTitle.textContent = 'Statistics';
@@ -6097,6 +6246,35 @@
                             Viewing statistics for all players including goals and attendance.
                         </p>
                     </div>
+                    <div class="menu-section">
+                        <button class="add-player-btn" onclick="switchToTab('thisweek'); closeMenu();" title="View this week's event">
+                            📅 This Week
+                        </button>
+                    </div>
+                    <div class="menu-section">
+                        <button class="logout-btn" onclick="logoutUser(); closeMenu();" title="Log out">
+                            🚪 Logout
+                        </button>
+                    </div>
+                `;
+            } else if (activeTab === 'thisweek') {
+                menuTitle.textContent = 'This Week';
+                html = `
+                    <div class="menu-section">
+                        <p style="color: var(--text-secondary); font-size: 14px; margin: 0;">
+                            View and manage attendance for this week's upcoming event.
+                        </p>
+                    </div>
+                    <div class="menu-section">
+                        <button class="add-player-btn" onclick="switchToTab('stats'); closeMenu();" title="View goal statistics">
+                            📊 View Stats
+                        </button>
+                    </div>
+                    <div class="menu-section">
+                        <button class="logout-btn" onclick="logoutUser(); closeMenu();" title="Log out">
+                            🚪 Logout
+                        </button>
+                    </div>
                 `;
             } else {
                 menuTitle.textContent = 'Options';
@@ -6105,6 +6283,11 @@
                         <p style="color: var(--text-secondary); font-size: 14px; margin: 0;">
                             No options available.
                         </p>
+                    </div>
+                    <div class="menu-section">
+                        <button class="logout-btn" onclick="logoutUser(); closeMenu();" title="Log out">
+                            🚪 Logout
+                        </button>
                     </div>
                 `;
             }
@@ -6133,26 +6316,22 @@
         }
 
         document.addEventListener('DOMContentLoaded', async () => {
-            // Load players first so they're available when rendering match cards
-            await loadPlayersFromFirebase();
-            await loadGoalsFromFirebase();
-            
-            // Load sessions structure first, then session content
-            await loadSessionsFromFirebase();
-            await loadData();
-            renderSessions();
-            setupEditMode();
-            scrollToClosestSession();
-            setupTabs();
-            renderPlayers();
-            setupPlayersControls();
-            
-            // Update menu when tabs change
+            // Only setup the tab button listeners, which will then call switchToTab, and updateUI
             document.querySelectorAll('.tab-button').forEach(button => {
                 button.addEventListener('click', () => {
-                    setTimeout(updateMenuContent, 100);
+                    const targetTab = button.getAttribute('data-tab');
+                    switchToTab(targetTab);
                 });
             });
+            // Initial UI update based on auth state
+            // This will trigger initial data loading and rendering as well
+            if (auth) {
+                // If auth is initialized, the onAuthStateChanged listener will call updateUI()
+                // So, no need to call it here directly
+            } else {
+                // If auth is not initialized (e.g., Firebase config missing), call updateUI directly
+                updateUI();
+            }
         });
     </script>
 </body>
