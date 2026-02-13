@@ -858,3 +858,45 @@ function generateCaptainHistoryChart() {
         </div>
     `;
 }
+
+// Get player attendance stats
+window.getPlayerAttendanceStats = function(playerName) {
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+
+    const allPastSessions = sessions.filter(s => {
+        if (s.deleted) return false;
+        const sessionDate = new Date(s.date);
+        sessionDate.setHours(0, 0, 0, 0); // Normalize to start of day
+        return sessionDate <= now;
+    });
+
+    const pastMatchSessions = allPastSessions.filter(s => s.type === 'match');
+    const pastTrainingSessions = allPastSessions.filter(s => s.type === 'training');
+
+    let matchesAttended = 0;
+    pastMatchSessions.forEach(match => {
+        if (match.attendance && match.attendance.includes(playerName)) {
+            matchesAttended++;
+        }
+    });
+
+    let trainingsAttended = 0;
+    pastTrainingSessions.forEach(session => {
+        if (session.attendance && session.attendance.includes(playerName)) {
+            trainingsAttended++;
+        }
+    });
+
+    const matchAttendancePercent = pastMatchSessions.length > 0 ? Math.round((matchesAttended / pastMatchSessions.length) * 100) : 0;
+    const trainingAttendancePercent = pastTrainingSessions.length > 0 ? Math.round((trainingsAttended / pastTrainingSessions.length) * 100) : 0;
+
+    return {
+        matchesAttended,
+        matchAttendancePercent,
+        trainingsAttended,
+        trainingAttendancePercent,
+        totalMatches: pastMatchSessions.length,
+        totalTrainings: pastTrainingSessions.length
+    };
+};

@@ -387,6 +387,9 @@ window.updateMenuContent = function() {
                 <button class="add-player-btn" onclick="handleAddPlayer(); closeMenu();" title="Add a new player">
                     ➕ Add Player
                 </button>
+                <button class="add-player-btn" onclick="exportPlayersToSpreadsheet(); closeMenu();" title="Export player data to a spreadsheet">
+                    ⬇️ Export to Spreadsheet
+                </button>
             </div>
             <div class="menu-section">
                 <button class="add-player-btn" onclick="switchToTab('thisweek'); closeMenu();" title="View this week's event">

@@ -698,3 +698,61 @@ window.handleCancelNewPlayer = async function(tempId) {
     // Re-render
     renderPlayers();
 };
+
+// Export players to spreadsheet
+window.exportPlayersToSpreadsheet = function() {
+    if (!players || players.length === 0) {
+        showToast('No players to export.', true);
+        return;
+    }
+
+    const headers = ['Player Name', 'Jersey #', 'Parent', 'Year', 'Returning', 'Total Goals', 'Goals Per Game', 'Notes', 'Matches Attended', 'Match Attendance %', 'Trainings Attended', 'Training Attendance %'];
+    const rows = [];
+
+    players.forEach(p => {
+        // Exclude temporary new players and deleted players from the export
+        if (p._isNew || p.deleted) {
+            return;
+        }
+
+        const playerName = p.player || '';
+        const goals = getPlayerGoals(playerName);
+        const attendanceStats = window.getPlayerAttendanceStats(playerName);
+
+        const row = [
+            playerName,
+            p.jersey || '',
+            p.parent || '',
+            p.year || '',
+            p.returning || '',
+            getTotalGoals(goals),
+            getGoalsPerGame(goals),
+            getPlayerNotes(playerName),
+            attendanceStats.matchesAttended,
+            `${attendanceStats.matchAttendancePercent}%`,
+            attendanceStats.trainingsAttended,
+            `${attendanceStats.trainingAttendancePercent}%`
+        ];
+        rows.push(row);
+    });
+
+    // Convert to CSV string
+    const csvContent = [headers, ...rows].map(e => e.map(cell => {
+        // Enclose in double quotes if the cell contains a comma or double quote
+        const stringCell = String(cell);
+        if (stringCell.includes(',') || stringCell.includes('"') || stringCell.includes('\n')) {
+            return `"${stringCell.replace(/"/g, '""')}"`;
+        }
+        return stringCell;
+    }).join(',')).join('\n');
+
+    // Create a Blob and download the file
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'player_information.csv';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast('Player data exported successfully!');
+};
