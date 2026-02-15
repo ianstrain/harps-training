@@ -4,7 +4,7 @@
 
 // Weather API configuration
 // Note: User should add their own API key from https://openweathermap.org/api
-const WEATHER_API_KEY = 'YOUR_API_KEY_HERE'; // Replace with actual API key
+const WEATHER_API_KEY = '324b9efe75ea65abff586cedbc7f9248'; // Replace with actual API key
 const WEATHER_CACHE_DURATION = 3600000; // 1 hour in milliseconds
 
 // Get weather data for a session
