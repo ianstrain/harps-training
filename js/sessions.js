@@ -280,6 +280,11 @@ window.generateCountdownHtml = function(sessionDate) {
 window.renderSessions = async function() {
     const sessionsContainer = document.getElementById('sessions');
     
+    // Update quick stats widget if it exists
+    if (typeof renderQuickStats === 'function' && document.getElementById('quick-stats-widget')) {
+        renderQuickStats();
+    }
+    
     // Find the next upcoming session
     const nextSessionId = findNextSessionId();
     

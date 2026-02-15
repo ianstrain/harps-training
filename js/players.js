@@ -294,7 +294,7 @@ window.renderPlayers = function() {
                     ${isDeleted ? '<div class="deleted-indicator">Deleted</div>' : ''}
                     <div class="player-card-front">
                         <div class="player-name">
-                            <span class="clickable-player-name" onclick="event.stopPropagation(); navigateToPlayerProfile('${playerName.replace(/'/g, "\\'")}')" title="View full profile">${playerName}</span>
+                            ${editMode ? `<input type="text" class="player-name-input-edit" value="${playerName}" data-player="${playerName}" data-field="player" placeholder="Player Name" onclick="event.stopPropagation()" style="font-size: 18px; font-weight: 700; padding: 6px 10px; background: var(--bg-section); border: 2px solid var(--border-color); border-radius: 6px; color: var(--text-primary); font-family: 'Inter', sans-serif;">` : `<span class="clickable-player-name" onclick="event.stopPropagation(); navigateToPlayerProfile('${playerName.replace(/'/g, "\\'")}')" title="View full profile">${playerName}</span>`}
                             <div class="player-name-actions">
                             ${editMode ? `<input type="text" class="player-jersey-input-edit" value="${p.jersey || ''}" data-player="${playerName}" data-field="jersey" placeholder="Jersey #" onclick="event.stopPropagation()">` : (p.jersey ? `<span class="jersey-number"><span class="jersey-icon">👕</span>${p.jersey}</span>` : '')}
                                 <button class="delete-player-btn" onclick="handleDeletePlayer('${playerName}')" title="Delete player">🗑️</button>
@@ -312,10 +312,17 @@ window.renderPlayers = function() {
                                     <span class="player-detail-value">${p.parent}</span>
                                 </div>
                             ` : '')}
-                            <div class="player-detail-item">
-                                <span class="player-detail-label">Year</span>
-                                <span class="player-detail-value">${p.year || ''}</span>
-                            </div>
+                            ${editMode ? `
+                                <div class="player-detail-item">
+                                    <span class="player-detail-label">Year</span>
+                                    <input type="text" class="player-year-input-edit" value="${p.year || ''}" data-player="${playerName}" data-field="year" placeholder="Year" onclick="event.stopPropagation()">
+                                </div>
+                            ` : `
+                                <div class="player-detail-item">
+                                    <span class="player-detail-label">Year</span>
+                                    <span class="player-detail-value">${p.year || ''}</span>
+                                </div>
+                            `}
                             ${Object.keys(goals).length > 0 ? `
                                 <div class="player-detail-item" style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-color);">
                                     <span class="player-detail-label">Total Goals</span>
@@ -347,6 +354,7 @@ window.renderPlayers = function() {
                                 </div>
                                 ${renderGoalsChart(goals)}
                             ` : ''}
+                            ${typeof window.renderPlayerBadges === 'function' ? window.renderPlayerBadges(playerName) : ''}
                         </div>
                     </div>
                     <div class="player-card-back">
@@ -495,14 +503,71 @@ window.renderPlayers = function() {
     });
 
     // Add event listeners for editing player info fields
-    container.querySelectorAll('.player-name-input, .player-jersey-input-edit, .player-parent-input-edit').forEach(input => {
-        input.addEventListener('change', e => {
-            const playerName = e.target.dataset.player;
+    container.querySelectorAll('.player-name-input, .player-name-input-edit, .player-jersey-input-edit, .player-parent-input-edit, .player-year-input-edit').forEach(input => {
+        input.addEventListener('change', async e => {
+            const oldPlayerName = e.target.dataset.player;
             const field = e.target.dataset.field;
-            const player = players.find(p => p.player === playerName);
-            if (player && field) {
-                player[field] = e.target.value.trim();
-                savePlayersList(); // Save changes immediately
+            const newValue = e.target.value.trim();
+            const player = players.find(p => p.player === oldPlayerName);
+            
+            if (!player || !field) return;
+            
+            // Special handling for player name changes
+            if (field === 'player' && newValue !== oldPlayerName) {
+                // Check if new name already exists
+                const existingPlayer = players.find(p => p.player === newValue && p.player !== oldPlayerName);
+                if (existingPlayer) {
+                    showToast('A player with this name already exists.', true);
+                    e.target.value = oldPlayerName; // Revert the input
+                    return;
+                }
+                
+                if (!newValue) {
+                    showToast('Player name cannot be empty.', true);
+                    e.target.value = oldPlayerName; // Revert the input
+                    return;
+                }
+                
+                // Update player name
+                player[field] = newValue;
+                
+                // Update all references to this player in sessions attendance and captains
+                sessions.forEach(session => {
+                    if (session.attendance && session.attendance.includes(oldPlayerName)) {
+                        const index = session.attendance.indexOf(oldPlayerName);
+                        session.attendance[index] = newValue;
+                    }
+                    if (session.captain === oldPlayerName) {
+                        session.captain = newValue;
+                    }
+                });
+                
+                // Move goals data to new player name
+                const oldGoalsKey = `goals_${oldPlayerName}`;
+                const oldNotesKey = `notes_${oldPlayerName}`;
+                const goals = localStorage.getItem(oldGoalsKey);
+                const notes = localStorage.getItem(oldNotesKey);
+                
+                if (goals) {
+                    localStorage.setItem(`goals_${newValue}`, goals);
+                    localStorage.removeItem(oldGoalsKey);
+                }
+                if (notes) {
+                    localStorage.setItem(`notes_${newValue}`, notes);
+                    localStorage.removeItem(oldNotesKey);
+                }
+                
+                // Save all changes
+                await savePlayersList();
+                await saveSessionsList();
+                
+                // Re-render to update UI
+                renderPlayers();
+                showToast(`Player renamed from "${oldPlayerName}" to "${newValue}"`);
+            } else {
+                // Normal field update (jersey, parent, year)
+                player[field] = newValue;
+                await savePlayersList(); // Save changes immediately
             }
         });
     });

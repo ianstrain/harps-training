@@ -642,6 +642,9 @@ window.renderPlayerProfile = function() {
     const goals = getPlayerGoals(playerName);
     const totalGoals = getTotalGoals(goals);
     
+    // Get clean sheets
+    const cleanSheetData = window.getPlayerCleanSheets(playerName);
+    
     // Get attendance data
     const now = new Date();
     now.setHours(0, 0, 0, 0);
@@ -735,6 +738,10 @@ window.renderPlayerProfile = function() {
                 <div class="player-profile-stat-label">Times Captain</div>
             </div>
             <div class="player-profile-stat-card">
+                <div class="player-profile-stat-value">${cleanSheetData.cleanSheets}</div>
+                <div class="player-profile-stat-label">Clean Sheets</div>
+            </div>
+            <div class="player-profile-stat-card">
                 <div class="player-profile-stat-value">${matchAttendancePercent}%</div>
                 <div class="player-profile-stat-label">Match Attendance</div>
             </div>
@@ -743,6 +750,15 @@ window.renderPlayerProfile = function() {
                 <div class="player-profile-stat-label">Training Attendance</div>
             </div>
         </div>
+        
+        ${typeof window.renderPlayerBadges === 'function' ? `
+            <div class="player-profile-section">
+                <div class="player-profile-section-title">🏅 Achievements</div>
+                <div class="player-profile-section-content">
+                    ${window.renderPlayerBadges(playerName) || '<div class="player-profile-no-data">No badges earned yet. Keep attending training!</div>'}
+                </div>
+            </div>
+        ` : ''}
         
         ${player.parent ? `
             <div class="player-profile-section">

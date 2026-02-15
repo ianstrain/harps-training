@@ -80,6 +80,7 @@ window.loadData = async function() {
                         s.teamScore = sessionData.teamScore || '';
                         s.opponentScore = sessionData.opponentScore || '';
                         s.result = sessionData.result || '';
+                        s.cleanSheet = sessionData.cleanSheet || false;
                     }
                 });
                 console.log('Session data loaded from Firebase');
@@ -106,6 +107,7 @@ window.loadData = async function() {
             s.teamScore = data[s.id + '_teamScore'] || '';
             s.opponentScore = data[s.id + '_opponentScore'] || '';
             s.result = data[s.id + '_result'] || '';
+            s.cleanSheet = data[s.id + '_cleanSheet'] === 'true' || data[s.id + '_cleanSheet'] === true;
         });
         renderSessions();
     }
@@ -161,6 +163,7 @@ window.saveData = async function() {
         data[s.id + '_teamScore'] = s.teamScore || '';
         data[s.id + '_opponentScore'] = s.opponentScore || '';
         data[s.id + '_result'] = s.result || '';
+        data[s.id + '_cleanSheet'] = s.cleanSheet || false;
     });
     
     // Save to localStorage
@@ -186,6 +189,7 @@ window.saveData = async function() {
                     teamScore: s.teamScore || '',
                     opponentScore: s.opponentScore || '',
                     result: s.result || '',
+                    cleanSheet: s.cleanSheet || false,
                     kickOffTime: s.kickOffTime || '',
                     lastUpdated: new Date().toISOString()
                 };

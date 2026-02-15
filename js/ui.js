@@ -100,12 +100,19 @@ window.setupEditMode = function() {
         
         editMode = toggle.checked;
         
-        // Re-render sessions when toggling edit mode so cancelled sessions show full card in edit mode
-        renderSessions();
+        // Determine which tab is active
+        const activeContent = document.querySelector('.tab-content.active');
+        const activeTab = activeContent ? activeContent.id.replace('-tab', '') : 'schedule';
         
-        // Setup cancel checkbox handlers when entering edit mode
-        if (editMode) {
-            setupCancelControls();
+        // Re-render based on active tab
+        if (activeTab === 'schedule') {
+            renderSessions();
+            // Setup cancel checkbox handlers when entering edit mode
+            if (editMode) {
+                setupCancelControls();
+            }
+        } else if (activeTab === 'players') {
+            renderPlayers();
         }
     });
 }
@@ -225,6 +232,7 @@ window.switchToTab = function(tabName) {
 
     // Render specific content
     if (tabName === 'schedule') {
+        renderQuickStats();
         renderSessions();
         scrollToClosestSession();
     } else if (tabName === 'calendar') {
@@ -328,6 +336,9 @@ window.updateMenuContent = function() {
                 <button class="add-session-btn-bottom" onclick="handleAddSession(); closeMenu();" title="Add a new session">
                     ➕ New Session
                 </button>
+                <button class="add-session-btn-bottom" onclick="showBulkCreateDialog(); closeMenu();" title="Create multiple sessions at once" style="background: rgba(14, 165, 233, 0.1); border-color: var(--accent-secondary); color: var(--accent-secondary);">
+                    📅 Bulk Create Sessions
+                </button>
             </div>
             <div class="menu-section">
                 <button class="add-player-btn" onclick="switchToTab('thisweek'); closeMenu();" title="View this week's event">
@@ -367,6 +378,18 @@ window.updateMenuContent = function() {
     } else if (activeTab === 'players') {
         menuTitle.textContent = 'Player Options';
         html = `
+            <div class="menu-section">
+                <div class="menu-section-title">Edit Mode</div>
+                <div class="view-toggles">
+                    <div class="edit-toggle">
+                        <label for="editMode">Edit Mode</label>
+                        <div class="toggle-switch">
+                            <input type="checkbox" id="editMode">
+                            <span class="toggle-slider"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
             <div class="menu-section">
                 <div class="menu-section-title">View Options</div>
                 <div class="view-toggles">
@@ -478,8 +501,11 @@ window.updateMenuContent = function() {
         setupEditMode();
         setupFilterToggles();
     } else if (activeTab === 'players') {
+        const editModeToggle = document.getElementById('editMode');
         const showDeletedToggle = document.getElementById('showDeletedPlayers');
+        if (editModeToggle) editModeToggle.checked = editMode;
         if (showDeletedToggle) showDeletedToggle.checked = showDeletedPlayers;
+        setupEditMode();
         setupPlayersControls();
     }
 }

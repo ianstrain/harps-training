@@ -637,6 +637,36 @@
             border-color: var(--accent-primary);
         }
 
+        /* Edit mode input fields */
+        .player-name-input-edit,
+        .player-jersey-input-edit,
+        .player-parent-input-edit,
+        .player-year-input-edit {
+            padding: 6px 10px;
+            background: var(--bg-section);
+            border: 2px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+
+        .player-name-input-edit:focus,
+        .player-jersey-input-edit:focus,
+        .player-parent-input-edit:focus,
+        .player-year-input-edit:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 2px rgba(0, 212, 170, 0.1);
+        }
+
+        .player-jersey-input-edit {
+            width: auto;
+            min-width: 80px;
+        }
+
         .new-player-actions {
             display: flex;
             gap: 12px;
@@ -3138,6 +3168,92 @@
         .match-card .countdown-value {
             color: var(--accent-secondary);
         }
+
+        /* Quick Stats Widget */
+        .quick-stats-widget {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+            padding: 0;
+        }
+
+        .quick-stat-card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            padding: 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .quick-stat-card:hover {
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 20px rgba(0, 212, 170, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .quick-stat-label {
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .quick-stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+            line-height: 1.2;
+        }
+
+        .quick-stat-sublabel {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .record-wins {
+            color: var(--success);
+        }
+
+        .record-draws {
+            color: var(--accent-warn);
+        }
+
+        .record-losses {
+            color: #ef4444;
+        }
+
+        .countdown-days {
+            color: var(--accent-primary);
+        }
+
+        .next-session-card {
+            border-left: 4px solid var(--accent-primary);
+        }
+
+        .top-scorer-card {
+            border-left: 4px solid var(--accent-warm);
+        }
+
+        .record-card {
+            border-left: 4px solid var(--accent-secondary);
+        }
+
+        @media (max-width: 768px) {
+            .quick-stats-widget {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+
+            .quick-stat-value {
+                font-size: 24px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -3174,6 +3290,7 @@
         </div>
 
         <div class="tab-content active" id="schedule-tab">
+            <div id="quick-stats-widget"></div>
             <main id="sessions"></main>
 
         </div>
@@ -3233,6 +3350,11 @@
     <script src="js/matches.js"></script>
     <script src="js/sessions.js"></script>
     <script src="js/stats.js"></script>
+    <script src="js/badges.js"></script>
+    <script src="js/weather.js"></script>
+    <script src="js/scheduling.js"></script>
+    <script src="js/lineup.js"></script>
+    <script src="js/dashboard.js"></script>
     <script src="js/calendar.js"></script>
     <script src="js/ui.js"></script>
 </body>

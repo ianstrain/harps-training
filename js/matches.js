@@ -120,6 +120,12 @@ window.generateMatchCard = function(session) {
                             ` : ''}
                         </div>
                     ` : ''}
+                    ${typeof window.renderLineupIndicator === 'function' ? window.renderLineupIndicator(session) : ''}
+                    ${!session.cancelled && !editMode ? `
+                        <button onclick="event.stopPropagation(); showLineupBuilder(${session.id})" style="width: 100%; margin-top: 12px; padding: 10px; background: rgba(0, 212, 170, 0.1); color: var(--accent-primary); border: 2px solid var(--accent-primary); border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.3s ease;">
+                            ⚽ Set Lineup
+                        </button>
+                    ` : ''}
                 </div>
                 ${session.cancelled && !editMode ? `
                     <div style="padding: 12px 20px; background: rgba(239, 68, 68, 0.1); border-top: 1px solid var(--border-color); display: flex; align-items: center; gap: 10px; margin-top: 16px;">
@@ -430,11 +436,41 @@ window.updateMatchScore = function(sessionId, teamScore, opponentScore) {
         } else {
             session.result = 'draw';
         }
+        
+        // Track clean sheet (opponent scored 0)
+        session.cleanSheet = (opponent === 0);
     } else {
         session.result = '';
+        session.cleanSheet = false;
     }
     
     saveData();
+};
+
+// Get clean sheets for a player (they must have attended)
+window.getPlayerCleanSheets = function(playerName) {
+    let cleanSheetCount = 0;
+    let totalMatches = 0;
+    
+    sessions.forEach(session => {
+        if (session.type === 'match' && !session.deleted && session.attendance) {
+            // Only count if player attended and score was recorded
+            if (session.attendance.includes(playerName) && 
+                session.teamScore !== undefined && session.teamScore !== '' &&
+                session.opponentScore !== undefined && session.opponentScore !== '') {
+                totalMatches++;
+                if (session.cleanSheet || parseInt(session.opponentScore) === 0) {
+                    cleanSheetCount++;
+                }
+            }
+        }
+    });
+    
+    return {
+        cleanSheets: cleanSheetCount,
+        totalMatches: totalMatches,
+        percentage: totalMatches > 0 ? Math.round((cleanSheetCount / totalMatches) * 100) : 0
+    };
 };
 
 // Update goal scorers display based on attendance
