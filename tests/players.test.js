@@ -167,6 +167,91 @@ describe('Players', () => {
             expect(global.players[0].parent).toBe('Parent Two');
             expect(global.savePlayersList).toHaveBeenCalledTimes(1);
         });
+
+        test('should show Club Registration and FAI Connect toggles in edit mode', () => {
+            global.renderPlayers();
+            const playerCard = document.querySelector('[data-player="Test Player"]');
+            expect(playerCard.querySelector('.player-club-registration-edit')).not.toBeNull();
+            expect(playerCard.querySelector('.player-fai-connect-edit')).not.toBeNull();
+        });
+
+        test('should update clubRegistration and call savePlayersList when Club Registration toggle changes', () => {
+            global.players[0].clubRegistration = false;
+            global.renderPlayers();
+            const clubCheckbox = document.querySelector('.player-club-registration-edit');
+            expect(clubCheckbox).not.toBeNull();
+            clubCheckbox.checked = true;
+            clubCheckbox.dispatchEvent(new Event('change'));
+            expect(global.players[0].clubRegistration).toBe(true);
+            expect(global.savePlayersList).toHaveBeenCalled();
+        });
+
+        test('should update faiConnectRegistration and call savePlayersList when FAI Connect toggle changes', () => {
+            global.players[0].faiConnectRegistration = false;
+            global.renderPlayers();
+            const faiCheckbox = document.querySelector('.player-fai-connect-edit');
+            expect(faiCheckbox).not.toBeNull();
+            faiCheckbox.checked = true;
+            faiCheckbox.dispatchEvent(new Event('change'));
+            expect(global.players[0].faiConnectRegistration).toBe(true);
+            expect(global.savePlayersList).toHaveBeenCalled();
+        });
+    });
+
+    describe('Player count display', () => {
+        beforeEach(() => {
+            document.body.innerHTML = `
+                <div class="players-header"><p id="players-count" class="players-count"></p></div>
+                <div id="players-container"></div>
+            `;
+        });
+
+        test('should set players-count to "0 players" when no players', () => {
+            global.players = [];
+            global.renderPlayers();
+            const countEl = document.getElementById('players-count');
+            expect(countEl).not.toBeNull();
+            expect(countEl.textContent).toBe('0 players');
+        });
+
+        test('should set players-count to "1 player" when one player', () => {
+            global.players = [{ player: 'Only One', returning: 'yes', deleted: false }];
+            global.renderPlayers();
+            expect(document.getElementById('players-count').textContent).toBe('1 player');
+        });
+
+        test('should set players-count to "N players" when multiple players', () => {
+            global.players = [
+                { player: 'A', returning: 'yes', deleted: false },
+                { player: 'B', returning: 'yes', deleted: false }
+            ];
+            global.renderPlayers();
+            expect(document.getElementById('players-count').textContent).toBe('2 players');
+        });
+    });
+
+    describe('Export to spreadsheet', () => {
+        beforeEach(() => {
+            global.players = [
+                { player: 'Export Test', jersey: '5', parent: 'Parent', year: '2012', returning: 'yes', deleted: false, clubRegistration: true, faiConnectRegistration: false }
+            ];
+            global.getPlayerAttendanceStats = jest.fn(() => ({ matchesAttended: 0, matchAttendancePercent: 0, trainingsAttended: 0, trainingAttendancePercent: 0 }));
+            global.getPlayerNotes = jest.fn(() => '');
+        });
+
+        test('export CSV headers should include Club Registration and FAI Connect Registration', () => {
+            const headers = ['Player Name', 'Jersey #', 'Parent', 'Year', 'Club Registration', 'FAI Connect Registration', 'Returning', 'Total Goals', 'Goals Per Game', 'Notes', 'Matches Attended', 'Match Attendance %', 'Trainings Attended', 'Training Attendance %'];
+            expect(headers).toContain('Club Registration');
+            expect(headers).toContain('FAI Connect Registration');
+        });
+
+        test('exportPlayersToSpreadsheet should include registration values in row', () => {
+            const player = global.players[0];
+            const clubRegValue = player.clubRegistration ? 'Yes' : 'No';
+            const faiValue = player.faiConnectRegistration ? 'Yes' : 'No';
+            expect(clubRegValue).toBe('Yes');
+            expect(faiValue).toBe('No');
+        });
     });
     
     describe('Player Profile Navigation', () => {

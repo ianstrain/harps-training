@@ -312,7 +312,9 @@ window.savePlayersList = async function() {
                 parent: p.parent || '',
                 year: p.year || '',
                 returning: p.returning || '',
-                deleted: p.deleted || false
+                deleted: p.deleted || false,
+                clubRegistration: p.clubRegistration === true,
+                faiConnectRegistration: p.faiConnectRegistration === true
             };
         });
         

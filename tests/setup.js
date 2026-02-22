@@ -59,6 +59,10 @@ global.goalsSortBy = 'goals-desc';
 global.matchAttendanceSortBy = 'attended-desc';
 global.trainingAttendanceSortBy = 'attended-desc';
 
+// Calendar state (used by calendar.js)
+global.currentCalendarMonth = new Date().getMonth();
+global.currentCalendarYear = new Date().getFullYear();
+
 // Mock only the data-saving functions and functions that interact with external resources
 // Let render functions and navigation functions use their real implementations from loaded scripts
 // so that tests can inspect rendered HTML. Tests that need to verify calls to render functions
@@ -80,6 +84,7 @@ document.body.innerHTML = `
     <div id="saveIndicator"></div>
     <div id="sessions"></div>
     <div id="calendar-container"></div>
+    <div class="players-header"><h2>PLAYER INFORMATION</h2><p id="players-count" class="players-count"></p></div>
     <div id="players-container"></div>
     <div id="stats-container"></div>
     <div id="thisweek-tab" class="tab-content"></div>
@@ -114,4 +119,8 @@ beforeEach(() => {
     global.goalsSortBy = 'goals-desc';
     global.matchAttendanceSortBy = 'attended-desc';
     global.trainingAttendanceSortBy = 'attended-desc';
+
+    // Reset calendar state
+    global.currentCalendarMonth = new Date().getMonth();
+    global.currentCalendarYear = new Date().getFullYear();
 });

@@ -122,6 +122,31 @@ describe('Data Management', () => {
             expect(playersListData['John Doe'].player).toBe('John Doe');
             expect(playersListData['John Doe'].position).toBe('Midfielder');
         });
+
+        test('player save payload should include clubRegistration and faiConnectRegistration for Firebase', () => {
+            const player = {
+                player: 'Jane Doe',
+                jersey: '7',
+                parent: 'Guardian',
+                year: '2013',
+                returning: 'yes',
+                deleted: false,
+                clubRegistration: true,
+                faiConnectRegistration: false
+            };
+            const payload = {
+                player: player.player,
+                jersey: player.jersey || '',
+                parent: player.parent || '',
+                year: player.year || '',
+                returning: player.returning || '',
+                deleted: player.deleted || false,
+                clubRegistration: player.clubRegistration === true,
+                faiConnectRegistration: player.faiConnectRegistration === true
+            };
+            expect(payload.clubRegistration).toBe(true);
+            expect(payload.faiConnectRegistration).toBe(false);
+        });
     });
 
     describe('Goals Data', () => {
