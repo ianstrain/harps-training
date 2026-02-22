@@ -760,20 +760,30 @@ window.renderPlayerProfile = function() {
             </div>
         ` : ''}
         
-        ${player.parent ? `
+        ${(player.parent || player.year !== undefined || player.clubRegistration !== undefined || player.faiConnectRegistration !== undefined) ? `
             <div class="player-profile-section">
                 <div class="player-profile-section-title">👤 Player Information</div>
                 <div class="player-profile-section-content">
-                    <div style="display: flex; justify-content: space-between; padding: 8px 0;">
-                        <span style="color: var(--text-secondary);">Parent/Guardian</span>
-                        <span style="color: var(--text-primary); font-weight: 500;">${player.parent}</span>
-                    </div>
+                    ${player.parent ? `
+                        <div style="display: flex; justify-content: space-between; padding: 8px 0;">
+                            <span style="color: var(--text-secondary);">Parent/Guardian</span>
+                            <span style="color: var(--text-primary); font-weight: 500;">${player.parent}</span>
+                        </div>
+                    ` : ''}
                     ${player.year ? `
-                        <div style="display: flex; justify-content: space-between; padding: 8px 0; border-top: 1px solid var(--border-color);">
+                        <div style="display: flex; justify-content: space-between; padding: 8px 0; ${player.parent ? 'border-top: 1px solid var(--border-color);' : ''}">
                             <span style="color: var(--text-secondary);">Year</span>
                             <span style="color: var(--text-primary); font-weight: 500;">${player.year}</span>
                         </div>
                     ` : ''}
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; ${(player.parent || player.year) ? 'border-top: 1px solid var(--border-color);' : ''}">
+                        <span style="color: var(--text-secondary);">Club Registration</span>
+                        <div class="toggle-switch read-only"><span class="toggle-slider${player.clubRegistration ? ' on' : ''}"></span></div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-top: 1px solid var(--border-color);">
+                        <span style="color: var(--text-secondary);">FAI Connect Registration</span>
+                        <div class="toggle-switch read-only"><span class="toggle-slider${player.faiConnectRegistration ? ' on' : ''}"></span></div>
+                    </div>
                 </div>
             </div>
         ` : ''}

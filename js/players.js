@@ -277,6 +277,20 @@ window.renderPlayers = function() {
                                     <span class="player-detail-label">Parent</span>
                                     <input type="text" class="player-parent-input" placeholder="Parent Name" value="${p.parent || ''}" />
                                 </div>
+                                <div class="player-detail-item player-detail-toggle">
+                                    <span class="player-detail-label">Club Registration</span>
+                                    <label class="toggle-switch" title="Club Registration">
+                                        <input type="checkbox" class="player-club-registration-input" ${p.clubRegistration ? 'checked' : ''} />
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                </div>
+                                <div class="player-detail-item player-detail-toggle">
+                                    <span class="player-detail-label">FAI Connect Registration</span>
+                                    <label class="toggle-switch" title="FAI Connect Registration">
+                                        <input type="checkbox" class="player-fai-connect-input" ${p.faiConnectRegistration ? 'checked' : ''} />
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                </div>
                             </div>
                             <div class="new-player-actions">
                                 <button class="save-player-btn" onclick="handleSavePlayer('${tempId}')">Save</button>
@@ -321,6 +335,31 @@ window.renderPlayers = function() {
                                 <div class="player-detail-item">
                                     <span class="player-detail-label">Year</span>
                                     <span class="player-detail-value">${p.year || ''}</span>
+                                </div>
+                            `}
+                            ${editMode ? `
+                                <div class="player-detail-item player-detail-toggle">
+                                    <span class="player-detail-label">Club Registration</span>
+                                    <label class="toggle-switch" onclick="event.stopPropagation()" title="Club Registration">
+                                        <input type="checkbox" class="player-club-registration-edit" data-player="${playerName.replace(/'/g, "\\'")}" data-field="clubRegistration" ${p.clubRegistration ? 'checked' : ''} />
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                </div>
+                                <div class="player-detail-item player-detail-toggle">
+                                    <span class="player-detail-label">FAI Connect Registration</span>
+                                    <label class="toggle-switch" onclick="event.stopPropagation()" title="FAI Connect Registration">
+                                        <input type="checkbox" class="player-fai-connect-edit" data-player="${playerName.replace(/'/g, "\\'")}" data-field="faiConnectRegistration" ${p.faiConnectRegistration ? 'checked' : ''} />
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                </div>
+                            ` : `
+                                <div class="player-detail-item player-detail-toggle">
+                                    <span class="player-detail-label">Club Registration</span>
+                                    <div class="toggle-switch read-only"><span class="toggle-slider${p.clubRegistration ? ' on' : ''}"></span></div>
+                                </div>
+                                <div class="player-detail-item player-detail-toggle">
+                                    <span class="player-detail-label">FAI Connect Registration</span>
+                                    <div class="toggle-switch read-only"><span class="toggle-slider${p.faiConnectRegistration ? ' on' : ''}"></span></div>
                                 </div>
                             `}
                             ${Object.keys(goals).length > 0 ? `
@@ -393,7 +432,7 @@ window.renderPlayers = function() {
                     // Don't return here, let it proceed to flip
                 } else if (isClickingOnBack) {
                     // Check if clicking on interactive elements - if so, don't flip
-                    const isClickingOnInteractive = clickedElement.closest('input, button, textarea') !== null;
+                    const isClickingOnInteractive = clickedElement.closest('input, button, textarea, .toggle-switch') !== null;
                     if (isClickingOnInteractive) {
                         e.stopPropagation();
                         return;
@@ -410,7 +449,7 @@ window.renderPlayers = function() {
                 return;
             }
             
-            // Check if any element in the path is an input, button, textarea
+            // Check if any element in the path is an input, button, textarea, or toggle switch
             const isInteractiveElement = path.some(el => {
                 if (!el || !el.tagName) return false;
                 const tag = el.tagName.toUpperCase();
@@ -420,12 +459,14 @@ window.renderPlayers = function() {
             }) || clickedElement.tagName === 'INPUT' || 
                 clickedElement.tagName === 'BUTTON' || 
                 clickedElement.tagName === 'TEXTAREA' ||
-                clickedElement.closest('input, button, textarea') !== null;
+                clickedElement.closest('input, button, textarea') !== null ||
+                clickedElement.closest('.toggle-switch') !== null;
             
             if (isInteractiveElement) {
                 e.stopPropagation();
-                // Only prevent default for inputs, not buttons (buttons need their onclick to work)
-                if (clickedElement.tagName !== 'BUTTON') {
+                // Don't prevent default for buttons (onclick) or for toggle switches (label must toggle checkbox)
+                const isToggleSwitch = clickedElement.closest('.toggle-switch') !== null;
+                if (clickedElement.tagName !== 'BUTTON' && !isToggleSwitch) {
                     e.preventDefault();
                 }
                 return;
@@ -571,7 +612,22 @@ window.renderPlayers = function() {
             }
         });
     });
-    
+
+    // Event listeners for Club Registration and FAI Connect Registration checkboxes
+    container.querySelectorAll('.player-club-registration-edit, .player-fai-connect-edit').forEach(checkbox => {
+        checkbox.addEventListener('change', async e => {
+            e.stopPropagation();
+            const oldPlayerName = e.target.dataset.player;
+            const field = e.target.dataset.field;
+            const checked = e.target.checked;
+            const player = players.find(p => p.player === oldPlayerName);
+            if (!player || !field) return;
+            player[field] = checked;
+            await savePlayersList();
+        });
+        checkbox.addEventListener('click', e => e.stopPropagation());
+    });
+
     // Set default date to today for all date inputs and prevent card flip on click
     const today = new Date();
     const todayStr = today.toISOString().split('T')[0];
@@ -715,10 +771,14 @@ window.handleSavePlayer = async function(tempId) {
     const nameInput = playerCard.querySelector('.player-name-input');
     const jerseyInput = playerCard.querySelector('.player-jersey-input');
     const parentInput = playerCard.querySelector('.player-parent-input');
+    const clubRegInput = playerCard.querySelector('.player-club-registration-input');
+    const faiConnectInput = playerCard.querySelector('.player-fai-connect-input');
     
     const playerName = nameInput ? nameInput.value.trim() : '';
     const jersey = jerseyInput ? jerseyInput.value.trim() : '';
     const parent = parentInput ? parentInput.value.trim() : '';
+    const clubRegistration = clubRegInput ? clubRegInput.checked : false;
+    const faiConnectRegistration = faiConnectInput ? faiConnectInput.checked : false;
     
     if (!playerName) {
         alert('Please enter a player name.');
@@ -741,6 +801,8 @@ window.handleSavePlayer = async function(tempId) {
         player.player = playerName;
         player.jersey = jersey;
         player.parent = parent;
+        player.clubRegistration = clubRegistration;
+        player.faiConnectRegistration = faiConnectRegistration;
         delete player._tempId;
         delete player._isNew;
     }
@@ -771,7 +833,7 @@ window.exportPlayersToSpreadsheet = function() {
         return;
     }
 
-    const headers = ['Player Name', 'Jersey #', 'Parent', 'Year', 'Returning', 'Total Goals', 'Goals Per Game', 'Notes', 'Matches Attended', 'Match Attendance %', 'Trainings Attended', 'Training Attendance %'];
+    const headers = ['Player Name', 'Jersey #', 'Parent', 'Year', 'Club Registration', 'FAI Connect Registration', 'Returning', 'Total Goals', 'Goals Per Game', 'Notes', 'Matches Attended', 'Match Attendance %', 'Trainings Attended', 'Training Attendance %'];
     const rows = [];
 
     players.forEach(p => {
@@ -789,6 +851,8 @@ window.exportPlayersToSpreadsheet = function() {
             p.jersey || '',
             p.parent || '',
             p.year || '',
+            p.clubRegistration ? 'Yes' : 'No',
+            p.faiConnectRegistration ? 'Yes' : 'No',
             p.returning || '',
             getTotalGoals(goals),
             getGoalsPerGame(goals),
