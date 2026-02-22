@@ -73,12 +73,12 @@ describe('Calendar', () => {
         });
 
         test('should render session cards when sessions exist this week', () => {
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
+            const fixedDate = new Date('2026-02-22T12:00:00.000Z');
+            jest.useFakeTimers({ now: fixedDate.getTime() });
             global.sessions = [
                 {
                     id: 1,
-                    date: today.toISOString(),
+                    date: '2026-02-22T12:00:00.000Z',
                     type: 'training',
                     deleted: false,
                     cancelled: false,
@@ -91,6 +91,7 @@ describe('Calendar', () => {
             const container = document.getElementById('thisweek-container');
             expect(container.innerHTML).not.toContain('No Upcoming Events');
             expect(container.innerHTML).toContain('Training');
+            jest.useRealTimers();
         });
     });
 });

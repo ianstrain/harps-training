@@ -62,12 +62,11 @@ describe('Statistics', () => {
         });
 
         test('should count match and training attendance for past sessions', () => {
-            const pastDate = new Date();
-            pastDate.setDate(pastDate.getDate() - 1);
+            const pastDate = '2024-06-01T12:00:00.000Z';
             global.sessions = [
-                { id: 1, date: pastDate.toISOString(), type: 'match', deleted: false, attendance: ['Player 1', 'Player 2'] },
-                { id: 2, date: pastDate.toISOString(), type: 'match', deleted: false, attendance: ['Player 2'] },
-                { id: 3, date: pastDate.toISOString(), type: 'training', deleted: false, attendance: ['Player 1'] }
+                { id: 1, date: pastDate, type: 'match', deleted: false, attendance: ['Player 1', 'Player 2'] },
+                { id: 2, date: pastDate, type: 'match', deleted: false, attendance: ['Player 2'] },
+                { id: 3, date: pastDate, type: 'training', deleted: false, attendance: ['Player 1'] }
             ];
             const stats = window.getPlayerAttendanceStats('Player 1');
             expect(stats.matchesAttended).toBe(1);
@@ -77,10 +76,9 @@ describe('Statistics', () => {
         });
 
         test('should exclude deleted sessions', () => {
-            const pastDate = new Date();
-            pastDate.setDate(pastDate.getDate() - 1);
+            const pastDate = '2024-06-01T12:00:00.000Z';
             global.sessions = [
-                { id: 1, date: pastDate.toISOString(), type: 'match', deleted: true, attendance: ['Player 1'] }
+                { id: 1, date: pastDate, type: 'match', deleted: true, attendance: ['Player 1'] }
             ];
             const stats = window.getPlayerAttendanceStats('Player 1');
             expect(stats.matchesAttended).toBe(0);
