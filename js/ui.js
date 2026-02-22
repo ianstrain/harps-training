@@ -232,7 +232,7 @@ window.switchToTab = function(tabName) {
 
     // Render specific content
     if (tabName === 'schedule') {
-        renderQuickStats();
+        if (typeof renderQuickStats === 'function') renderQuickStats();
         renderSessions();
         scrollToClosestSession();
     } else if (tabName === 'calendar') {
