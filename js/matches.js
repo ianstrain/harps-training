@@ -160,10 +160,83 @@ window.generateMatchCard = function(session) {
     `;
 }
 
+// Equal playing time: 9-a-side, 60 min. GK = 60 min; 8 outfield slots × 60 min = 480 min shared by outfield players.
+const MATCH_LENGTH_MIN = 60;
+const OUTFIELD_SLOTS = 8;
+
+window.getEqualTimeSuggestions = function(attendance, goalkeeper) {
+    const n = (attendance || []).length;
+    if (n === 0) return { gkMinutes: MATCH_LENGTH_MIN, outfieldMinutes: 0, outfieldCount: 0 };
+    const hasGK = !!(goalkeeper && attendance.includes(goalkeeper));
+    const outfieldCount = hasGK ? n - 1 : n;
+    const totalOutfieldMinutes = OUTFIELD_SLOTS * MATCH_LENGTH_MIN;
+    const outfieldMinutes = outfieldCount > 0 ? Math.round(totalOutfieldMinutes / outfieldCount) : 0;
+    return {
+        gkMinutes: MATCH_LENGTH_MIN,
+        outfieldMinutes,
+        outfieldCount,
+        hasGK
+    };
+};
+
+/**
+ * Build a rotation schedule that minimizes the number of substitutions.
+ * 9-a-side, 60 min; GK stays on. Outfield: 8 slots. Uses 2 segments (30 min) for N=9..16, 3 segments (20 min) for N=17..24.
+ * Returns { segments: [ { startMin, endMin, playerNames, playerNamesOff }, ... ], totalChanges, outfield } or null if no rotation needed.
+ */
+window.getRotationScheduleLeastChanges = function(attendance, goalkeeper) {
+    const list = (attendance || []).slice();
+    const hasGK = goalkeeper && list.includes(goalkeeper);
+    const outfield = hasGK ? list.filter(p => p !== goalkeeper).sort((a, b) => String(a).localeCompare(b)) : list.slice().sort((a, b) => String(a).localeCompare(b));
+    const N = outfield.length;
+    const addOff = (segments) => {
+        segments.forEach(seg => {
+            seg.playerNamesOff = outfield.filter(p => !seg.playerNames.includes(p));
+        });
+        return segments;
+    };
+    if (N <= 0) return null;
+    if (N <= 8) {
+        const segs = [{ startMin: 0, endMin: MATCH_LENGTH_MIN, playerNames: outfield.slice(0, 8) }];
+        addOff(segs);
+        return { segments: segs, totalChanges: 0 };
+    }
+    if (N <= 16) {
+        const segLen = MATCH_LENGTH_MIN / 2;
+        const stayersCount = 16 - N;
+        const seg1 = outfield.slice(0, 8);
+        const seg2 = outfield.slice(0, stayersCount).concat(outfield.slice(8, N));
+        const segs = [
+            { startMin: 0, endMin: segLen, playerNames: seg1 },
+            { startMin: segLen, endMin: MATCH_LENGTH_MIN, playerNames: seg2 }
+        ];
+        addOff(segs);
+        return { segments: segs, totalChanges: 8 - stayersCount };
+    }
+    if (N <= 24) {
+        const K = 3;
+        const segLen = MATCH_LENGTH_MIN / K;
+        const stayersCount = Math.max(0, 24 - N);
+        const rot = 8 - stayersCount;
+        const seg1 = outfield.slice(0, 8);
+        const seg2 = outfield.slice(0, stayersCount).concat(outfield.slice(8, 8 + rot));
+        const seg3 = outfield.slice(0, stayersCount).concat(outfield.slice(8 + rot, 8 + 2 * rot));
+        const segs = [
+            { startMin: 0, endMin: segLen, playerNames: seg1 },
+            { startMin: segLen, endMin: 2 * segLen, playerNames: seg2 },
+            { startMin: 2 * segLen, endMin: MATCH_LENGTH_MIN, playerNames: seg3 }
+        ];
+        addOff(segs);
+        return { segments: segs, totalChanges: rot * 2 };
+    }
+    return null;
+};
+
 // Generate match back content (attendance and goal scorers)
 window.generateMatchBackContent = function(session) {
     const attendance = session.attendance || [];
     const captain = session.captain || '';
+    const goalkeeper = session.goalkeeper || '';
     const matchGoals = session.matchGoals || {};
     
     // Get all active players
@@ -178,6 +251,37 @@ window.generateMatchBackContent = function(session) {
     }).sort((a, b) => (a.player || '').localeCompare(b.player || ''));
     
     const attendingPlayers = activePlayers.filter(p => attendance.includes(p.player));
+    const timeSuggestions = window.getEqualTimeSuggestions(attendance, goalkeeper);
+    const rotationSchedule = window.getRotationScheduleLeastChanges(attendance, goalkeeper);
+    
+    const equalTimeLabel = attendance.length === 0
+        ? ''
+        : timeSuggestions.hasGK
+            ? `Equal time (9-a-side, ${MATCH_LENGTH_MIN} min): GK ${timeSuggestions.gkMinutes} min • Outfield ${timeSuggestions.outfieldMinutes} min each`
+            : `Equal time (9-a-side, ${MATCH_LENGTH_MIN} min): Pick a goalkeeper to see suggested outfield minutes`;
+    
+    const rotationHtml = rotationSchedule && rotationSchedule.segments.length > 0
+        ? `
+            <div class="rotation-schedule" style="margin-bottom: 12px; padding: 10px 12px; background: var(--bg-section); border-radius: 8px; border: 1px solid var(--border-color); font-size: 12px; color: var(--text-secondary);">
+                <div style="font-weight: 700; margin-bottom: 8px; color: var(--text-primary);">Rotation (least changes)${rotationSchedule.totalChanges > 0 ? ' · ' + rotationSchedule.totalChanges + ' sub' + (rotationSchedule.totalChanges !== 1 ? 's' : '') + ' total' : ''}</div>
+                ${rotationSchedule.segments.map((seg, i) => {
+                    const onList = goalkeeper ? [goalkeeper + ' (GK)', ...seg.playerNames] : seg.playerNames;
+                    const prevSeg = i > 0 ? rotationSchedule.segments[i - 1] : null;
+                    const comingOn = prevSeg ? seg.playerNames.filter(p => !prevSeg.playerNames.includes(p)) : [];
+                    const goingOff = prevSeg ? prevSeg.playerNames.filter(p => !seg.playerNames.includes(p)) : [];
+                    const rotationLine = (comingOn.length > 0 || goingOff.length > 0) ? `<div style="margin-bottom: 4px; font-size: 11px;"><div style="margin-bottom: 2px;"><span style="color: var(--success); font-weight: 600;">Coming on:</span> ${comingOn.length ? comingOn.join(', ') : '—'}</div><div><span style="color: var(--text-muted); font-weight: 600;">Going off:</span> ${goingOff.length ? goingOff.join(', ') : '—'}</div></div>` : '';
+                    return `
+                    <div style="margin-bottom: ${i < rotationSchedule.segments.length - 1 ? '10px' : '0'}; padding-bottom: ${i < rotationSchedule.segments.length - 1 ? '8px' : '0'}; border-bottom: ${i < rotationSchedule.segments.length - 1 ? '1px solid var(--border-color)' : 'none'};">
+                        <div style="font-weight: 600; color: var(--accent-primary); margin-bottom: 4px;">${seg.startMin}–${seg.endMin} min</div>
+                        ${rotationLine}
+                        <div style="margin-bottom: 2px;"><span style="font-weight: 600; color: var(--text-primary);">On:</span> <span>${onList.join(', ')}</span></div>
+                        ${seg.playerNamesOff && seg.playerNamesOff.length > 0 ? `<div><span style="font-weight: 600; color: var(--text-muted);">Off:</span> <span style="color: var(--text-muted);">${seg.playerNamesOff.join(', ')}</span></div>` : ''}
+                    </div>
+                `;
+                }).join('')}
+            </div>
+        `
+        : '';
     
     return `
         <div class="attendance-section">
@@ -185,31 +289,52 @@ window.generateMatchBackContent = function(session) {
             <div class="attendance-summary" style="text-align: center; margin-bottom: 15px; font-size: 16px; color: var(--text-secondary);">
                 <span style="font-size: 24px; font-weight: bold; color: var(--accent-primary);">${attendance.length}</span> of ${activePlayers.length} players attending
             </div>
+            ${equalTimeLabel ? `
+            <div class="equal-time-formula" style="text-align: center; margin-bottom: 12px; padding: 10px 12px; background: var(--bg-section); border-radius: 8px; border: 1px solid var(--border-color); font-size: 13px; color: var(--text-secondary);">
+                ${equalTimeLabel}
+            </div>
+            ` : ''}
+            ${rotationHtml}
             <div class="attendance-header">
                 <span class="attendance-header-label">✓</span>
                 <span class="attendance-header-player">Player</span>
+                <span class="attendance-header-gk" title="Goalkeeper (full game)">GK</span>
                 <span class="attendance-header-captain">Captain</span>
             </div>
             <div class="attendance-checklist" id="attendance-list-${session.id}">
-                ${activePlayers.map(p => `
+                ${activePlayers.map(p => {
+                    const isAttending = attendance.includes(p.player);
+                    const isGK = goalkeeper === p.player;
+                    const suggestedMin = isGK ? timeSuggestions.gkMinutes : (isAttending && timeSuggestions.hasGK ? timeSuggestions.outfieldMinutes : null);
+                    return `
                     <div class="attendance-item">
                         <input type="checkbox" 
                                class="attendance-checkbox" 
                                data-session="${session.id}" 
                                data-player="${p.player}"
-                               ${attendance.includes(p.player) ? 'checked' : ''}
+                               ${isAttending ? 'checked' : ''}
                                onclick="event.stopPropagation(); handleAttendanceChange(${session.id}, '${p.player}', this.checked)">
                         <span class="attendance-player-name">${p.player}</span>
+                        <input type="checkbox" 
+                               class="goalkeeper-checkbox" 
+                               data-session="${session.id}" 
+                               data-player="${p.player}"
+                               ${isGK ? 'checked' : ''}
+                               ${!isAttending ? 'disabled' : ''}
+                               onclick="event.stopPropagation(); handleGoalkeeperCheckbox(${session.id}, '${p.player}', this.checked)"
+                               title="Goalkeeper (plays full game)">
                         <input type="checkbox" 
                                class="captain-checkbox" 
                                data-session="${session.id}" 
                                data-player="${p.player}"
                                ${captain === p.player ? 'checked' : ''}
-                               ${!attendance.includes(p.player) ? 'disabled' : ''}
+                               ${!isAttending ? 'disabled' : ''}
                                onclick="event.stopPropagation(); handleCaptainCheckbox(${session.id}, '${p.player}', this.checked)"
                                title="Captain">
+                        ${suggestedMin !== null ? `<span class="attendance-suggested-min" style="font-size: 12px; color: var(--text-muted); margin-left: 6px;">${suggestedMin} min</span>` : ''}
                     </div>
-                `).join('')}
+                `;
+                }).join('')}
             </div>
             
             <div class="goal-scorers-section">
@@ -257,7 +382,7 @@ window.handleMatchTypeChange = function(sessionId, matchType) {
 window.handleMatchCardClick = function(event, sessionId) {
     // Don't flip if clicking on interactive elements
     const target = event.target;
-    if (target.closest('input, button, select, .attendance-checkbox, .captain-checkbox, .goal-btn, .captain-selector')) {
+    if (target.closest('input, button, select, .attendance-checkbox, .goalkeeper-checkbox, .captain-checkbox, .goal-btn, .captain-selector')) {
         return; // Don't stop propagation here, let the event bubble to the specific handlers
     }
     
@@ -278,22 +403,31 @@ window.handleAttendanceChange = function(sessionId, playerName, isChecked) {
         if (!session.attendance.includes(playerName)) {
             session.attendance.push(playerName);
         }
-        // Enable captain checkbox
+        // Enable captain and goalkeeper checkboxes
         const captainCheckbox = document.querySelector(`.captain-checkbox[data-session="${sessionId}"][data-player="${playerName}"]`);
-        if (captainCheckbox) {
-            captainCheckbox.disabled = false;
-        }
+        if (captainCheckbox) captainCheckbox.disabled = false;
+        const goalkeeperCheckbox = document.querySelector(`.goalkeeper-checkbox[data-session="${sessionId}"][data-player="${playerName}"]`);
+        if (goalkeeperCheckbox) goalkeeperCheckbox.disabled = false;
     } else {
         session.attendance = session.attendance.filter(p => p !== playerName);
         // If unchecked player was captain, clear captain
         if (session.captain === playerName) {
             session.captain = '';
         }
-        // Disable and uncheck captain checkbox
+        // If unchecked player was goalkeeper, clear goalkeeper
+        if (session.goalkeeper === playerName) {
+            session.goalkeeper = '';
+        }
+        // Disable and uncheck captain and goalkeeper checkboxes
         const captainCheckbox = document.querySelector(`.captain-checkbox[data-session="${sessionId}"][data-player="${playerName}"]`);
         if (captainCheckbox) {
             captainCheckbox.checked = false;
             captainCheckbox.disabled = true;
+        }
+        const goalkeeperCheckbox = document.querySelector(`.goalkeeper-checkbox[data-session="${sessionId}"][data-player="${playerName}"]`);
+        if (goalkeeperCheckbox) {
+            goalkeeperCheckbox.checked = false;
+            goalkeeperCheckbox.disabled = true;
         }
         // Clear any goals for this player
         if (session.matchGoals && session.matchGoals[playerName]) {
@@ -328,6 +462,28 @@ window.handleCaptainChange = function(sessionId, playerName) {
     if (!session) return;
     
     session.captain = playerName;
+};
+
+// Handle goalkeeper checkbox change
+window.handleGoalkeeperCheckbox = function(sessionId, playerName, isChecked) {
+    const session = sessions.find(s => s.id === parseInt(sessionId));
+    if (!session) return;
+    
+    if (isChecked) {
+        session.goalkeeper = playerName;
+        document.querySelectorAll(`.goalkeeper-checkbox[data-session="${sessionId}"]`).forEach(cb => {
+            if (cb.dataset.player !== playerName) cb.checked = false;
+        });
+    } else {
+        if (session.goalkeeper === playerName) session.goalkeeper = '';
+    }
+    saveMatchData(sessionId);
+    // Re-render back to update suggested minutes
+    const card = document.querySelector(`.session-card[data-session="${sessionId}"]`);
+    if (card && card.classList.contains('flipped')) {
+        const backContentDiv = card.querySelector('.session-card-back-content');
+        if (backContentDiv) backContentDiv.innerHTML = generateMatchBackContent(session);
+    }
 };
 
 // Handle captain checkbox change
