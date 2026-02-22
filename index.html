@@ -1889,13 +1889,14 @@
             z-index: 1;
         }
 
-        .toggle-slider::before {
+        .player-details .toggle-slider::before {
             content: "";
             position: absolute;
             height: 18px;
             width: 18px;
             left: 3px;
-            bottom: 3px;
+            top: 50%;
+            transform: translateY(-50%);
             background: var(--bg-section);
             border-radius: 50%;
             transition: 0.25s;
@@ -1907,7 +1908,7 @@
         }
 
         .player-details .toggle-switch input:checked + .toggle-slider::before {
-            transform: translateX(20px);
+            transform: translateX(20px) translateY(-50%);
         }
 
         .player-details .toggle-switch.read-only .toggle-slider {
@@ -1918,6 +1919,8 @@
         }
 
         .player-details .toggle-switch.read-only .toggle-slider::before {
+            top: 50%;
+            transform: translateY(-50%);
             background: var(--bg-section);
             box-shadow: 0 1px 3px rgba(0,0,0,0.2);
         }
@@ -1927,7 +1930,7 @@
         }
 
         .player-details .toggle-switch.read-only .toggle-slider.on::before {
-            transform: translateX(20px);
+            transform: translateX(20px) translateY(-50%);
         }
 
         .player-statistics {
