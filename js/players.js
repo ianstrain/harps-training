@@ -219,9 +219,11 @@ function renderGoalsChart(goals) {
 // Render players
 window.renderPlayers = function() {
     const container = document.getElementById('players-container');
-    
+    const countEl = document.getElementById('players-count');
+
     // Show message if no players loaded
     if (players.length === 0) {
+        if (countEl) countEl.textContent = '0 players';
         container.innerHTML = `
             <div style="text-align: center; padding: 40px; color: var(--text-secondary);">
                 <p style="font-size: 16px; margin-bottom: 12px;">No players found</p>
@@ -251,7 +253,12 @@ window.renderPlayers = function() {
     if (!showDeletedPlayers) {
         filteredPlayers = filteredPlayers.filter(p => !p.deleted || p._isNew);
     }
-    
+
+    if (countEl) {
+        const n = filteredPlayers.length;
+        countEl.textContent = n === 1 ? '1 player' : `${n} players`;
+    }
+
     container.innerHTML = filteredPlayers.map((p, index) => {
         const playerName = p.player || '';
         const goals = getPlayerGoals(playerName);
