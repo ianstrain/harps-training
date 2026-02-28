@@ -2424,6 +2424,23 @@
                 padding-bottom: 50px;
             }
 
+            /* In edit mode, stack player name above actions on mobile so the name is always visible */
+            .player-name {
+                flex-wrap: wrap;
+                flex-direction: column;
+                align-items: stretch;
+                gap: 8px;
+            }
+            .player-name .player-name-input-edit {
+                min-width: 0;
+                width: 100%;
+                box-sizing: border-box;
+            }
+            .player-name-actions {
+                margin-left: 0;
+                justify-content: flex-start;
+            }
+
             .goal-input-group {
                 flex-direction: column;
                 gap: 8px;
