@@ -437,36 +437,107 @@ window.handleAttendanceChange = function(sessionId, playerName, isChecked) {
     
     // Update goal scorers display
     updateGoalScorersDisplay(sessionId);
+    updateAttendanceSummaryDisplay(sessionId);
+    updateEqualTimeAndSuggestedMinutes(sessionId);
     
     // Auto-save
     saveMatchData(sessionId);
-
-    // Re-render while preserving current scroll positions so list does not jump to top
-    window.rerenderSessionBackPreserveScroll(sessionId, session);
 };
 
-// Re-render a session back panel without losing checklist/page scroll position.
-window.rerenderSessionBackPreserveScroll = function(sessionId, session) {
+// Update attendance summary count text in-place.
+window.updateAttendanceSummaryDisplay = function(sessionId) {
+    const session = sessions.find(s => s.id === parseInt(sessionId));
+    if (!session) return;
+
     const card = document.querySelector(`.session-card[data-session="${sessionId}"]`);
     if (!card) return;
 
     const backContentDiv = card.querySelector('.session-card-back');
     if (!backContentDiv) return;
 
-    const checklistBefore = backContentDiv.querySelector(`#attendance-list-${sessionId}`);
-    const checklistScrollTop = checklistBefore ? checklistBefore.scrollTop : 0;
-    const pageScrollY = window.scrollY;
+    const summaryEl = backContentDiv.querySelector('.attendance-summary');
+    if (!summaryEl) return;
 
-    // Use appropriate back content generator based on session type
-    if (session.type === 'match') {
-        backContentDiv.innerHTML = generateMatchBackContent(session);
-    } else {
-        backContentDiv.innerHTML = generateTrainingBackContent(session);
+    const totalPlayers = backContentDiv.querySelectorAll('.attendance-item').length;
+    const attendanceCount = (session.attendance || []).length;
+    summaryEl.innerHTML = `<span style="font-size: 24px; font-weight: bold; color: var(--accent-primary);">${attendanceCount}</span> of ${totalPlayers} players attending`;
+};
+
+// Update equal-time formula and suggested minutes without re-rendering the whole checklist.
+window.updateEqualTimeAndSuggestedMinutes = function(sessionId) {
+    const session = sessions.find(s => s.id === parseInt(sessionId));
+    if (!session || session.type !== 'match') return;
+
+    const card = document.querySelector(`.session-card[data-session="${sessionId}"]`);
+    if (!card) return;
+
+    const backContentDiv = card.querySelector('.session-card-back');
+    if (!backContentDiv) return;
+
+    const attendance = session.attendance || [];
+    const goalkeeper = session.goalkeeper || '';
+    const timeSuggestions = window.getEqualTimeSuggestions(attendance, goalkeeper);
+
+    const equalTimeLabel = attendance.length === 0
+        ? ''
+        : timeSuggestions.hasGK
+            ? `Equal time (9-a-side, ${MATCH_LENGTH_MIN} min): GK ${timeSuggestions.gkMinutes} min • Outfield ${timeSuggestions.outfieldMinutes} min each`
+            : `Equal time (9-a-side, ${MATCH_LENGTH_MIN} min): Pick a goalkeeper to see suggested outfield minutes`;
+
+    let equalTimeEl = backContentDiv.querySelector('.equal-time-formula');
+    if (equalTimeLabel) {
+        if (!equalTimeEl) {
+            const attendanceHeader = backContentDiv.querySelector('.attendance-header');
+            if (attendanceHeader) {
+                equalTimeEl = document.createElement('div');
+                equalTimeEl.className = 'equal-time-formula';
+                equalTimeEl.style.textAlign = 'center';
+                equalTimeEl.style.marginBottom = '12px';
+                equalTimeEl.style.padding = '10px 12px';
+                equalTimeEl.style.background = 'var(--bg-section)';
+                equalTimeEl.style.borderRadius = '8px';
+                equalTimeEl.style.border = '1px solid var(--border-color)';
+                equalTimeEl.style.fontSize = '13px';
+                equalTimeEl.style.color = 'var(--text-secondary)';
+                attendanceHeader.parentNode.insertBefore(equalTimeEl, attendanceHeader);
+            }
+        }
+        if (equalTimeEl) equalTimeEl.textContent = equalTimeLabel;
     }
+    if (!equalTimeLabel && equalTimeEl) equalTimeEl.remove();
 
-    const checklistAfter = backContentDiv.querySelector(`#attendance-list-${sessionId}`);
-    if (checklistAfter) checklistAfter.scrollTop = checklistScrollTop;
-    window.scrollTo(0, pageScrollY);
+    const items = backContentDiv.querySelectorAll(`#attendance-list-${sessionId} .attendance-item`);
+    items.forEach(item => {
+        const attendanceCheckbox = item.querySelector('.attendance-checkbox');
+        if (!attendanceCheckbox) return;
+
+        const currentPlayer = attendanceCheckbox.dataset.player;
+        const isAttending = attendance.includes(currentPlayer);
+        const isGK = goalkeeper === currentPlayer;
+
+        let minsEl = item.querySelector('.attendance-suggested-min');
+        let minsValue = null;
+        if (isGK) {
+            minsValue = timeSuggestions.gkMinutes;
+        } else if (isAttending && timeSuggestions.hasGK) {
+            minsValue = timeSuggestions.outfieldMinutes;
+        }
+
+        if (minsValue === null) {
+            if (minsEl) minsEl.remove();
+            return;
+        }
+
+        if (!minsEl) {
+            minsEl = document.createElement('span');
+            minsEl.className = 'attendance-suggested-min';
+            minsEl.style.fontSize = '12px';
+            minsEl.style.color = 'var(--text-muted)';
+            minsEl.style.marginLeft = '6px';
+            item.appendChild(minsEl);
+        }
+        minsEl.textContent = `${minsValue} min`;
+    });
 };
 
 // Handle captain selection change
