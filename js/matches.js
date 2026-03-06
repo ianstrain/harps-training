@@ -441,19 +441,32 @@ window.handleAttendanceChange = function(sessionId, playerName, isChecked) {
     // Auto-save
     saveMatchData(sessionId);
 
-    // Re-render the back of the card to update attendance display
+    // Re-render while preserving current scroll positions so list does not jump to top
+    window.rerenderSessionBackPreserveScroll(sessionId, session);
+};
+
+// Re-render a session back panel without losing checklist/page scroll position.
+window.rerenderSessionBackPreserveScroll = function(sessionId, session) {
     const card = document.querySelector(`.session-card[data-session="${sessionId}"]`);
-    if (card) {
-        const backContentDiv = card.querySelector('.session-card-back');
-        if (backContentDiv) {
-            // Use appropriate back content generator based on session type
-            if (session.type === 'match') {
-                backContentDiv.innerHTML = generateMatchBackContent(session);
-            } else {
-                backContentDiv.innerHTML = generateTrainingBackContent(session);
-            }
-        }
+    if (!card) return;
+
+    const backContentDiv = card.querySelector('.session-card-back');
+    if (!backContentDiv) return;
+
+    const checklistBefore = backContentDiv.querySelector(`#attendance-list-${sessionId}`);
+    const checklistScrollTop = checklistBefore ? checklistBefore.scrollTop : 0;
+    const pageScrollY = window.scrollY;
+
+    // Use appropriate back content generator based on session type
+    if (session.type === 'match') {
+        backContentDiv.innerHTML = generateMatchBackContent(session);
+    } else {
+        backContentDiv.innerHTML = generateTrainingBackContent(session);
     }
+
+    const checklistAfter = backContentDiv.querySelector(`#attendance-list-${sessionId}`);
+    if (checklistAfter) checklistAfter.scrollTop = checklistScrollTop;
+    window.scrollTo(0, pageScrollY);
 };
 
 // Handle captain selection change
