@@ -94,17 +94,25 @@ window.renderStats = function() {
                returning !== 'no';
     });
     
-    // Get goals for each player and calculate totals
+    // Get goals for each player and calculate totals (plus league / friendly / cup / other split)
     const playerGoals = filteredPlayers.map(p => {
         const playerName = p.player || '';
         const goals = getPlayerGoals(playerName);
         const total = getTotalGoals(goals);
+        const matchKindTotals = aggregatePlayerMatchGoalsByMatchKind(playerName);
+        const segments = buildPlayerGoalChartSegments(total, matchKindTotals);
         return {
             name: playerName,
-            total: total,
-            goals: goals
+            total,
+            goals,
+            matchKindTotals,
+            segments
         };
     });
+
+    const hasCupMatches = sessions.some(
+        s => s.type === 'match' && !s.deleted && getStatsMatchKind(s) === 'cup'
+    );
     
     // Filter out players with 0 goals and apply sorting
     const playersWithGoals = window.sortPlayerData(
@@ -148,10 +156,27 @@ window.renderStats = function() {
     const barWidth = (chartWidth - paddingGoals.left - paddingGoals.right) / playersWithGoals.length - 10;
     const maxGoals = Math.max(...playersWithGoals.map(p => p.total), 1);
     const barHeight = chartHeight - paddingGoals.top - paddingGoals.bottom;
-    
+    const yGoalsBaseline = chartHeight - paddingGoals.bottom;
+
+    const goalsLegendItems = [
+        { fill: '#10b981', label: 'League' },
+        { fill: '#0ea5e9', label: 'Friendly' },
+        ...(hasCupMatches ? [{ fill: '#f59e0b', label: 'Cup' }] : []),
+        { fill: '#64748b', label: 'Other (e.g. manual log)' }
+    ];
+    const goalsLegendHtml = `
+        <div class="stats-goals-legend" style="display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 14px; margin-bottom: 10px; font-size: 12px; color: var(--text-secondary);">
+            ${goalsLegendItems.map(
+                item => `<span style="display: inline-flex; align-items: center; gap: 6px;">
+                    <span style="width: 12px; height: 12px; border-radius: 3px; background: ${item.fill}; flex-shrink: 0;"></span>${item.label}
+                </span>`
+            ).join('')}
+        </div>`;
+
     let goalsSvg = `
         <div class="stats-chart-container">
             <div class="stats-chart-title">Goals Scored by Player</div>
+            ${goalsLegendHtml}
             ${window.generateSortControls('goals', window.goalsSortBy, false)}
             <div class="stats-chart-svg-container">
                 <svg viewBox="0 0 ${chartWidth} ${chartHeight}" preserveAspectRatio="xMidYMid meet">
@@ -188,30 +213,47 @@ window.renderStats = function() {
                         `;
                     }).join('')}
                     
-                    <!-- Bars -->
+                    <!-- Bars (stacked: league → friendly → cup → other) -->
                     ${playersWithGoals.map((player, index) => {
-                        const barHeightValue = (player.total / maxGoals) * barHeight;
                         const x = paddingGoals.left + index * (barWidth + 10);
-                        const y = chartHeight - paddingGoals.bottom - barHeightValue;
-                        
-                        // Truncate player name if too long
-                        const displayName = player.name.length > 12 
-                            ? player.name.substring(0, 10) + '...' 
-                            : player.name;
-                        
+                        const mk = player.matchKindTotals;
+                        const otherRaw = Math.max(0, player.total - mk.league - mk.friendly - mk.cup);
+                        const tipParts = [];
+                        if (mk.league) tipParts.push(`League ${mk.league}`);
+                        if (mk.friendly) tipParts.push(`Friendly ${mk.friendly}`);
+                        if (mk.cup) tipParts.push(`Cup ${mk.cup}`);
+                        if (otherRaw) tipParts.push(`Other ${otherRaw}`);
+                        const tipDetail = tipParts.length ? tipParts.join(', ') : '—';
+                        const barTip = `${player.name}: ${player.total} ${player.total === 1 ? 'goal' : 'goals'} (${tipDetail})`;
+
+                        let cumFromBottom = 0;
+                        const stackRects = player.segments.map(seg => {
+                            const segH = (seg.value / maxGoals) * barHeight;
+                            cumFromBottom += segH;
+                            const segY = yGoalsBaseline - cumFromBottom;
+                            return `
+                                <rect class="stats-chart-bar-segment"
+                                      x="${x}" 
+                                      y="${segY}" 
+                                      width="${barWidth}" 
+                                      height="${segH}"
+                                      rx="2"
+                                      fill="${seg.fill}"
+                                      stroke="var(--bg-section)"
+                                      stroke-width="1">
+                                    <title>${barTip}</title>
+                                </rect>`;
+                        }).join('');
+
+                        const fullBarH = (player.total / maxGoals) * barHeight;
+                        const topY = yGoalsBaseline - fullBarH;
+
                         return `
                             <g>
-                                <rect class="stats-chart-bar" 
-                                      x="${x}" 
-                                      y="${y}" 
-                                      width="${barWidth}" 
-                                      height="${barHeightValue}"
-                                      rx="4">
-                                    <title>${player.name}: ${player.total} ${player.total === 1 ? 'goal' : 'goals'}</title>
-                                </rect>
+                                ${stackRects}
                                 <text class="stats-chart-goal-value" 
                                       x="${x + barWidth / 2}" 
-                                      y="${y - 8}">${player.total}</text>
+                                      y="${topY - 8}">${player.total}</text>
                                 <text class="stats-chart-player-label" 
                                       x="${(x + barWidth / 2) - 40}" 
                                       y="${chartHeight - paddingGoals.bottom + (nameSpaceNeededGoals * 0.4)}"\
@@ -241,6 +283,84 @@ function getStatsMatchKind(session) {
     if (t === 'league') return 'league';
     if (t === 'cup') return 'cup';
     return 'friendly';
+}
+
+/** Matches that count for attendance stats: played games (result entered), same as season "Played". */
+function getPlayedMatchesForAttendance() {
+    return sessions.filter(s => s.type === 'match' && !s.deleted && s.result);
+}
+
+/** Sum goals credited on match cards for this player, split by competition type. */
+function aggregatePlayerMatchGoalsByMatchKind(playerName) {
+    let league = 0;
+    let friendly = 0;
+    let cup = 0;
+    for (const s of sessions) {
+        if (s.type !== 'match' || s.deleted) continue;
+        const g = parseInt((s.matchGoals && s.matchGoals[playerName]) || 0, 10) || 0;
+        if (!g) continue;
+        const kind = getStatsMatchKind(s);
+        if (kind === 'league') league += g;
+        else if (kind === 'cup') cup += g;
+        else friendly += g;
+    }
+    return { league, friendly, cup };
+}
+
+/**
+ * Build segment sizes for the goals chart (stacked bar). Totals match `total` (stored goals).
+ * If match-card sums exceed stored total (e.g. same calendar date overwritten), segments scale down.
+ */
+function buildPlayerGoalChartSegments(total, matchKindTotals) {
+    let L = matchKindTotals.league;
+    let F = matchKindTotals.friendly;
+    let C = matchKindTotals.cup;
+    const sumMatch = L + F + C;
+    let other = Math.max(0, total - sumMatch);
+    if (sumMatch > total && sumMatch > 0) {
+        const scale = total / sumMatch;
+        L *= scale;
+        F *= scale;
+        C *= scale;
+        other = 0;
+    }
+    const segments = [
+        { key: 'league', value: L, fill: '#10b981', label: 'League' },
+        { key: 'friendly', value: F, fill: '#0ea5e9', label: 'Friendly' },
+        { key: 'cup', value: C, fill: '#f59e0b', label: 'Cup' },
+        { key: 'other', value: other, fill: '#64748b', label: 'Other' }
+    ];
+    return segments.filter(seg => seg.value > 0);
+}
+
+/** Count matches attended on the schedule, split by competition type. */
+function aggregatePlayerMatchAttendanceByMatchKind(playerName, matchList) {
+    let league = 0;
+    let friendly = 0;
+    let cup = 0;
+    for (const m of matchList) {
+        if (!m.attendance || !m.attendance.includes(playerName)) continue;
+        const kind = getStatsMatchKind(m);
+        if (kind === 'league') league++;
+        else if (kind === 'cup') cup++;
+        else friendly++;
+    }
+    return { league, friendly, cup };
+}
+
+function buildMatchAttendanceChartSegments(kindTotals) {
+    return [
+        { key: 'league', value: kindTotals.league, fill: '#10b981', label: 'League' },
+        { key: 'friendly', value: kindTotals.friendly, fill: '#0ea5e9', label: 'Friendly' },
+        { key: 'cup', value: kindTotals.cup, fill: '#f59e0b', label: 'Cup' }
+    ].filter(s => s.value > 0);
+}
+
+if (typeof window !== 'undefined') {
+    window.aggregatePlayerMatchGoalsByMatchKind = aggregatePlayerMatchGoalsByMatchKind;
+    window.buildPlayerGoalChartSegments = buildPlayerGoalChartSegments;
+    window.aggregatePlayerMatchAttendanceByMatchKind = aggregatePlayerMatchAttendanceByMatchKind;
+    window.buildMatchAttendanceChartSegments = buildMatchAttendanceChartSegments;
 }
 
 function buildSeasonMatchMetrics(completedMatches) {
@@ -355,10 +475,10 @@ function generateSeasonStats() {
 
 // Generate attendance chart
 function generateAttendanceChart(filteredPlayers) {
-    // Get all matches
-    const matches = sessions.filter(s => s.type === 'match' && !s.deleted);
-    
-    if (matches.length === 0) {
+    const allMatches = sessions.filter(s => s.type === 'match' && !s.deleted);
+    const matches = getPlayedMatchesForAttendance();
+
+    if (allMatches.length === 0) {
         return `
             <div class="stats-chart-container">
                 <div class="stats-chart-title">Match Attendance</div>
@@ -369,13 +489,27 @@ function generateAttendanceChart(filteredPlayers) {
             </div>
         `;
     }
-    
-    // Calculate attendance stats for each player
+
+    if (matches.length === 0) {
+        return `
+            <div class="stats-chart-container">
+                <div class="stats-chart-title">Match Attendance</div>
+                <div class="stats-empty" style="padding: 40px;">
+                    <p>No completed matches yet</p>
+                    <small>Enter a result (win, draw, or loss) on each match card to count it as played for attendance stats.</small>
+                </div>
+            </div>
+        `;
+    }
+
+    const hasCupMatchesAttendance = matches.some(m => getStatsMatchKind(m) === 'cup');
+
+    // Calculate attendance stats for each player (totals + league / friendly / cup breakdown)
     const playerAttendance = filteredPlayers.map(p => {
         const playerName = p.player || '';
         let attended = 0;
         let captainCount = 0;
-        
+
         matches.forEach(match => {
             if (match.attendance && match.attendance.includes(playerName)) {
                 attended++;
@@ -384,11 +518,16 @@ function generateAttendanceChart(filteredPlayers) {
                 captainCount++;
             }
         });
-        
+
+        const matchKindTotals = aggregatePlayerMatchAttendanceByMatchKind(playerName, matches);
+        const segments = buildMatchAttendanceChartSegments(matchKindTotals);
+
         return {
             name: playerName,
-            attended: attended,
-            captainCount: captainCount,
+            attended,
+            captainCount,
+            matchKindTotals,
+            segments,
             percentage: matches.length > 0 ? (attended / matches.length * 100).toFixed(0) : 0
         };
     }).filter(p => p.attended > 0);
@@ -427,10 +566,26 @@ function generateAttendanceChart(filteredPlayers) {
     const barWidth = (chartWidth - padding.left - padding.right) / sortedPlayerAttendance.length - 10;
     const maxAttended = Math.max(...sortedPlayerAttendance.map(p => p.attended), 1);
     const barHeight = chartHeight - padding.top - padding.bottom;
-    
+    const yAttendanceBaseline = chartHeight - padding.bottom;
+
+    const attendanceLegendItems = [
+        { fill: '#10b981', label: 'League' },
+        { fill: '#0ea5e9', label: 'Friendly' },
+        ...(hasCupMatchesAttendance ? [{ fill: '#f59e0b', label: 'Cup' }] : [])
+    ];
+    const attendanceLegendHtml = `
+        <div class="stats-attendance-legend" style="display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 14px; margin-bottom: 10px; font-size: 12px; color: var(--text-secondary);">
+            ${attendanceLegendItems.map(
+                item => `<span style="display: inline-flex; align-items: center; gap: 6px;">
+                    <span style="width: 12px; height: 12px; border-radius: 3px; background: ${item.fill}; flex-shrink: 0;"></span>${item.label}
+                </span>`
+            ).join('')}
+        </div>`;
+
     let svg = `
         <div class="stats-chart-container">
             <div class="stats-chart-title">Match Attendance (${matches.length} ${matches.length === 1 ? 'match' : 'matches'})</div>
+            ${attendanceLegendHtml}
             ${window.generateSortControls('match-attendance', window.matchAttendanceSortBy, true)}
             <div class="stats-chart-svg-container">
                 <svg viewBox="0 0 ${chartWidth} ${chartHeight}" preserveAspectRatio="xMidYMid meet">
@@ -467,25 +622,45 @@ function generateAttendanceChart(filteredPlayers) {
                         `;
                     }).join('')}
                     
-                    <!-- Bars -->
+                    <!-- Bars (stacked: league → friendly → cup) -->
                     ${sortedPlayerAttendance.map((player, index) => {
-                        const barHeightValue = (player.attended / maxAttended) * barHeight;
                         const x = padding.left + index * (barWidth + 10);
-                        const y = chartHeight - padding.bottom - barHeightValue;
-                        
+                        const mk = player.matchKindTotals;
+                        const tipParts = [];
+                        if (mk.league) tipParts.push(`League ${mk.league}`);
+                        if (mk.friendly) tipParts.push(`Friendly ${mk.friendly}`);
+                        if (mk.cup) tipParts.push(`Cup ${mk.cup}`);
+                        const tipDetail = tipParts.length ? tipParts.join(', ') : '—';
+                        const barTip = `${player.name}: ${player.attended}/${matches.length} matches (${player.percentage}%) — ${tipDetail}`;
+
+                        let cumFromBottom = 0;
+                        const stackRects = player.segments.map(seg => {
+                            const segH = (seg.value / maxAttended) * barHeight;
+                            cumFromBottom += segH;
+                            const segY = yAttendanceBaseline - cumFromBottom;
+                            return `
+                                <rect class="stats-chart-bar-segment"
+                                      x="${x}" 
+                                      y="${segY}" 
+                                      width="${barWidth}" 
+                                      height="${segH}"
+                                      rx="2"
+                                      fill="${seg.fill}"
+                                      stroke="var(--bg-section)"
+                                      stroke-width="1">
+                                    <title>${barTip}</title>
+                                </rect>`;
+                        }).join('');
+
+                        const fullBarH = (player.attended / maxAttended) * barHeight;
+                        const topY = yAttendanceBaseline - fullBarH;
+
                         return `
                             <g>
-                                <rect class="stats-chart-bar" 
-                                      x="${x}" 
-                                      y="${y}" 
-                                      width="${barWidth}" 
-                                      height="${barHeightValue}"
-                                      rx="4">
-                                    <title>${player.name}: ${player.attended}/${matches.length} matches (${player.percentage}%)</title>
-                                </rect>
+                                ${stackRects}
                                 <text class="stats-chart-goal-value" 
                                       x="${x + barWidth / 2}" 
-                                      y="${y - 8}">${player.attended}</text>
+                                      y="${topY - 8}">${player.attended}</text>
                                 <text class="stats-chart-player-label" 
                                       x="${(x + barWidth / 2) - 40}" 
                                       y="${chartHeight - padding.bottom + (nameSpaceNeeded * 0.4)}"\
@@ -701,21 +876,26 @@ window.renderPlayerProfile = function() {
         return sessionDate <= now;
     });
     const pastMatchSessions = allPastSessions.filter(s => s.type === 'match');
+    const playedMatchSessions = getPlayedMatchesForAttendance();
     const pastTrainingSessions = allPastSessions.filter(s => s.type === 'training');
     
-    // Calculate match attendance
+    // Calculate match attendance (games played only — matches with a result)
     let matchesAttended = 0;
     let captainCount = 0;
+    let viceCaptainCount = 0;
     const matchAttendanceRecords = [];
-    pastMatchSessions.forEach(match => {
+    playedMatchSessions.forEach(match => {
         if (match.attendance && match.attendance.includes(playerName)) {
             matchesAttended++;
             const wasCaptain = match.captain === playerName;
+            const wasViceCaptain = match.viceCaptain === playerName;
             if (wasCaptain) captainCount++;
+            if (wasViceCaptain) viceCaptainCount++;
             matchAttendanceRecords.push({
                 date: match.date,
                 opponent: match.opponent || 'Unknown',
                 wasCaptain: wasCaptain,
+                wasViceCaptain: wasViceCaptain,
                 type: 'match'
             });
         }
@@ -736,7 +916,7 @@ window.renderPlayerProfile = function() {
     });
     
     // Calculate percentages
-    const matchAttendancePercent = pastMatchSessions.length > 0 ? Math.round((matchesAttended / pastMatchSessions.length) * 100) : 0;
+    const matchAttendancePercent = playedMatchSessions.length > 0 ? Math.round((matchesAttended / playedMatchSessions.length) * 100) : 0;
     const trainingAttendancePercent = pastTrainingSessions.length > 0 ? Math.round((trainingsAttended / pastTrainingSessions.length) * 100) : 0;
     
     // Get goal records sorted by date (most recent first)
@@ -747,6 +927,14 @@ window.renderPlayerProfile = function() {
     // Get captain history
     const captainHistory = pastMatchSessions
         .filter(m => m.captain === playerName)
+        .map(m => ({
+            date: m.date,
+            opponent: m.opponent || 'Unknown'
+        }))
+        .sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    const viceCaptainHistory = pastMatchSessions
+        .filter(m => m.viceCaptain === playerName)
         .map(m => ({
             date: m.date,
             opponent: m.opponent || 'Unknown'
@@ -781,6 +969,10 @@ window.renderPlayerProfile = function() {
             <div class="player-profile-stat-card">
                 <div class="player-profile-stat-value">${captainCount}</div>
                 <div class="player-profile-stat-label">Times Captain</div>
+            </div>
+            <div class="player-profile-stat-card">
+                <div class="player-profile-stat-value">${viceCaptainCount}</div>
+                <div class="player-profile-stat-label">Times Vice Captain</div>
             </div>
             <div class="player-profile-stat-card">
                 <div class="player-profile-stat-value">${cleanSheetData.cleanSheets}</div>
@@ -862,6 +1054,20 @@ window.renderPlayerProfile = function() {
         </div>
         
         <div class="player-profile-section">
+            <div class="player-profile-section-title">Vice Captain History (${viceCaptainCount})</div>
+            <div class="player-profile-section-content">
+                ${viceCaptainHistory.length > 0 ? viceCaptainHistory.map(record => `
+                    <div class="player-profile-attendance-item">
+                        <span class="player-profile-attendance-date">${formatDate(new Date(record.date))}</span>
+                        <span class="player-profile-vice-captain-badge">VC vs ${record.opponent}</span>
+                    </div>
+                `).join('') : `
+                    <div class="player-profile-no-data">No vice captaincy records yet</div>
+                `}
+            </div>
+        </div>
+        
+        <div class="player-profile-section">
             <div class="player-profile-section-title">📅 Attendance Record (${matchesAttended + trainingsAttended})</div>
             <div class="player-profile-section-content" style="max-height: 400px; overflow-y: auto;">
                 ${allAttendanceRecords.length > 0 ? allAttendanceRecords.map(record => `
@@ -874,7 +1080,7 @@ window.renderPlayerProfile = function() {
                         </div>
                         <span class="player-profile-attendance-type ${record.type}">
                             ${record.type === 'match' ? '🏆 Match' : '⚽ Training'}
-                            ${record.wasCaptain ? ' ⭐' : ''}
+                            ${record.wasCaptain ? ' ⭐' : ''}${record.wasViceCaptain ? ' VC' : ''}
                         </span>
                     </div>
                 `).join('') : `
@@ -887,41 +1093,48 @@ window.renderPlayerProfile = function() {
 
 // Generate captain history chart
 function generateCaptainHistoryChart() {
-    // Get all matches that have a captain
-    const matches = sessions.filter(s => s.type === 'match' && !s.deleted && s.captain);
+    const matches = sessions.filter(s => s.type === 'match' && !s.deleted && (s.captain || s.viceCaptain));
     
     if (matches.length === 0) {
         return `
             <div class="stats-chart-container">
-                <div class="stats-chart-title">Captain History</div>
+                <div class="stats-chart-title">Captain & Vice Captain History</div>
                 <div class="stats-empty" style="padding: 40px;">
-                    <p>No captains recorded yet</p>
-                    <small>Assign captains in match cards to see history here.</small>
+                    <p>No captains or vice captains recorded yet</p>
+                    <small>Assign captains and vice captains in match cards to see history here.</small>
                 </div>
             </div>
         `;
     }
     
-    // Sort matches by date (most recent first for display)
     const sortedMatches = [...matches].sort((a, b) => new Date(b.date) - new Date(a.date));
+    const dash = '—';
     
     return `
         <div class="stats-chart-container">
-            <div class="stats-chart-title">Captain History (${matches.length} ${matches.length === 1 ? 'match' : 'matches'})</div>
+            <div class="stats-chart-title">Captain & Vice Captain History (${matches.length} ${matches.length === 1 ? 'match' : 'matches'})</div>
             <div style="padding: 20px;">
-                <div style="display: grid; grid-template-columns: 1fr 2fr 2fr; gap: 12px; font-size: 13px; font-weight: 700; color: var(--text-secondary); padding-bottom: 12px; border-bottom: 2px solid var(--border-color); text-transform: uppercase; letter-spacing: 0.5px;">
+                <div style="display: grid; grid-template-columns: 1fr 2fr 2fr 2fr; gap: 12px; font-size: 13px; font-weight: 700; color: var(--text-secondary); padding-bottom: 12px; border-bottom: 2px solid var(--border-color); text-transform: uppercase; letter-spacing: 0.5px;">
                     <div style="text-align: center;">Date</div>
                     <div>Opponent</div>
                     <div style="display: flex; align-items: center; gap: 6px;"><span style="color: var(--accent-warm);">⭐</span> Captain</div>
+                    <div style="display: flex; align-items: center; gap: 6px;"><span style="color: var(--accent-primary);">VC</span> Vice Captain</div>
                 </div>
                 ${sortedMatches.map(match => {
                     const matchDate = new Date(match.date);
                     const formattedDate = matchDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+                    const captainCell = match.captain
+                        ? `<div style="color: var(--accent-primary); font-weight: 600;">${match.captain}</div>`
+                        : `<div style="color: var(--text-muted); font-weight: 500;">${dash}</div>`;
+                    const viceCell = match.viceCaptain
+                        ? `<div style="color: var(--accent-primary); font-weight: 600;">${match.viceCaptain}</div>`
+                        : `<div style="color: var(--text-muted); font-weight: 500;">${dash}</div>`;
                     return `
-                        <div style="display: grid; grid-template-columns: 1fr 2fr 2fr; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border-color); font-size: 14px; color: var(--text-primary); transition: all 0.2s ease;">
+                        <div style="display: grid; grid-template-columns: 1fr 2fr 2fr 2fr; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border-color); font-size: 14px; color: var(--text-primary); transition: all 0.2s ease;">
                             <div style="text-align: center; color: var(--text-secondary); font-weight: 500;">${formattedDate}</div>
                             <div style="font-weight: 500;">${match.opponent || 'Unknown'}</div>
-                            <div style="color: var(--accent-primary); font-weight: 600;">${match.captain}</div>
+                            ${captainCell}
+                            ${viceCell}
                         </div>
                     `;
                 }).join('')}
@@ -942,11 +1155,11 @@ window.getPlayerAttendanceStats = function(playerName) {
         return sessionDate <= now;
     });
 
-    const pastMatchSessions = allPastSessions.filter(s => s.type === 'match');
+    const playedMatchSessions = getPlayedMatchesForAttendance();
     const pastTrainingSessions = allPastSessions.filter(s => s.type === 'training');
 
     let matchesAttended = 0;
-    pastMatchSessions.forEach(match => {
+    playedMatchSessions.forEach(match => {
         if (match.attendance && match.attendance.includes(playerName)) {
             matchesAttended++;
         }
@@ -959,7 +1172,7 @@ window.getPlayerAttendanceStats = function(playerName) {
         }
     });
 
-    const matchAttendancePercent = pastMatchSessions.length > 0 ? Math.round((matchesAttended / pastMatchSessions.length) * 100) : 0;
+    const matchAttendancePercent = playedMatchSessions.length > 0 ? Math.round((matchesAttended / playedMatchSessions.length) * 100) : 0;
     const trainingAttendancePercent = pastTrainingSessions.length > 0 ? Math.round((trainingsAttended / pastTrainingSessions.length) * 100) : 0;
 
     return {
@@ -967,7 +1180,7 @@ window.getPlayerAttendanceStats = function(playerName) {
         matchAttendancePercent,
         trainingsAttended,
         trainingAttendancePercent,
-        totalMatches: pastMatchSessions.length,
+        totalMatches: playedMatchSessions.length,
         totalTrainings: pastTrainingSessions.length
     };
 };

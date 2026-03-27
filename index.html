@@ -2405,6 +2405,15 @@
             opacity: 0.9;
         }
 
+        .stats-chart-bar-segment {
+            transition: opacity 0.2s ease;
+            cursor: pointer;
+        }
+
+        .stats-chart-bar-segment:hover {
+            opacity: 0.88;
+        }
+
         .stats-chart-player-label {
             font-size: 28px;
             fill: var(--text-secondary);
@@ -3225,6 +3234,18 @@
             font-weight: 600;
             color: var(--accent-warm);
             background: rgba(245, 158, 11, 0.15);
+            padding: 6px 12px;
+            border-radius: 8px;
+        }
+
+        .player-profile-vice-captain-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--accent-primary);
+            background: rgba(59, 130, 246, 0.12);
             padding: 6px 12px;
             border-radius: 8px;
         }

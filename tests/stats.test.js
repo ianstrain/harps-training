@@ -61,11 +61,11 @@ describe('Statistics', () => {
             expect(stats.trainingAttendancePercent).toBe(0);
         });
 
-        test('should count match and training attendance for past sessions', () => {
+        test('should count match and training attendance for played matches and past training', () => {
             const pastDate = '2024-06-01T12:00:00.000Z';
             global.sessions = [
-                { id: 1, date: pastDate, type: 'match', deleted: false, attendance: ['Player 1', 'Player 2'] },
-                { id: 2, date: pastDate, type: 'match', deleted: false, attendance: ['Player 2'] },
+                { id: 1, date: pastDate, type: 'match', deleted: false, result: 'win', attendance: ['Player 1', 'Player 2'] },
+                { id: 2, date: pastDate, type: 'match', deleted: false, result: 'loss', attendance: ['Player 2'] },
                 { id: 3, date: pastDate, type: 'training', deleted: false, attendance: ['Player 1'] }
             ];
             const stats = window.getPlayerAttendanceStats('Player 1');
@@ -75,14 +75,133 @@ describe('Statistics', () => {
             expect(stats.trainingAttendancePercent).toBe(100);
         });
 
+        test('should not count matches without a result toward match attendance', () => {
+            const pastDate = '2024-06-01T12:00:00.000Z';
+            global.sessions = [
+                { id: 1, date: pastDate, type: 'match', deleted: false, result: '', attendance: ['Player 1'] },
+                { id: 2, date: pastDate, type: 'match', deleted: false, result: 'draw', attendance: ['Player 1'] }
+            ];
+            const stats = window.getPlayerAttendanceStats('Player 1');
+            expect(stats.totalMatches).toBe(1);
+            expect(stats.matchesAttended).toBe(1);
+            expect(stats.matchAttendancePercent).toBe(100);
+        });
+
         test('should exclude deleted sessions', () => {
             const pastDate = '2024-06-01T12:00:00.000Z';
             global.sessions = [
-                { id: 1, date: pastDate, type: 'match', deleted: true, attendance: ['Player 1'] }
+                { id: 1, date: pastDate, type: 'match', deleted: true, result: 'win', attendance: ['Player 1'] }
             ];
             const stats = window.getPlayerAttendanceStats('Player 1');
             expect(stats.matchesAttended).toBe(0);
             expect(stats.totalMatches).toBe(0);
+        });
+    });
+
+    describe('aggregatePlayerMatchGoalsByMatchKind', () => {
+        test('sums match card goals by league, friendly, and cup', () => {
+            global.sessions = [
+                {
+                    id: 1,
+                    type: 'match',
+                    deleted: false,
+                    matchType: 'league',
+                    matchGoals: { Alice: 2, Bob: 1 }
+                },
+                {
+                    id: 2,
+                    type: 'match',
+                    deleted: false,
+                    matchType: 'friendly',
+                    matchGoals: { Alice: 3 }
+                },
+                {
+                    id: 3,
+                    type: 'match',
+                    deleted: false,
+                    matchType: 'cup',
+                    matchGoals: { Alice: 1 }
+                }
+            ];
+            expect(window.aggregatePlayerMatchGoalsByMatchKind('Alice')).toEqual({
+                league: 2,
+                friendly: 3,
+                cup: 1
+            });
+            expect(window.aggregatePlayerMatchGoalsByMatchKind('Bob')).toEqual({
+                league: 1,
+                friendly: 0,
+                cup: 0
+            });
+        });
+
+        test('ignores deleted matches and non-match sessions', () => {
+            global.sessions = [
+                { id: 1, type: 'match', deleted: true, matchType: 'league', matchGoals: { Alice: 9 } },
+                { id: 2, type: 'training', deleted: false, matchGoals: { Alice: 9 } }
+            ];
+            expect(window.aggregatePlayerMatchGoalsByMatchKind('Alice')).toEqual({
+                league: 0,
+                friendly: 0,
+                cup: 0
+            });
+        });
+    });
+
+    describe('buildPlayerGoalChartSegments', () => {
+        test('assigns remainder to Other when stored total exceeds match sums', () => {
+            const segs = window.buildPlayerGoalChartSegments(10, { league: 4, friendly: 2, cup: 1 });
+            const byKey = Object.fromEntries(segs.map(s => [s.key, s.value]));
+            expect(byKey.league).toBe(4);
+            expect(byKey.friendly).toBe(2);
+            expect(byKey.cup).toBe(1);
+            expect(byKey.other).toBe(3);
+        });
+
+        test('scales match segments when match sums exceed stored total', () => {
+            const segs = window.buildPlayerGoalChartSegments(10, { league: 8, friendly: 8, cup: 4 });
+            const sum = segs.reduce((a, s) => a + s.value, 0);
+            expect(sum).toBeCloseTo(10, 5);
+            expect(segs.find(s => s.key === 'other')).toBeUndefined();
+        });
+    });
+
+    describe('aggregatePlayerMatchAttendanceByMatchKind', () => {
+        const matches = [
+            { id: 1, matchType: 'league', attendance: ['Alice', 'Bob'] },
+            { id: 2, matchType: 'friendly', attendance: ['Alice'] },
+            { id: 3, matchType: 'cup', attendance: ['Alice', 'Bob'] },
+            { id: 4, matchType: 'league', attendance: ['Bob'] }
+        ];
+
+        test('counts attended matches by type', () => {
+            expect(window.aggregatePlayerMatchAttendanceByMatchKind('Alice', matches)).toEqual({
+                league: 1,
+                friendly: 1,
+                cup: 1
+            });
+            expect(window.aggregatePlayerMatchAttendanceByMatchKind('Bob', matches)).toEqual({
+                league: 2,
+                friendly: 0,
+                cup: 1
+            });
+        });
+
+        test('treats missing matchType as friendly', () => {
+            const m = [{ id: 1, attendance: ['Zed'] }];
+            expect(window.aggregatePlayerMatchAttendanceByMatchKind('Zed', m)).toEqual({
+                league: 0,
+                friendly: 1,
+                cup: 0
+            });
+        });
+    });
+
+    describe('buildMatchAttendanceChartSegments', () => {
+        test('returns only non-zero segments in league, friendly, cup order', () => {
+            const segs = window.buildMatchAttendanceChartSegments({ league: 2, friendly: 0, cup: 1 });
+            expect(segs.map(s => s.key)).toEqual(['league', 'cup']);
+            expect(segs.map(s => s.value)).toEqual([2, 1]);
         });
     });
 
