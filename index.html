@@ -2384,8 +2384,14 @@
 
         .stats-chart-svg-container {
             width: 100%;
-            height: 300px;
             overflow: visible;
+            line-height: 0;
+        }
+
+        .stats-chart-svg-container svg {
+            width: 100%;
+            height: auto;
+            display: block;
         }
 
         .stats-chart-bar {
@@ -2557,10 +2563,6 @@
             .stats-chart-title {
                 font-size: 16px;
                 margin-bottom: 16px;
-            }
-            
-            .stats-chart-svg-container {
-                height: 500px;
             }
             
             .stats-chart-player-label {
