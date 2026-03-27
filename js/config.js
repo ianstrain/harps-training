@@ -7,6 +7,8 @@
 // 3. Enable Realtime Database
 // 4. Go to Project Settings > Your apps > Web app
 // 5. Copy the config object and replace the values below
+// 6. measurementId is your GA4 stream ID (Analytics is free on the standard tier);
+//    js/analytics.js loads gtag.js using this same value.
 // ============================================
 
 const firebaseConfig = {
