@@ -76,6 +76,7 @@ window.loadData = async function() {
                         s.game = sessionData.game || '';
                         s.attendance = sessionData.attendance || [];
                         s.captain = sessionData.captain || '';
+                        s.viceCaptain = sessionData.viceCaptain || '';
                         if (s.type === 'match') s.goalkeeper = sessionData.goalkeeper || '';
                         s.matchGoals = sessionData.matchGoals || {};
                         s.teamScore = sessionData.teamScore || '';
@@ -104,6 +105,7 @@ window.loadData = async function() {
             s.game = data[s.id + '_game'] || '';
             s.attendance = data[s.id + '_attendance'] ? JSON.parse(data[s.id + '_attendance']) : [];
             s.captain = data[s.id + '_captain'] || '';
+            s.viceCaptain = data[s.id + '_viceCaptain'] || '';
             if (s.type === 'match') s.goalkeeper = data[s.id + '_goalkeeper'] || '';
             s.matchGoals = data[s.id + '_matchGoals'] ? JSON.parse(data[s.id + '_matchGoals']) : {};
             s.teamScore = data[s.id + '_teamScore'] || '';
@@ -161,6 +163,7 @@ window.saveData = async function() {
         data[s.id + '_game'] = s.game;
         data[s.id + '_attendance'] = JSON.stringify(s.attendance || []);
         data[s.id + '_captain'] = s.captain || '';
+        data[s.id + '_viceCaptain'] = s.viceCaptain || '';
         data[s.id + '_goalkeeper'] = (s.type === 'match' && s.goalkeeper) ? s.goalkeeper : '';
         data[s.id + '_matchGoals'] = JSON.stringify(s.matchGoals || {});
         data[s.id + '_teamScore'] = s.teamScore || '';
@@ -188,6 +191,7 @@ window.saveData = async function() {
                     // Match-specific fields
                     attendance: s.attendance || [],
                     captain: s.captain || '',
+                    viceCaptain: s.viceCaptain || '',
                     goalkeeper: (s.type === 'match' && s.goalkeeper) ? s.goalkeeper : '',
                     matchGoals: s.matchGoals || {},
                     teamScore: s.teamScore || '',

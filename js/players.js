@@ -588,6 +588,9 @@ window.renderPlayers = function() {
                     if (session.captain === oldPlayerName) {
                         session.captain = newValue;
                     }
+                    if (session.viceCaptain === oldPlayerName) {
+                        session.viceCaptain = newValue;
+                    }
                 });
                 
                 // Move goals data to new player name

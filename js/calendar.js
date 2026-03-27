@@ -165,9 +165,12 @@ window.handleThisWeekAttendance = function(sessionId, playerName, isChecked) {
         }
     } else {
         session.attendance = session.attendance.filter(name => name !== playerName);
-        // Also clear captain if they're not attending
+        // Also clear captain / vice captain if they're not attending
         if (session.captain === playerName) {
             session.captain = '';
+        }
+        if (session.viceCaptain === playerName) {
+            session.viceCaptain = '';
         }
         // Clear match goals if they had any
         if (session.matchGoals && session.matchGoals[playerName]) {
@@ -320,6 +323,7 @@ window.addSessionFromCalendar = function(dateStr) {
         cupStage: '',
         attendance: [],
         captain: '',
+        viceCaptain: '',
         matchGoals: {},
         deleted: false,
         _tempId: tempId,

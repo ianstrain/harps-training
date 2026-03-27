@@ -86,6 +86,7 @@ window.bulkCreateSessions = function(startDate, endDate, dayOfWeek, template) {
                 kickOffTime: template.kickOffTime || '',
                 attendance: [],
                 captain: '',
+                viceCaptain: '',
                 matchGoals: {},
                 teamScore: '',
                 opponentScore: '',

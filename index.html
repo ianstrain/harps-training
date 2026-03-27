@@ -847,6 +847,41 @@
             margin-bottom: 12px;
         }
 
+        .attendance-section-title-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .attendance-section-title-row .attendance-section-title {
+            margin-bottom: 0;
+        }
+
+        .copy-attendance-btn {
+            flex-shrink: 0;
+            padding: 6px 10px;
+            font-size: 16px;
+            line-height: 1;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: var(--bg-section);
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: background 0.2s ease, border-color 0.2s ease;
+        }
+
+        .copy-attendance-btn:hover {
+            background: var(--bg-card);
+            border-color: var(--accent-primary);
+        }
+
+        .copy-attendance-btn:focus-visible {
+            outline: 2px solid var(--accent-primary);
+            outline-offset: 2px;
+        }
+
         .attendance-checklist {
             max-height: 250px;
             overflow-y: auto;
@@ -901,6 +936,16 @@
             font-size: 10px;
             line-height: 1.2;
             color: var(--accent-warm);
+        }
+
+        .attendance-header-vice-captain {
+            width: auto;
+            min-width: 36px;
+            flex-shrink: 0;
+            text-align: center;
+            font-size: 10px;
+            line-height: 1.2;
+            color: var(--accent-primary);
         }
 
         .attendance-item {
@@ -960,6 +1005,24 @@
 
         .captain-checkbox:checked {
             accent-color: var(--accent-warm);
+        }
+
+        .vice-captain-checkbox {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            accent-color: var(--accent-primary);
+            flex-shrink: 0;
+            position: relative;
+        }
+
+        .vice-captain-checkbox:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .vice-captain-checkbox:checked {
+            accent-color: var(--accent-primary);
         }
 
         .captain-section {
@@ -3371,6 +3434,44 @@
 
         .record-card {
             border-left: 4px solid var(--accent-secondary);
+        }
+
+        .record-breakdown {
+            text-align: left;
+            margin: 4px 0 10px 0;
+        }
+
+        .record-breakdown-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 6px;
+            font-size: 14px;
+        }
+
+        .record-breakdown-label {
+            color: var(--text-secondary);
+            font-weight: 600;
+            text-transform: none;
+            letter-spacing: 0;
+            font-size: 11px;
+        }
+
+        .record-breakdown-value {
+            font-weight: 700;
+            font-size: 17px;
+            line-height: 1.2;
+        }
+
+        .record-empty {
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+
+        .record-form-sublabel {
+            text-align: left;
+            line-height: 1.45;
         }
 
         @media (max-width: 768px) {

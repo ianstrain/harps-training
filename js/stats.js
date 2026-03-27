@@ -236,74 +236,119 @@ window.renderStats = function() {
     container.innerHTML = seasonStats + attendanceChart + trainingAttendanceChart + captainHistory + goalsSvg;
 }
 
-// Generate season statistics
-function generateSeasonStats() {
-    // Calculate match statistics
-    const matchSessions = sessions.filter(s => s.type === 'match' && !s.deleted);
-    const completedMatches = matchSessions.filter(s => s.result);
+function getStatsMatchKind(session) {
+    const t = session.matchType || 'friendly';
+    if (t === 'league') return 'league';
+    if (t === 'cup') return 'cup';
+    return 'friendly';
+}
+
+function buildSeasonMatchMetrics(completedMatches) {
     const wins = completedMatches.filter(s => s.result === 'win').length;
     const draws = completedMatches.filter(s => s.result === 'draw').length;
     const losses = completedMatches.filter(s => s.result === 'loss').length;
     const totalGoalsScored = completedMatches.reduce((sum, s) => sum + (parseInt(s.teamScore) || 0), 0);
     const totalGoalsConceded = completedMatches.reduce((sum, s) => sum + (parseInt(s.opponentScore) || 0), 0);
     const goalDiff = totalGoalsScored - totalGoalsConceded;
+    return {
+        played: completedMatches.length,
+        wins,
+        draws,
+        losses,
+        totalGoalsScored,
+        totalGoalsConceded,
+        goalDiff
+    };
+}
 
+function seasonMatchStatsGridHtml(m) {
+    const goalDiffColor = m.goalDiff > 0 ? '#00ff64' : m.goalDiff < 0 ? '#ff3232' : 'var(--accent)';
     return `
-        <div class="season-stats-section" style="margin-bottom: 30px; padding: 20px; background: var(--bg-section); border-radius: 12px; border: 1px solid var(--border-color);">
-            <h3 style="margin: 0 0 15px 0; color: var(--accent); font-size: 18px; text-align: center;">Season Match Statistics</h3>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 12px;">
                 <div class="stat-box" style="text-align: center; padding: 15px; background: var(--bg-card); border-radius: 8px;">
                     <div style="font-size: 28px; font-weight: bold; color: var(--accent);">
-                        ${completedMatches.length}
+                        ${m.played}
                     </div>
                     <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Played</div>
                 </div>
                 <div class="stat-box" style="text-align: center; padding: 15px; background: var(--bg-card); border-radius: 8px;">
                     <div style="font-size: 28px; font-weight: bold; color: #00ff64;">
-                        ${wins}
+                        ${m.wins}
                     </div>
                     <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Wins</div>
                 </div>
                 <div class="stat-box" style="text-align: center; padding: 15px; background: var(--bg-card); border-radius: 8px;">
                     <div style="font-size: 28px; font-weight: bold; color: #ffc800;">
-                        ${draws}
+                        ${m.draws}
                     </div>
                     <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Draws</div>
                 </div>
                 <div class="stat-box" style="text-align: center; padding: 15px; background: var(--bg-card); border-radius: 8px;">
                     <div style="font-size: 28px; font-weight: bold; color: #ff3232;">
-                        ${losses}
+                        ${m.losses}
                     </div>
                     <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Losses</div>
                 </div>
                 <div class="stat-box" style="text-align: center; padding: 15px; background: var(--bg-card); border-radius: 8px;">
                     <div style="font-size: 28px; font-weight: bold; color: var(--accent);">
-                        ${totalGoalsScored}
+                        ${m.totalGoalsScored}
                     </div>
                     <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Goals For</div>
                 </div>
                 <div class="stat-box" style="text-align: center; padding: 15px; background: var(--bg-card); border-radius: 8px;">
                     <div style="font-size: 28px; font-weight: bold; color: var(--text-secondary);">
-                        ${totalGoalsConceded}
+                        ${m.totalGoalsConceded}
                     </div>
                     <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Goals Against</div>
                 </div>
                 <div class="stat-box" style="text-align: center; padding: 15px; background: var(--bg-card); border-radius: 8px; grid-column: span 1;">
-                    <div style="font-size: 28px; font-weight: bold; color: ${goalDiff > 0 ? '#00ff64' : goalDiff < 0 ? '#ff3232' : 'var(--accent)'};">
-                        ${goalDiff > 0 ? '+' : ''}${goalDiff}
+                    <div style="font-size: 28px; font-weight: bold; color: ${goalDiffColor};">
+                        ${m.goalDiff > 0 ? '+' : ''}${m.goalDiff}
                     </div>
                     <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Goal Diff</div>
                 </div>
             </div>
-            ${completedMatches.length > 0 ? `
+            ${m.played > 0 ? `
                 <div style="margin-top: 15px; text-align: center; font-size: 18px; font-weight: bold; color: var(--text-primary);">
-                    Record: ${wins}W - ${draws}D - ${losses}L
+                    Record: ${m.wins}W - ${m.draws}D - ${m.losses}L
                 </div>
             ` : `
                 <div style="margin-top: 15px; text-align: center; font-size: 14px; color: var(--text-secondary);">
                     No completed matches yet
                 </div>
             `}
+    `;
+}
+
+function seasonStatsSubsection(title, completedSubset, marginTop) {
+    const metrics = buildSeasonMatchMetrics(completedSubset);
+    return `
+        <div style="margin-top: ${marginTop}px;">
+            <h4 style="margin: 0 0 12px 0; color: var(--text-primary); font-size: 15px; text-align: center; font-weight: 600;">${title}</h4>
+            ${seasonMatchStatsGridHtml(metrics)}
+        </div>
+    `;
+}
+
+// Generate season statistics
+function generateSeasonStats() {
+    const matchSessions = sessions.filter(s => s.type === 'match' && !s.deleted);
+    const completedMatches = matchSessions.filter(s => s.result);
+    const leagueCompleted = completedMatches.filter(s => getStatsMatchKind(s) === 'league');
+    const friendlyCompleted = completedMatches.filter(s => getStatsMatchKind(s) === 'friendly');
+    const cupCompleted = completedMatches.filter(s => getStatsMatchKind(s) === 'cup');
+    const hasCupMatches = matchSessions.some(s => getStatsMatchKind(s) === 'cup');
+
+    let body = seasonStatsSubsection('League matches', leagueCompleted, 0);
+    body += seasonStatsSubsection('Friendly matches', friendlyCompleted, 20);
+    if (hasCupMatches) {
+        body += seasonStatsSubsection('Cup matches', cupCompleted, 20);
+    }
+
+    return `
+        <div class="season-stats-section" style="margin-bottom: 30px; padding: 20px; background: var(--bg-section); border-radius: 12px; border: 1px solid var(--border-color);">
+            <h3 style="margin: 0 0 15px 0; color: var(--accent); font-size: 18px; text-align: center;">Season Match Statistics</h3>
+            ${body}
         </div>
     `;
 }

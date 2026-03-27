@@ -49,6 +49,7 @@ describe('Sessions', () => {
                 deleted: false,
                 attendance: [],
                 captain: '',
+                viceCaptain: '',
                 matchGoals: {},
                 teamScore: '',
                 opponentScore: ''

@@ -497,6 +497,7 @@ window.handleAddSession = function() {
         cupStage: '',
         attendance: [],
         captain: '',
+        viceCaptain: '',
         matchGoals: {},
         deleted: false,
         _tempId: tempId,
@@ -574,6 +575,7 @@ window.handleSaveSession = async function(tempId) {
             session.cupStage = matchType === 'cup' ? cupStage : '';
             session.attendance = [];
             session.captain = '';
+            session.viceCaptain = '';
             session.matchGoals = {};
         }
         
