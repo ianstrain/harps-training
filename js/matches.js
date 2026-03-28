@@ -528,7 +528,7 @@ window.handleMatchTypeChange = function(sessionId, matchType) {
 window.handleMatchCardClick = function(event, sessionId) {
     // Don't flip if clicking on interactive elements
     const target = event.target;
-    if (target.closest('input, button, select, .attendance-checkbox, .goalkeeper-checkbox, .captain-checkbox, .vice-captain-checkbox, .goal-btn, .captain-selector, .match-photo-btn, .match-photo-remove-btn, .match-photo-preview')) {
+    if (target.closest('input, textarea, button, select, .attendance-checkbox, .goalkeeper-checkbox, .captain-checkbox, .vice-captain-checkbox, .goal-btn, .captain-selector, .match-photo-btn, .match-photo-remove-btn, .match-photo-preview')) {
         return; // Don't stop propagation here, let the event bubble to the specific handlers
     }
     
