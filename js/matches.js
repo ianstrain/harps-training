@@ -2,6 +2,14 @@
 // MATCH CARD AND SCORING FUNCTIONS
 // ============================================
 
+/** Firebase Storage URLs contain &query=params; must escape for HTML src attributes. */
+function matchPhotoUrlForImgAttr(url) {
+    if (!url) return '';
+    return String(url)
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;');
+}
+
 // Generate match card HTML
 window.generateMatchCard = function(session) {
     const matchTypeBadgeClass = session.matchType || 'friendly';
@@ -50,6 +58,20 @@ window.generateMatchCard = function(session) {
                 ` : `
                     <div class="opponent-name">vs ${session.opponent || defaults.opponent}</div>
                 `}
+                ${session.matchPhoto ? `
+                    <div class="match-photo-section${editMode ? ' match-photo-section--edit-mode' : ''}">
+                        <img class="match-photo-preview" src="${matchPhotoUrlForImgAttr(session.matchPhoto)}" alt="Match photo" loading="lazy" onclick="event.stopPropagation()" />
+                    </div>
+                ` : ''}
+                ${editMode ? `
+                    <div class="match-photo-edit-block">
+                        <div class="match-photo-edit-row">
+                            <input type="file" id="match-photo-file-${session.id}" class="match-photo-file-input" accept="image/*" tabindex="-1" onclick="event.stopPropagation()" onchange="handleMatchPhotoFile(${session.id}, this)" />
+                            <button type="button" class="match-photo-btn" onclick="event.stopPropagation(); document.getElementById('match-photo-file-${session.id}').click()">${session.matchPhoto ? '📷 Replace photo' : '📷 Upload photo'}</button>
+                            ${session.matchPhoto ? `<button type="button" class="match-photo-remove-btn" onclick="event.stopPropagation(); clearMatchPhoto(${session.id})">Remove photo</button>` : ''}
+                        </div>
+                    </div>
+                ` : ''}
                 <div class="session-meta">
                     ${editMode ? `
                         <div class="meta-item meta-item-edit">
@@ -290,6 +312,147 @@ window.copyMatchAttendanceToClipboard = async function(sessionId) {
     }
 };
 
+const MATCH_PHOTO_MAX_EDGE = 1200;
+const MATCH_PHOTO_MAX_FILE_BYTES = 2 * 1024 * 1024;
+
+function getMatchPhotoStorage() {
+    return (typeof globalThis !== 'undefined' && globalThis.storage) ? globalThis.storage : null;
+}
+
+function isFirebaseStorageDownloadUrl(url) {
+    return typeof url === 'string' && /^https?:\/\//.test(url) &&
+        (url.indexOf('firebasestorage.googleapis.com') !== -1 || url.indexOf('firebasestorage.app') !== -1);
+}
+
+function deleteMatchPhotoFromStorageIfNeeded(url) {
+    const st = getMatchPhotoStorage();
+    if (!st || !url || !isFirebaseStorageDownloadUrl(url)) {
+        return Promise.resolve();
+    }
+    return st.refFromURL(url).delete().catch(function() {});
+}
+
+window.handleMatchPhotoFile = function(sessionId, fileInput) {
+    const file = fileInput.files && fileInput.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+        fileInput.value = '';
+        showToast('Please choose an image file.', true);
+        return;
+    }
+    if (file.size > MATCH_PHOTO_MAX_FILE_BYTES) {
+        fileInput.value = '';
+        showToast('Image is too large (max 2MB). Try a smaller photo.', true);
+        return;
+    }
+
+    const session = sessions.find(s => s.id === parseInt(sessionId, 10));
+    if (!session || session.type !== 'match') {
+        fileInput.value = '';
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+            let w = img.naturalWidth;
+            let h = img.naturalHeight;
+            const max = MATCH_PHOTO_MAX_EDGE;
+            if (w > max || h > max) {
+                if (w >= h) {
+                    h = Math.round((h * max) / w);
+                    w = max;
+                } else {
+                    w = Math.round((w * max) / h);
+                    h = max;
+                }
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, w, h);
+
+            const st = getMatchPhotoStorage();
+            const signedIn = typeof auth !== 'undefined' && auth && auth.currentUser;
+            const canUploadToCloud = st && signedIn;
+
+            if (st && !signedIn) {
+                showToast('Log in to save photos to Firebase Storage. Saving on this device only for now.');
+            }
+
+            if (canUploadToCloud) {
+                const priorUrl = session.matchPhoto;
+                canvas.toBlob(function(blob) {
+                    if (!blob) {
+                        fileInput.value = '';
+                        showToast('Could not process that image.', true);
+                        return;
+                    }
+                    const path = 'matchPhotos/' + sessionId + '/' + Date.now() + '.jpg';
+                    const ref = st.ref(path);
+                    ref.put(blob, { contentType: 'image/jpeg' })
+                        .then(function(snapshot) {
+                            return snapshot.ref.getDownloadURL();
+                        })
+                        .then(function(url) {
+                            session.matchPhoto = url;
+                            return deleteMatchPhotoFromStorageIfNeeded(priorUrl);
+                        })
+                        .then(function() {
+                            fileInput.value = '';
+                            return Promise.resolve(saveData());
+                        })
+                        .then(function() { renderSessions(); })
+                        .catch(function(err) {
+                            console.error('Match photo upload failed:', err);
+                            fileInput.value = '';
+                            var code = err && err.code;
+                            var is403 = code === 'storage/unauthorized' || code === 'storage/permission-denied' ||
+                                (err && err.message && err.message.indexOf('Permission denied') !== -1);
+                            if (is403) {
+                                showToast('Storage 403: Firebase Console → Storage → Rules — publish rules from storage.rules (allow auth to write matchPhotos/).', true);
+                            } else {
+                                showToast('Could not upload photo: ' + (err && err.message ? err.message : 'Unknown error'), true);
+                            }
+                        });
+                }, 'image/jpeg', 0.88);
+                return;
+            }
+
+            let dataUrl = canvas.toDataURL('image/jpeg', 0.88);
+            if (dataUrl.length > 4 * 1024 * 1024) {
+                dataUrl = canvas.toDataURL('image/jpeg', 0.72);
+            }
+            session.matchPhoto = dataUrl;
+            fileInput.value = '';
+            Promise.resolve(saveData()).then(function() { renderSessions(); });
+        };
+        img.onerror = function() {
+            fileInput.value = '';
+            showToast('Could not read that image.', true);
+        };
+        img.src = e.target.result;
+    };
+    reader.onerror = function() {
+        fileInput.value = '';
+        showToast('Could not read that file.', true);
+    };
+    reader.readAsDataURL(file);
+};
+
+window.clearMatchPhoto = function(sessionId) {
+    const session = sessions.find(s => s.id === parseInt(sessionId, 10));
+    if (!session || session.type !== 'match') return;
+    const priorUrl = session.matchPhoto;
+    session.matchPhoto = '';
+    deleteMatchPhotoFromStorageIfNeeded(priorUrl)
+        .then(function() { return Promise.resolve(saveData()); })
+        .then(function() { renderSessions(); });
+};
+
 // Handle match type change in edit mode
 window.handleMatchTypeChange = function(sessionId, matchType) {
     const session = sessions.find(s => s.id === parseInt(sessionId));
@@ -316,7 +479,7 @@ window.handleMatchTypeChange = function(sessionId, matchType) {
 window.handleMatchCardClick = function(event, sessionId) {
     // Don't flip if clicking on interactive elements
     const target = event.target;
-    if (target.closest('input, button, select, .attendance-checkbox, .goalkeeper-checkbox, .captain-checkbox, .vice-captain-checkbox, .goal-btn, .captain-selector')) {
+    if (target.closest('input, button, select, .attendance-checkbox, .goalkeeper-checkbox, .captain-checkbox, .vice-captain-checkbox, .goal-btn, .captain-selector, .match-photo-btn, .match-photo-remove-btn, .match-photo-preview')) {
         return; // Don't stop propagation here, let the event bubble to the specific handlers
     }
     

@@ -11,6 +11,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
     <style>
         :root {
             --bg-dark: #0a0f1a;
@@ -831,6 +832,62 @@
 
         .match-card .match-input-group {
             padding: 0 20px;
+        }
+
+        .match-photo-section {
+            padding: 0 20px 12px 20px;
+        }
+
+        .match-photo-preview {
+            display: block;
+            width: 100%;
+            max-height: 220px;
+            object-fit: cover;
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+        }
+
+        .match-photo-edit-block {
+            padding: 0 20px 12px 20px;
+        }
+
+        .match-photo-section--edit-mode {
+            padding-bottom: 6px;
+        }
+
+        .match-photo-edit-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .match-photo-file-input {
+            display: none;
+        }
+
+        .match-photo-btn,
+        .match-photo-remove-btn {
+            padding: 8px 14px;
+            font-size: 13px;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: inherit;
+            border: 2px solid var(--accent-secondary);
+            background: rgba(14, 165, 233, 0.1);
+            color: var(--accent-secondary);
+        }
+
+        .match-photo-remove-btn {
+            border-color: var(--border-color);
+            background: var(--bg-section);
+            color: var(--text-secondary);
+        }
+
+        .match-photo-btn:hover,
+        .match-photo-remove-btn:hover {
+            filter: brightness(1.08);
         }
 
         /* Match card back - attendance tracking */

@@ -18,6 +18,18 @@ global.firebase = {
             callback(null); // Default to logged out
             return jest.fn(); // Return unsubscribe function
         })
+    })),
+    storage: jest.fn(() => ({
+        ref: jest.fn(() => ({
+            put: jest.fn(() => Promise.resolve({
+                ref: {
+                    getDownloadURL: jest.fn(() => Promise.resolve('https://firebasestorage.googleapis.com/v0/b/test/o/m.jpg?alt=media'))
+                }
+            }))
+        })),
+        refFromURL: jest.fn(() => ({
+            delete: jest.fn(() => Promise.resolve())
+        }))
     }))
 };
 

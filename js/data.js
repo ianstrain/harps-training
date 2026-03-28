@@ -83,6 +83,7 @@ window.loadData = async function() {
                         s.opponentScore = sessionData.opponentScore || '';
                         s.result = sessionData.result || '';
                         s.cleanSheet = sessionData.cleanSheet || false;
+                        if (s.type === 'match') s.matchPhoto = sessionData.matchPhoto || '';
                     }
                 });
                 console.log('Session data loaded from Firebase');
@@ -112,6 +113,7 @@ window.loadData = async function() {
             s.opponentScore = data[s.id + '_opponentScore'] || '';
             s.result = data[s.id + '_result'] || '';
             s.cleanSheet = data[s.id + '_cleanSheet'] === 'true' || data[s.id + '_cleanSheet'] === true;
+            if (s.type === 'match') s.matchPhoto = data[s.id + '_matchPhoto'] || '';
         });
         renderSessions();
     }
@@ -170,6 +172,9 @@ window.saveData = async function() {
         data[s.id + '_opponentScore'] = s.opponentScore || '';
         data[s.id + '_result'] = s.result || '';
         data[s.id + '_cleanSheet'] = s.cleanSheet || false;
+        if (s.type === 'match') {
+            data[s.id + '_matchPhoto'] = s.matchPhoto || '';
+        }
     });
     
     // Save to localStorage
@@ -199,6 +204,7 @@ window.saveData = async function() {
                     result: s.result || '',
                     cleanSheet: s.cleanSheet || false,
                     kickOffTime: s.kickOffTime || '',
+                    matchPhoto: (s.type === 'match' && s.matchPhoto) ? s.matchPhoto : '',
                     lastUpdated: new Date().toISOString()
                 };
             });

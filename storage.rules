@@ -1,0 +1,15 @@
+rules_version = '2';
+
+// Paste into Firebase Console → Build → Storage → Rules → Publish.
+// Match photos upload to: matchPhotos/{sessionId}/{filename}.jpg
+// - read: public (download URLs still work with token; this covers direct access patterns)
+// - write/delete: only signed-in users (must match Firebase Auth login in the app)
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /matchPhotos/{sessionId}/{fileName} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+  }
+}

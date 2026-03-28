@@ -4,7 +4,8 @@
 // To set up Firebase:
 // 1. Go to https://console.firebase.google.com
 // 2. Create a new project (or use existing)
-// 3. Enable Realtime Database
+// 3. Enable Realtime Database and Storage (Storage > Get started). If photo upload returns 403, open
+//    Storage → Rules and publish the rules in storage.rules (signed-in users can write matchPhotos/).
 // 4. Go to Project Settings > Your apps > Web app
 // 5. Copy the config object and replace the values below
 // 6. measurementId is your GA4 stream ID (Analytics is free on the standard tier);
@@ -25,16 +26,30 @@ const firebaseConfig = {
 // Initialize Firebase (only if config is provided and Firebase is loaded)
 let database = null;
 let auth = null;
+let storage = null;
+
+if (typeof globalThis !== 'undefined') {
+    globalThis.storage = null;
+}
 
 if (typeof firebase !== 'undefined' && firebaseConfig.apiKey !== "YOUR_API_KEY") {
     try {
         firebase.initializeApp(firebaseConfig);
         database = firebase.database();
         auth = firebase.auth();
+        if (typeof firebase.storage === 'function') {
+            storage = firebase.storage();
+            if (typeof globalThis !== 'undefined') {
+                globalThis.storage = storage;
+            }
+        }
         console.log('Firebase initialized');
     } catch (e) {
         console.error('Failed to initialize Firebase:', e);
         console.log('Using localStorage only');
+        if (typeof globalThis !== 'undefined') {
+            globalThis.storage = null;
+        }
     }
 }
 
