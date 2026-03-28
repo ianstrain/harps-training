@@ -313,7 +313,20 @@ window.copyMatchAttendanceToClipboard = async function(sessionId) {
 };
 
 const MATCH_PHOTO_MAX_EDGE = 1200;
-const MATCH_PHOTO_MAX_FILE_BYTES = 2 * 1024 * 1024;
+/** Max source file size before resize (mobile photos are often 3–8MB; we compress after decode). */
+const MATCH_PHOTO_MAX_FILE_BYTES = 12 * 1024 * 1024;
+
+function isLikelyImageFile(file) {
+    if (!file) return false;
+    var t = (file.type || '').toLowerCase();
+    if (t.indexOf('image/') === 0) return true;
+    if (t === '' || t === 'application/octet-stream') {
+        var n = (file.name || '').toLowerCase();
+        if (!n) return true;
+        return /\.(jpe?g|png|gif|webp|heic|heif|bmp|tif|tiff)$/i.test(n);
+    }
+    return false;
+}
 
 function getMatchPhotoStorage() {
     return (typeof globalThis !== 'undefined' && globalThis.storage) ? globalThis.storage : null;
@@ -336,14 +349,14 @@ window.handleMatchPhotoFile = function(sessionId, fileInput) {
     const file = fileInput.files && fileInput.files[0];
     if (!file) return;
 
-    if (!file.type.startsWith('image/')) {
+    if (!isLikelyImageFile(file)) {
         fileInput.value = '';
         showToast('Please choose an image file.', true);
         return;
     }
     if (file.size > MATCH_PHOTO_MAX_FILE_BYTES) {
         fileInput.value = '';
-        showToast('Image is too large (max 2MB). Try a smaller photo.', true);
+        showToast('Image is too large (max 12MB). Try a smaller photo.', true);
         return;
     }
 
@@ -353,12 +366,78 @@ window.handleMatchPhotoFile = function(sessionId, fileInput) {
         return;
     }
 
-    const reader = new FileReader();
-    reader.onload = function(e) {
+    function finishWithCanvas(canvas) {
+        const st = getMatchPhotoStorage();
+        const signedIn = typeof auth !== 'undefined' && auth && auth.currentUser;
+        const canUploadToCloud = st && signedIn;
+
+        if (st && !signedIn) {
+            showToast('Log in to save photos to Firebase Storage. Saving on this device only for now.');
+        }
+
+        if (canUploadToCloud) {
+            const priorUrl = session.matchPhoto;
+            canvas.toBlob(function(blob) {
+                if (!blob) {
+                    fileInput.value = '';
+                    showToast('Could not process that image.', true);
+                    return;
+                }
+                const path = 'matchPhotos/' + sessionId + '/' + Date.now() + '.jpg';
+                const ref = st.ref(path);
+                ref.put(blob, { contentType: 'image/jpeg' })
+                    .then(function(snapshot) {
+                        return snapshot.ref.getDownloadURL();
+                    })
+                    .then(function(url) {
+                        session.matchPhoto = url;
+                        return deleteMatchPhotoFromStorageIfNeeded(priorUrl);
+                    })
+                    .then(function() {
+                        fileInput.value = '';
+                        return Promise.resolve(saveData());
+                    })
+                    .then(function() { renderSessions(); })
+                    .catch(function(err) {
+                        console.error('Match photo upload failed:', err);
+                        fileInput.value = '';
+                        var code = err && err.code;
+                        var is403 = code === 'storage/unauthorized' || code === 'storage/permission-denied' ||
+                            (err && err.message && err.message.indexOf('Permission denied') !== -1);
+                        if (is403) {
+                            showToast('Storage 403: Firebase Console → Storage → Rules — publish rules from storage.rules (allow auth to write matchPhotos/).', true);
+                        } else {
+                            showToast('Could not upload photo: ' + (err && err.message ? err.message : 'Unknown error'), true);
+                        }
+                    });
+            }, 'image/jpeg', 0.88);
+            return;
+        }
+
+        let dataUrl = canvas.toDataURL('image/jpeg', 0.88);
+        if (dataUrl.length > 4 * 1024 * 1024) {
+            dataUrl = canvas.toDataURL('image/jpeg', 0.72);
+        }
+        session.matchPhoto = dataUrl;
+        fileInput.value = '';
+        Promise.resolve(saveData()).then(function() { renderSessions(); });
+    }
+
+    function decodeWithImage(src, revokeObjectUrl) {
         const img = new Image();
         img.onload = function() {
+            if (revokeObjectUrl && typeof URL !== 'undefined' && URL.revokeObjectURL) {
+                try {
+                    URL.revokeObjectURL(src);
+                } catch (e) { /* ignore */ }
+            }
             let w = img.naturalWidth;
             let h = img.naturalHeight;
+            if (!w || !h) {
+                fileInput.value = '';
+                showToast('Could not read image dimensions. Try a JPEG or PNG from your gallery.', true);
+                return;
+            }
             const max = MATCH_PHOTO_MAX_EDGE;
             if (w > max || h > max) {
                 if (w >= h) {
@@ -374,71 +453,41 @@ window.handleMatchPhotoFile = function(sessionId, fileInput) {
             canvas.height = h;
             const ctx = canvas.getContext('2d');
             ctx.drawImage(img, 0, 0, w, h);
-
-            const st = getMatchPhotoStorage();
-            const signedIn = typeof auth !== 'undefined' && auth && auth.currentUser;
-            const canUploadToCloud = st && signedIn;
-
-            if (st && !signedIn) {
-                showToast('Log in to save photos to Firebase Storage. Saving on this device only for now.');
-            }
-
-            if (canUploadToCloud) {
-                const priorUrl = session.matchPhoto;
-                canvas.toBlob(function(blob) {
-                    if (!blob) {
-                        fileInput.value = '';
-                        showToast('Could not process that image.', true);
-                        return;
-                    }
-                    const path = 'matchPhotos/' + sessionId + '/' + Date.now() + '.jpg';
-                    const ref = st.ref(path);
-                    ref.put(blob, { contentType: 'image/jpeg' })
-                        .then(function(snapshot) {
-                            return snapshot.ref.getDownloadURL();
-                        })
-                        .then(function(url) {
-                            session.matchPhoto = url;
-                            return deleteMatchPhotoFromStorageIfNeeded(priorUrl);
-                        })
-                        .then(function() {
-                            fileInput.value = '';
-                            return Promise.resolve(saveData());
-                        })
-                        .then(function() { renderSessions(); })
-                        .catch(function(err) {
-                            console.error('Match photo upload failed:', err);
-                            fileInput.value = '';
-                            var code = err && err.code;
-                            var is403 = code === 'storage/unauthorized' || code === 'storage/permission-denied' ||
-                                (err && err.message && err.message.indexOf('Permission denied') !== -1);
-                            if (is403) {
-                                showToast('Storage 403: Firebase Console → Storage → Rules — publish rules from storage.rules (allow auth to write matchPhotos/).', true);
-                            } else {
-                                showToast('Could not upload photo: ' + (err && err.message ? err.message : 'Unknown error'), true);
-                            }
-                        });
-                }, 'image/jpeg', 0.88);
-                return;
-            }
-
-            let dataUrl = canvas.toDataURL('image/jpeg', 0.88);
-            if (dataUrl.length > 4 * 1024 * 1024) {
-                dataUrl = canvas.toDataURL('image/jpeg', 0.72);
-            }
-            session.matchPhoto = dataUrl;
-            fileInput.value = '';
-            Promise.resolve(saveData()).then(function() { renderSessions(); });
+            finishWithCanvas(canvas);
         };
         img.onerror = function() {
+            if (revokeObjectUrl && typeof URL !== 'undefined' && URL.revokeObjectURL) {
+                try {
+                    URL.revokeObjectURL(src);
+                } catch (e) { /* ignore */ }
+            }
             fileInput.value = '';
-            showToast('Could not read that image.', true);
+            showToast('Could not load that image. On iPhone, try Settings → Camera → Formats → Most Compatible, or pick a JPEG from Photos.', true);
         };
-        img.src = e.target.result;
+        img.src = src;
+    }
+
+    if (typeof URL !== 'undefined' && typeof URL.createObjectURL === 'function') {
+        let objUrl;
+        try {
+            objUrl = URL.createObjectURL(file);
+        } catch (e) {
+            console.error('createObjectURL failed:', e);
+            objUrl = null;
+        }
+        if (objUrl) {
+            decodeWithImage(objUrl, true);
+            return;
+        }
+    }
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        decodeWithImage(e.target.result, false);
     };
     reader.onerror = function() {
         fileInput.value = '';
-        showToast('Could not read that file.', true);
+        showToast('Could not read that file. Try choosing the photo again from your gallery.', true);
     };
     reader.readAsDataURL(file);
 };
