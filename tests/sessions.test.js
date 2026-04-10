@@ -18,7 +18,7 @@ describe('Sessions', () => {
                 id: 1,
                 date: new Date('2026-02-03'),
                 type: 'training',
-                location: 'The Aura',
+                location: 'Orchard Grove',
                 time: '7:30 PM - 8:30 PM',
                 cancelled: false,
                 deleted: false,

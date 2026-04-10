@@ -34,7 +34,7 @@ describe('UI Functions', () => {
                     id: 1,
                     date: new Date('2026-02-03'),
                     type: 'training',
-                    location: 'The Aura',
+                    location: 'Orchard Grove',
                     time: '7:30 PM - 8:30 PM'
                 },
                 {
@@ -70,7 +70,7 @@ describe('UI Functions', () => {
 
             expect(clipboardText).toContain('⚽ Training Session');
             expect(clipboardText).toContain('📅 Tuesday - 3/2/2026');
-            expect(clipboardText).toContain('🏟 The Aura');
+            expect(clipboardText).toContain('🏟 Orchard Grove');
             expect(clipboardText).not.toContain('attendance');
         });
 
@@ -87,17 +87,18 @@ describe('UI Functions', () => {
             }
 
             const formattedDate = formatDateForClipboard(session.date);
-            const matchesUpToThis = sessions.filter(s => s.type === 'match' && !s.deleted && s.id <= session.id).length;
-            
-            const clipboardText = `🏆 Matchday #${String(matchesUpToThis).padStart(2, '0')} - ${session.opponent}
+            const matchdayLabel = formatMatchdayClipboardLabel(session);
+
+            const kickOffLine = formatKickOffTimeDisplay(session.kickOffTime).trim() || 'TBD';
+            const clipboardText = `🏆 ${matchdayLabel} - ${session.opponent}
 
 📅 ${formattedDate}
-⌚ Meet up ${session.time.split('-')[0].trim()} at ${session.location}, Kickoff ${session.kickOffTime || 'TBD'}
+⌚ Meet up ${session.time.split('-')[0].trim()} at ${session.location}, Kickoff ${kickOffLine}
 🏟 ${session.location}
 👕 Shinguards, Black shorts and socks`;
 
-            expect(clipboardText).toContain('🏆 Matchday #01 - Rival FC');
-            expect(clipboardText).toContain('Kickoff 13:00');
+            expect(clipboardText).toContain('🏆 Friendly match #01 - Rival FC');
+            expect(clipboardText).toContain('Kickoff 1:00 PM');
             expect(clipboardText).toContain('🏟 Cappry');
             expect(clipboardText).not.toContain('attendance');
         });

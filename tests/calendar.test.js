@@ -82,7 +82,7 @@ describe('Calendar', () => {
                     type: 'training',
                     deleted: false,
                     cancelled: false,
-                    location: 'The Aura',
+                    location: 'Orchard Grove',
                     time: '7:30 PM',
                     attendance: []
                 }
@@ -92,6 +92,62 @@ describe('Calendar', () => {
             expect(container.innerHTML).not.toContain('No Upcoming Events');
             expect(container.innerHTML).toContain('Training');
             jest.useRealTimers();
+        });
+    });
+
+    describe('copyCalendarMonthMatchesToClipboard', () => {
+        beforeEach(() => {
+            window.renderCalendar = originalRenderCalendar;
+            global.currentCalendarMonth = 1;
+            global.currentCalendarYear = 2026;
+            jest.spyOn(navigator.clipboard, 'writeText').mockResolvedValue(undefined);
+            jest.spyOn(window, 'showToast').mockImplementation(() => {});
+        });
+
+        afterEach(() => {
+            jest.restoreAllMocks();
+        });
+
+        test('copies non-cancelled matches in the displayed month', async () => {
+            global.sessions = [
+                {
+                    id: 1,
+                    type: 'match',
+                    opponent: 'Rivals FC',
+                    date: new Date(2026, 1, 10),
+                    deleted: false,
+                    cancelled: false,
+                    location: 'Orchard Grove',
+                    time: '6:00 PM - 8:00 PM',
+                    kickOffTime: '6:00 PM'
+                },
+                {
+                    id: 2,
+                    type: 'match',
+                    opponent: 'Other Month',
+                    date: new Date(2026, 2, 5),
+                    deleted: false,
+                    cancelled: false
+                }
+            ];
+            await window.copyCalendarMonthMatchesToClipboard();
+            expect(navigator.clipboard.writeText).toHaveBeenCalledTimes(1);
+            const text = navigator.clipboard.writeText.mock.calls[0][0];
+            expect(text).toContain('February 2026');
+            expect(text).toContain('Rivals FC');
+            expect(text).not.toContain('Other Month');
+            expect(text).not.toContain('Shinguards');
+            expect(window.showToast).toHaveBeenCalledWith('1 match copied to clipboard.');
+        });
+
+        test('shows toast when no matches in month', async () => {
+            global.sessions = [];
+            await window.copyCalendarMonthMatchesToClipboard();
+            expect(navigator.clipboard.writeText).not.toHaveBeenCalled();
+            expect(window.showToast).toHaveBeenCalledWith(
+                'No matches scheduled in February 2026.',
+                true
+            );
         });
     });
 });

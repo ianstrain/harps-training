@@ -11,6 +11,42 @@ window.formatDate = function(date) {
     return formatted.replace(day, day + suffix);
 }
 
+/** Match competition kind (aligned with stats / dashboard). */
+window.getSessionMatchKind = function(session) {
+    const t = session.matchType || 'friendly';
+    if (t === 'league') return 'league';
+    if (t === 'cup') return 'cup';
+    return 'friendly';
+};
+
+/** Count of non-deleted matches of the same kind up to and including this session (by id). */
+window.getMatchKindOrdinal = function(session) {
+    if (!session || session.type !== 'match' || session.deleted) return 0;
+    const kind = getSessionMatchKind(session);
+    return sessions.filter(s =>
+        s.type === 'match' &&
+        !s.deleted &&
+        getSessionMatchKind(s) === kind &&
+        s.id <= session.id
+    ).length;
+};
+
+/** Card badge: L01 / F02 / C01 */
+window.formatMatchOrdinalBadge = function(session) {
+    const kind = getSessionMatchKind(session);
+    const prefix = kind === 'league' ? 'L' : kind === 'cup' ? 'C' : 'F';
+    return `${prefix}${String(getMatchKindOrdinal(session)).padStart(2, '0')}`;
+};
+
+/** Share line: "League match #01" / "Friendly match #02" / "Cup match #01" */
+window.formatMatchdayClipboardLabel = function(session) {
+    const kind = getSessionMatchKind(session);
+    const num = String(getMatchKindOrdinal(session)).padStart(2, '0');
+    if (kind === 'league') return `League match #${num}`;
+    if (kind === 'cup') return `Cup match #${num}`;
+    return `Friendly match #${num}`;
+};
+
 // Convert YouTube URLs to embedded videos
 window.parseContent = function(text) {
     if (!text) return text;
@@ -135,7 +171,7 @@ window.saveSessionsList = async function() {
                 date: s.date ? s.date.toISOString() : new Date().toISOString(),
                 cancelled: s.cancelled || false,
                 cancelReason: s.cancelReason || '',
-                location: s.location || 'The Aura',
+                location: s.location || defaults.location,
                 time: s.time || '7:30 PM - 8:30 PM',
                 deleted: s.deleted || false,
                 // Match-specific fields

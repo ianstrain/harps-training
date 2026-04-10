@@ -1,6 +1,6 @@
-# HRAPS Training Schedule
+# HARPS Schedule
 
-A mobile-friendly training schedule for coaches and players.
+A mobile-friendly Ballyraine Harps schedule for coaches and players.
 
 ## Sessions
 

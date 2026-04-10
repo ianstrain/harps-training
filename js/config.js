@@ -81,6 +81,7 @@ let currentCalendarYear = new Date().getFullYear();
 
 // Default values for sessions
 const defaults = {
+    location: 'Orchard Grove',
     desc: 'Add a description for this session...',
     warmup: 'General warm-up & stretching',
     drills: 'Tap edit mode to add drills...',

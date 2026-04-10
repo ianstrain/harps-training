@@ -2,6 +2,10 @@
 // SESSION RENDERING AND MANAGEMENT
 // ============================================
 
+const NEW_SESSION_TRAINING_TIME = '6:45 PM - 7:45 PM';
+const NEW_SESSION_MATCH_TIME = '6:00 PM - 8:00 PM';
+const NEW_SESSION_MATCH_KICKOFF = '6:30 PM';
+
 // Generate training back content (attendance)
 window.generateTrainingBackContent = function(session) {
     const attendance = session.attendance || [];
@@ -67,7 +71,7 @@ window.generateSessionCard = function(session) {
                 <div class="session-meta">
                     <div class="meta-item meta-item-edit">
                         <span class="meta-icon">📍</span>
-                        <input type="text" class="new-session-location-input" value="${session.location || 'The Aura'}" placeholder="Location" />
+                        <input type="text" class="new-session-location-input" value="${session.location || defaults.location}" placeholder="Location" />
                     </div>
                     <div class="meta-item meta-item-edit">
                         <span class="meta-icon">🕢</span>
@@ -90,6 +94,10 @@ window.generateSessionCard = function(session) {
                     <div class="match-input-group ${session.matchType === 'cup' ? '' : 'hidden'}" id="cup-stage-group-${tempId}">
                         <label class="match-input-label">Cup Stage</label>
                         <input type="text" class="match-input new-session-cupstage-input" placeholder="e.g., Quarter-finals, Semi-final, Final" value="${session.cupStage || ''}" />
+                    </div>
+                    <div class="match-input-group">
+                        <label class="match-input-label">Kick-off time</label>
+                        <input type="text" class="match-input new-session-kickoff-input" value="${formatKickOffTimeDisplay(session.kickOffTime)}" placeholder="e.g. 1:30 PM" />
                     </div>
                 </div>
                 <div class="new-session-actions">
@@ -151,7 +159,7 @@ window.generateSessionCard = function(session) {
                         ${editMode ? `
                             <div class="meta-item meta-item-edit">
                                 <span class="meta-icon">📍</span>
-                                <input type="text" class="meta-input" value="${session.location || 'The Aura'}" data-session="${session.id}" data-field="location" placeholder="Location" />
+                                <input type="text" class="meta-input" value="${session.location || defaults.location}" data-session="${session.id}" data-field="location" placeholder="Location" />
                             </div>
                             <div class="meta-item meta-item-edit">
                                 <span class="meta-icon">🕢</span>
@@ -160,7 +168,7 @@ window.generateSessionCard = function(session) {
                         ` : `
                             <div class="meta-item">
                                 <span class="meta-icon">📍</span>
-                                <span>${session.location || 'The Aura'}</span>
+                                <span>${session.location || defaults.location}</span>
                             </div>
                             <div class="meta-item">
                                 <span class="meta-icon">🕢</span>
@@ -379,7 +387,13 @@ window.renderSessions = async function() {
             const session = sessions.find(s => s.id === parseInt(e.target.dataset.session));
             const field = e.target.dataset.field;
             if (session && field) {
-                session[field] = e.target.value;
+                if (field === 'kickOffTime') {
+                    const n = normalizeKickOffTime(e.target.value);
+                    session[field] = n;
+                    e.target.value = n;
+                } else {
+                    session[field] = e.target.value;
+                }
                 saveSessionsList();
             }
         });
@@ -484,8 +498,8 @@ window.handleAddSession = function() {
         type: 'training', // Default to training
         cancelled: false,
         cancelReason: '',
-        location: 'The Aura',
-        time: '7:30 PM - 8:30 PM',
+        location: defaults.location,
+        time: NEW_SESSION_TRAINING_TIME,
         // Training fields
         desc: '',
         warmup: '',
@@ -495,6 +509,7 @@ window.handleAddSession = function() {
         opponent: '',
         matchType: 'friendly',
         cupStage: '',
+        kickOffTime: '',
         attendance: [],
         captain: '',
         viceCaptain: '',
@@ -559,10 +574,12 @@ window.handleSaveSession = async function(tempId) {
             const opponentInput = sessionCard.querySelector('.new-session-opponent-input');
             const matchTypeSelect = sessionCard.querySelector('.new-session-matchtype-select');
             const cupStageInput = sessionCard.querySelector('.new-session-cupstage-input');
+            const kickOffInput = sessionCard.querySelector('.new-session-kickoff-input');
             
             const opponent = opponentInput ? opponentInput.value.trim() : '';
             const matchType = matchTypeSelect ? matchTypeSelect.value : 'friendly';
             const cupStage = cupStageInput ? cupStageInput.value.trim() : '';
+            const kickOffTime = kickOffInput ? kickOffInput.value.trim() : '';
             
             if (!opponent) {
                 alert('Please enter the opponent team name.');
@@ -573,10 +590,13 @@ window.handleSaveSession = async function(tempId) {
             session.opponent = opponent;
             session.matchType = matchType;
             session.cupStage = matchType === 'cup' ? cupStage : '';
+            session.kickOffTime = normalizeKickOffTime(kickOffTime || NEW_SESSION_MATCH_KICKOFF);
             session.attendance = [];
             session.captain = '';
             session.viceCaptain = '';
             session.matchGoals = {};
+        } else {
+            session.kickOffTime = '';
         }
         
         // Find the next available ID
@@ -597,8 +617,8 @@ window.handleSaveSession = async function(tempId) {
         
         session.id = newId;
         session.date = newDate;
-        session.location = location || 'The Aura';
-        session.time = time || '7:30 PM - 8:30 PM';
+        session.location = location || defaults.location;
+        session.time = time || (sessionType === 'match' ? NEW_SESSION_MATCH_TIME : NEW_SESSION_TRAINING_TIME);
         session.type = sessionType;
         delete session._tempId;
         delete session._isNew;
@@ -654,10 +674,23 @@ window.selectSessionType = function(tempId, type) {
         }
     }
     
-    // Update session in array
+    // Update session in array and match-specific defaults on the form
     const session = sessions.find(s => s._tempId === tempId);
     if (session) {
         session.type = type;
+        const timeInput = card.querySelector('.new-session-time-input');
+        const kickInput = card.querySelector('.new-session-kickoff-input');
+        if (type === 'match') {
+            session.time = NEW_SESSION_MATCH_TIME;
+            session.kickOffTime = normalizeKickOffTime(NEW_SESSION_MATCH_KICKOFF);
+            if (timeInput) timeInput.value = NEW_SESSION_MATCH_TIME;
+            if (kickInput) kickInput.value = formatKickOffTimeDisplay(session.kickOffTime);
+        } else {
+            session.time = NEW_SESSION_TRAINING_TIME;
+            session.kickOffTime = '';
+            if (timeInput) timeInput.value = NEW_SESSION_TRAINING_TIME;
+            if (kickInput) kickInput.value = '';
+        }
     }
     
     // Handle match type select change to show/hide cup stage

@@ -40,7 +40,7 @@ window.copySessionAsTemplate = function(sessionId) {
     
     return {
         type: session.type,
-        location: session.location || 'The Aura',
+        location: session.location || defaults.location,
         time: session.time || '7:30 PM',
         warmup: session.warmup || '',
         drills: session.drills || '',
@@ -74,7 +74,7 @@ window.bulkCreateSessions = function(startDate, endDate, dayOfWeek, template) {
                 id: sessionCounter++,
                 date: new Date(currentDate),
                 type: template.type || 'training',
-                location: template.location || 'The Aura',
+                location: template.location || defaults.location,
                 time: template.time || '7:30 PM',
                 warmup: template.warmup || '',
                 drills: template.drills || '',
@@ -174,7 +174,7 @@ window.showBulkCreateDialog = function() {
                     
                     <div>
                         <label style="display: block; font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px;">Location</label>
-                        <input type="text" id="bulk-location" value="The Aura" style="width: 100%; padding: 10px; background: var(--bg-section); border: 2px solid var(--border-color); border-radius: 8px; color: var(--text-primary); font-size: 14px;">
+                        <input type="text" id="bulk-location" value="${defaults.location}" style="width: 100%; padding: 10px; background: var(--bg-section); border: 2px solid var(--border-color); border-radius: 8px; color: var(--text-primary); font-size: 14px;">
                     </div>
                     
                     <div>

@@ -112,7 +112,7 @@ window.createThisWeekSessionCardHtml = function(session, activePlayers) {
                     📅 ${formatDate(sessionDate)}
                 </div>
                 <div style="font-size: 20px; color: var(--accent); margin: 8px 0; font-weight: 600;">
-                    📍 ${session.location || 'The Aura'}
+                    📍 ${session.location || defaults.location}
                 </div>
                 <div style="font-size: 20px; color: var(--accent); margin: 8px 0; font-weight: 600;">
                     🕐 ${session.time || '7:30 PM - 8:30 PM'}
@@ -312,7 +312,7 @@ window.addSessionFromCalendar = function(dateStr) {
         type: 'training',
         cancelled: false,
         cancelReason: '',
-        location: 'The Aura',
+        location: defaults.location,
         time: '7:30 PM - 8:30 PM',
         desc: '',
         warmup: '',
@@ -343,6 +343,61 @@ window.addSessionFromCalendar = function(dateStr) {
             newSessionCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
     }, 300);
+};
+
+/** Matches in the month currently shown on the calendar (non-deleted, not cancelled), sorted by date. */
+function getCalendarMonthMatches() {
+    return sessions
+        .filter(s => {
+            if (s.deleted || s.cancelled || s.type !== 'match') return false;
+            const d = new Date(s.date);
+            return d.getFullYear() === currentCalendarYear && d.getMonth() === currentCalendarMonth;
+        })
+        .sort((a, b) => new Date(a.date) - new Date(b.date));
+}
+
+/** Clipboard text for one match (calendar month copy — no kit line; match cards use copySessionInfoToClipboard). */
+function matchScheduleBlockForClipboard(session) {
+    const formattedDate = formatDateForClipboard(session.date);
+    const location = session.location || defaults.location;
+    const time = session.time || '7:30 PM - 8:30 PM';
+    const kickOffTime = formatKickOffTimeDisplay(session.kickOffTime);
+    const opponent = session.opponent || 'Opponent';
+    return `🏆 ${formatMatchdayClipboardLabel(session)} - ${opponent}
+
+📅 ${formattedDate}
+⌚ Meet up ${time.split('-')[0].trim()} at ${location}, Kickoff ${kickOffTime.trim() || 'TBD'}
+🏟 ${location}`;
+}
+
+window.copyCalendarMonthMatchesToClipboard = async function() {
+    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December'];
+    const monthLabel = `${monthNames[currentCalendarMonth]} ${currentCalendarYear}`;
+
+    const matches = getCalendarMonthMatches();
+    if (matches.length === 0) {
+        if (typeof showToast === 'function') {
+            showToast(`No matches scheduled in ${monthLabel}.`, true);
+        }
+        return;
+    }
+
+    const header = `🏆 Match schedule — ${monthLabel}`;
+    const body = matches.map(m => matchScheduleBlockForClipboard(m)).join('\n\n---\n\n');
+    const text = `${header}\n\n${body}`;
+
+    try {
+        await navigator.clipboard.writeText(text);
+        if (typeof showToast === 'function') {
+            showToast(`${matches.length} match${matches.length === 1 ? '' : 'es'} copied to clipboard.`);
+        }
+    } catch (err) {
+        console.error('Failed to copy calendar matches:', err);
+        if (typeof showToast === 'function') {
+            showToast('Failed to copy to clipboard.', true);
+        }
+    }
 };
 
 // Scroll to session from calendar

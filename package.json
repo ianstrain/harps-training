@@ -1,7 +1,7 @@
 {
   "name": "training-schedule",
   "version": "1.0.0",
-  "description": "Training schedule management application",
+  "description": "Ballyraine Harps schedule management application",
   "main": "index.html",
   "scripts": {
     "test": "jest",

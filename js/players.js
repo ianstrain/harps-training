@@ -39,6 +39,11 @@ function getTotalGoals(goals) {
     return Object.values(goals).reduce((sum, count) => sum + (parseInt(count) || 0), 0);
 }
 
+if (typeof globalThis !== 'undefined') {
+    globalThis.getPlayerGoals = getPlayerGoals;
+    globalThis.getTotalGoals = getTotalGoals;
+}
+
 // Get goals per game
 function getGoalsPerGame(goals) {
     const uniqueDates = Object.keys(goals).length;

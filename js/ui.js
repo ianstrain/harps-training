@@ -90,7 +90,11 @@ window.setupEditMode = function() {
                 const session = sessions.find(s => s.id === parseInt(input.dataset.session));
                 const field = input.dataset.field;
                 if (session && field) {
-                    session[field] = input.value;
+                    if (field === 'kickOffTime') {
+                        session[field] = normalizeKickOffTime(input.value);
+                    } else {
+                        session[field] = input.value;
+                    }
                 }
             });
             
@@ -439,6 +443,12 @@ window.updateMenuContent = function() {
                 </p>
             </div>
             <div class="menu-section">
+                <div class="menu-section-title">Actions</div>
+                <button class="add-player-btn" onclick="exportStatsToExcel(); closeMenu();" title="Download all stats as an Excel workbook">
+                    ⬇️ Export Stats
+                </button>
+            </div>
+            <div class="menu-section">
                 <button class="add-player-btn" onclick="switchToTab('thisweek'); closeMenu();" title="View this week's event">
                     📅 This Week
                 </button>
@@ -552,19 +562,17 @@ window.copySessionInfoToClipboard = async function(sessionId) {
 
     let clipboardText = '';
     const formattedDate = formatDateForClipboard(session.date);
-    const location = session.location || 'The Aura';
+    const location = session.location || defaults.location;
     const time = session.time || '7:30 PM - 8:30 PM';
-    const kickOffTime = session.kickOffTime || '';
+    const kickOffTime = formatKickOffTimeDisplay(session.kickOffTime);
 
     if (session.type === 'match') {
-        // Calculate match day number
-        const matchesUpToThis = sessions.filter(s => s.type === 'match' && !s.deleted && s.id <= session.id).length;
         const opponent = session.opponent || 'Opponent';
 
-        clipboardText = `🏆 Matchday #${String(matchesUpToThis).padStart(2, '0')} - ${opponent}
+        clipboardText = `🏆 ${formatMatchdayClipboardLabel(session)} - ${opponent}
 
 📅 ${formattedDate}
-⌚ Meet up ${time.split('-')[0].trim()} at ${location}, Kickoff ${kickOffTime || 'TBD'}
+⌚ Meet up ${time.split('-')[0].trim()} at ${location}, Kickoff ${kickOffTime.trim() || 'TBD'}
 🏟 ${location}
 👕 Shinguards, Black shorts and socks`;
     } else {

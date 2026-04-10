@@ -361,6 +361,7 @@ if (typeof window !== 'undefined') {
     window.buildPlayerGoalChartSegments = buildPlayerGoalChartSegments;
     window.aggregatePlayerMatchAttendanceByMatchKind = aggregatePlayerMatchAttendanceByMatchKind;
     window.buildMatchAttendanceChartSegments = buildMatchAttendanceChartSegments;
+    window.buildSeasonMatchMetrics = buildSeasonMatchMetrics;
 }
 
 function buildSeasonMatchMetrics(completedMatches) {
@@ -370,6 +371,7 @@ function buildSeasonMatchMetrics(completedMatches) {
     const totalGoalsScored = completedMatches.reduce((sum, s) => sum + (parseInt(s.teamScore) || 0), 0);
     const totalGoalsConceded = completedMatches.reduce((sum, s) => sum + (parseInt(s.opponentScore) || 0), 0);
     const goalDiff = totalGoalsScored - totalGoalsConceded;
+    const cleanSheets = completedMatches.filter(s => (parseInt(s.opponentScore, 10) || 0) === 0).length;
     return {
         played: completedMatches.length,
         wins,
@@ -377,6 +379,7 @@ function buildSeasonMatchMetrics(completedMatches) {
         losses,
         totalGoalsScored,
         totalGoalsConceded,
+        cleanSheets,
         goalDiff
     };
 }
@@ -420,6 +423,12 @@ function seasonMatchStatsGridHtml(m) {
                         ${m.totalGoalsConceded}
                     </div>
                     <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Goals Against</div>
+                </div>
+                <div class="stat-box" style="text-align: center; padding: 15px; background: var(--bg-card); border-radius: 8px;">
+                    <div style="font-size: 28px; font-weight: bold; color: #34d399;">
+                        ${m.cleanSheets}
+                    </div>
+                    <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Clean Sheets</div>
                 </div>
                 <div class="stat-box" style="text-align: center; padding: 15px; background: var(--bg-card); border-radius: 8px; grid-column: span 1;">
                     <div style="font-size: 28px; font-weight: bold; color: ${goalDiffColor};">
@@ -909,7 +918,7 @@ window.renderPlayerProfile = function() {
             trainingsAttended++;
             trainingAttendanceRecords.push({
                 date: session.date,
-                location: session.location || 'The Aura',
+                location: session.location || defaults.location,
                 type: 'training'
             });
         }
@@ -1183,4 +1192,210 @@ window.getPlayerAttendanceStats = function(playerName) {
         totalMatches: playedMatchSessions.length,
         totalTrainings: pastTrainingSessions.length
     };
+};
+
+/** Players included on the Stats tab (same filter as renderStats). */
+function getFilteredPlayersForStatsExport() {
+    return players.filter(p => {
+        const returning = (p.returning || '').toString().toLowerCase().trim();
+        const playerName = (p.player || '').toString().toLowerCase();
+        return p.player &&
+            p.player !== '?' &&
+            !playerName.includes('child') &&
+            returning !== 'no';
+    });
+}
+
+window.exportStatsToExcel = function() {
+    if (typeof XLSX === 'undefined') {
+        if (typeof showToast === 'function') {
+            showToast('Excel export is unavailable. Refresh the page and try again.', true);
+        }
+        return;
+    }
+
+    const filteredPlayers = getFilteredPlayersForStatsExport();
+    if (filteredPlayers.length === 0) {
+        if (typeof showToast === 'function') {
+            showToast('No players to include in stats export.', true);
+        }
+        return;
+    }
+
+    const wb = XLSX.utils.book_new();
+
+    const matchSessions = sessions.filter(s => s.type === 'match' && !s.deleted);
+    const completedMatches = matchSessions.filter(s => s.result);
+    const leagueCompleted = completedMatches.filter(s => getStatsMatchKind(s) === 'league');
+    const friendlyCompleted = completedMatches.filter(s => getStatsMatchKind(s) === 'friendly');
+    const cupCompleted = completedMatches.filter(s => getStatsMatchKind(s) === 'cup');
+    const hasCupMatches = matchSessions.some(s => getStatsMatchKind(s) === 'cup');
+
+    function appendMetricBlock(aoa, title, m) {
+        aoa.push([title], ['Metric', 'Value']);
+        aoa.push(['Played', m.played], ['Wins', m.wins], ['Draws', m.draws], ['Losses', m.losses]);
+        aoa.push(['Goals for', m.totalGoalsScored], ['Goals against', m.totalGoalsConceded]);
+        aoa.push(['Clean sheets', m.cleanSheets], ['Goal difference', m.goalDiff], []);
+    }
+
+    const seasonAoa = [
+        ['Season match statistics'],
+        ['Exported', new Date().toISOString().slice(0, 10)],
+        []
+    ];
+    appendMetricBlock(seasonAoa, 'League matches', buildSeasonMatchMetrics(leagueCompleted));
+    appendMetricBlock(seasonAoa, 'Friendly matches', buildSeasonMatchMetrics(friendlyCompleted));
+    if (hasCupMatches) {
+        appendMetricBlock(seasonAoa, 'Cup matches', buildSeasonMatchMetrics(cupCompleted));
+    }
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(seasonAoa), 'Season');
+
+    const gp = globalThis.getPlayerGoals;
+    const gt = globalThis.getTotalGoals;
+
+    const playedMatches = getPlayedMatchesForAttendance();
+    const trainingSessions = sessions.filter(s => s.type === 'training' && !s.deleted);
+
+    function isoDate(d) {
+        return d && !isNaN(d.getTime()) ? d.toISOString().slice(0, 10) : '';
+    }
+
+    // —— Goals Scored by Player (summary + per-date log) ——
+    const goalsAoa = [
+        ['Goals Scored by Player'],
+        ['Totals combine match-card goals by competition type; "Other" is goals not tied to a match card.'],
+        ['Goals by date lists each stored log entry per player.'],
+        [],
+        ['Player summary'],
+        ['Player', 'Total goals', 'League', 'Friendly', 'Cup', 'Other']
+    ];
+    const goalsByDateRows = [];
+    for (const p of filteredPlayers) {
+        const name = p.player || '';
+        const goalsObj = typeof gp === 'function' ? gp(name) : {};
+        const total = typeof gt === 'function' ? gt(goalsObj) : 0;
+        const mk = aggregatePlayerMatchGoalsByMatchKind(name);
+        const sumMatch = mk.league + mk.friendly + mk.cup;
+        const other = Math.max(0, total - sumMatch);
+        goalsAoa.push([name, total, mk.league, mk.friendly, mk.cup, other]);
+        if (goalsObj && typeof goalsObj === 'object') {
+            for (const [dateKey, count] of Object.entries(goalsObj)) {
+                const n = parseInt(count, 10) || 0;
+                if (n) goalsByDateRows.push([name, dateKey, n]);
+            }
+        }
+    }
+    goalsByDateRows.sort((a, b) => String(a[1]).localeCompare(String(b[1])) || String(a[0]).localeCompare(String(b[0])));
+    goalsAoa.push([], ['Goals by date'], ['Player', 'Date', 'Goals logged'], ...goalsByDateRows);
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(goalsAoa), 'Goals Scored by Player');
+
+    // —— Match Attendance (per player + per match) ——
+    const matchLabel = playedMatches.length === 1 ? 'match' : 'matches';
+    const matchAoa = [
+        ['Match Attendance'],
+        [`Played matches with a result entered: ${playedMatches.length} ${matchLabel} (same basis as the stats chart).`],
+        [],
+        ['Player summary'],
+        [
+            'Player',
+            'Matches attended',
+            'League attended',
+            'Friendly attended',
+            'Cup attended',
+            'Captain selections',
+            'Attendance %',
+            'Played matches (denominator)'
+        ]
+    ];
+    for (const p of filteredPlayers) {
+        const name = p.player || '';
+        let attended = 0;
+        let captainCount = 0;
+        playedMatches.forEach(match => {
+            if (match.attendance && match.attendance.includes(name)) attended++;
+            if (match.captain === name) captainCount++;
+        });
+        const mk = aggregatePlayerMatchAttendanceByMatchKind(name, playedMatches);
+        const pct = playedMatches.length > 0 ? Math.round((attended / playedMatches.length) * 100) : 0;
+        matchAoa.push([name, attended, mk.league, mk.friendly, mk.cup, captainCount, pct, playedMatches.length]);
+    }
+    const sortedPlayed = [...playedMatches].sort((a, b) => new Date(b.date) - new Date(a.date));
+    matchAoa.push(
+        [],
+        ['By match'],
+        ['Date', 'Opponent', 'Type', 'Result', 'Team score', 'Opp. score', 'Attendees', 'Captain', 'Vice captain']
+    );
+    for (const m of sortedPlayed) {
+        const d = m.date ? new Date(m.date) : null;
+        const attendees = Array.isArray(m.attendance) ? m.attendance.join(', ') : '';
+        matchAoa.push([
+            isoDate(d),
+            m.opponent || '',
+            getStatsMatchKind(m),
+            m.result || '',
+            m.teamScore != null && m.teamScore !== '' ? m.teamScore : '',
+            m.opponentScore != null && m.opponentScore !== '' ? m.opponentScore : '',
+            attendees,
+            m.captain || '',
+            m.viceCaptain || ''
+        ]);
+    }
+    if (sortedPlayed.length === 0) {
+        matchAoa.push(['—', 'No played matches yet (enter a result on each match to count toward attendance).', '', '', '', '', '', '', '']);
+    }
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(matchAoa), 'Match Attendance');
+
+    // —— Training Attendance (per player + per session) ——
+    const trainLabel = trainingSessions.length === 1 ? 'session' : 'sessions';
+    const trainingAoa = [
+        ['Training Attendance'],
+        [`Training sessions on schedule: ${trainingSessions.length} ${trainLabel}.`],
+        [],
+        ['Player summary'],
+        ['Player', 'Sessions attended', 'Total sessions', 'Attendance %']
+    ];
+    for (const p of filteredPlayers) {
+        const name = p.player || '';
+        let attended = 0;
+        trainingSessions.forEach(session => {
+            if (session.attendance && session.attendance.includes(name)) attended++;
+        });
+        const pct = trainingSessions.length > 0 ? Math.round((attended / trainingSessions.length) * 100) : 0;
+        trainingAoa.push([name, attended, trainingSessions.length, pct]);
+    }
+    const sortedTraining = [...trainingSessions].sort((a, b) => new Date(b.date) - new Date(a.date));
+    trainingAoa.push([], ['By session'], ['Date', 'Location', 'Attendees']);
+    for (const s of sortedTraining) {
+        const d = s.date ? new Date(s.date) : null;
+        const attendees = Array.isArray(s.attendance) ? s.attendance.join(', ') : '';
+        trainingAoa.push([isoDate(d), s.location || '', attendees]);
+    }
+    if (sortedTraining.length === 0) {
+        trainingAoa.push(['—', 'No training sessions on the schedule.', '']);
+    }
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(trainingAoa), 'Training Attendance');
+
+    // —— Captain & Vice Captain History ——
+    const capMatches = sessions.filter(s => s.type === 'match' && !s.deleted && (s.captain || s.viceCaptain));
+    const sortedCaps = [...capMatches].sort((a, b) => new Date(b.date) - new Date(a.date));
+    const capAoa = [
+        ['Captain & Vice Captain History'],
+        [`Matches with a captain or vice captain set: ${sortedCaps.length}.`],
+        [],
+        ['Date', 'Opponent', 'Captain', 'Vice captain']
+    ];
+    for (const m of sortedCaps) {
+        const d = m.date ? new Date(m.date) : null;
+        capAoa.push([isoDate(d), m.opponent || '', m.captain || '', m.viceCaptain || '']);
+    }
+    if (sortedCaps.length === 0) {
+        capAoa.push(['—', 'No captains or vice captains recorded yet.', '', '']);
+    }
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(capAoa), 'Captain & Vice Captain History');
+
+    const fname = `team-stats-${new Date().toISOString().slice(0, 10)}.xlsx`;
+    XLSX.writeFile(wb, fname);
+    if (typeof showToast === 'function') {
+        showToast('Stats exported to Excel.');
+    }
 };

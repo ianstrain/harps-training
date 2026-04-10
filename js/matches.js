@@ -15,9 +15,8 @@ window.generateMatchCard = function(session) {
     const matchTypeBadgeClass = session.matchType || 'friendly';
     const matchTypeLabel = session.matchType === 'cup' ? 'Cup Match' : session.matchType === 'league' ? 'League Match' : 'Friendly Match';
     
-    // Calculate match number (count only matches up to this one)
-    const matchesUpToThis = sessions.filter(s => s.type === 'match' && !s.deleted && s.id <= session.id).length;
-    
+    const matchOrdinalBadge = formatMatchOrdinalBadge(session);
+
     // Check if this is the next upcoming session
     const isNextSession = window.currentNextSessionId === session.id;
     
@@ -26,7 +25,7 @@ window.generateMatchCard = function(session) {
             ${isNextSession ? '<span class="next-session-badge">Next Up</span>' : ''}
             <div class="session-card-front">
                 <div class="session-header">
-                    <span class="session-number">M${String(matchesUpToThis).padStart(2, '0')}</span>
+                    <span class="session-number">${matchOrdinalBadge}</span>
                     <div class="match-type-badge ${matchTypeBadgeClass}">${matchTypeLabel}</div>
                     ${editMode ? `
                         <div class="session-date-edit">
@@ -55,6 +54,10 @@ window.generateMatchCard = function(session) {
                         <label class="match-input-label">Cup Stage</label>
                         <input type="text" class="match-input" value="${session.cupStage || ''}" data-session="${session.id}" data-field="cupStage" placeholder="e.g., Quarter-finals, Semi-final, Final" onclick="event.stopPropagation()" />
                     </div>
+                    <div class="match-input-group">
+                        <label class="match-input-label">Kick-off time</label>
+                        <input type="text" class="match-input" value="${formatKickOffTimeDisplay(session.kickOffTime)}" data-session="${session.id}" data-field="kickOffTime" placeholder="e.g. 1:30 PM" onclick="event.stopPropagation()" />
+                    </div>
                 ` : `
                     <div class="opponent-name">vs ${session.opponent || defaults.opponent}</div>
                 `}
@@ -76,20 +79,16 @@ window.generateMatchCard = function(session) {
                     ${editMode ? `
                         <div class="meta-item meta-item-edit">
                             <span class="meta-icon">📍</span>
-                            <input type="text" class="meta-input" value="${session.location || 'The Aura'}" data-session="${session.id}" data-field="location" placeholder="Location" onclick="event.stopPropagation()" />
+                            <input type="text" class="meta-input" value="${session.location || defaults.location}" data-session="${session.id}" data-field="location" placeholder="Location" onclick="event.stopPropagation()" />
                         </div>
                         <div class="meta-item meta-item-edit">
                             <span class="meta-icon">🕢</span>
                             <input type="text" class="meta-input" value="${session.time || '7:30 PM - 8:30 PM'}" data-session="${session.id}" data-field="time" placeholder="Time" onclick="event.stopPropagation()" />
                         </div>
-                        <div class="meta-item meta-item-edit">
-                            <span class="meta-icon">⏱️</span>
-                            <input type="time" class="meta-input" value="${session.kickOffTime || ''}" data-session="${session.id}" data-field="kickOffTime" placeholder="Kick-off Time" onclick="event.stopPropagation()" />
-                        </div>
                     ` : `
                         <div class="meta-item">
                             <span class="meta-icon">📍</span>
-                            <span>${session.location || 'The Aura'}</span>
+                            <span>${session.location || defaults.location}</span>
                         </div>
                         <div class="meta-item">
                             <span class="meta-icon">🕢</span>
@@ -98,7 +97,7 @@ window.generateMatchCard = function(session) {
                         ${session.kickOffTime ? `
                         <div class="meta-item">
                             <span class="meta-icon">⏱️</span>
-                            <span>${session.kickOffTime} Kick Off</span>
+                            <span>${formatKickOffTimeDisplay(session.kickOffTime)} Kick Off</span>
                         </div>
                         ` : ''}
                     `}

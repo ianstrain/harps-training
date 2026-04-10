@@ -50,7 +50,7 @@ describe('Data Management', () => {
                 date: new Date('2026-02-03'),
                 cancelled: false,
                 cancelReason: '',
-                location: 'The Aura',
+                location: 'Orchard Grove',
                 time: '7:30 PM - 8:30 PM',
                 kickOffTime: '',
                 deleted: false,
@@ -73,7 +73,7 @@ describe('Data Management', () => {
 
             expect(sessionsListData[1].id).toBe(1);
             expect(sessionsListData[1].type).toBe('training');
-            expect(sessionsListData[1].location).toBe('The Aura');
+            expect(sessionsListData[1].location).toBe('Orchard Grove');
         });
 
         test('should include match-specific fields for match sessions', () => {
@@ -188,7 +188,7 @@ describe('Data Management', () => {
                 id: rawSession.id,
                 date: rawSession.date ? new Date(rawSession.date) : new Date(),
                 type: rawSession.type || 'training',
-                location: rawSession.location || 'The Aura',
+                location: rawSession.location || 'Orchard Grove',
                 time: rawSession.time || '7:30 PM - 8:30 PM',
                 cancelled: rawSession.cancelled || false,
                 deleted: rawSession.deleted || false,
@@ -196,7 +196,7 @@ describe('Data Management', () => {
             };
 
             expect(session.type).toBe('training');
-            expect(session.location).toBe('The Aura');
+            expect(session.location).toBe('Orchard Grove');
             expect(session.attendance).toEqual([]);
         });
 
@@ -206,6 +206,34 @@ describe('Data Management', () => {
             
             expect(typeof sessionIdInt).toBe('number');
             expect(sessionIdInt).toBe(123);
+        });
+    });
+
+    describe('Match kind ordinal helpers', () => {
+        test('badges and clipboard labels are separate per league vs friendly', () => {
+            global.sessions = [
+                { id: 1, type: 'match', deleted: false, matchType: 'league' },
+                { id: 2, type: 'match', deleted: false, matchType: 'friendly' },
+                { id: 3, type: 'match', deleted: false, matchType: 'league' },
+                { id: 4, type: 'match', deleted: false }
+            ];
+            expect(formatMatchOrdinalBadge(sessions[0])).toBe('L01');
+            expect(formatMatchdayClipboardLabel(sessions[0])).toBe('League match #01');
+            expect(formatMatchOrdinalBadge(sessions[1])).toBe('F01');
+            expect(formatMatchdayClipboardLabel(sessions[1])).toBe('Friendly match #01');
+            expect(formatMatchOrdinalBadge(sessions[2])).toBe('L02');
+            expect(formatMatchOrdinalBadge(sessions[3])).toBe('F02');
+        });
+
+        test('cup matches use C prefix and own ordinal', () => {
+            global.sessions = [
+                { id: 1, type: 'match', deleted: false, matchType: 'cup' },
+                { id: 2, type: 'match', deleted: false, matchType: 'friendly' },
+                { id: 3, type: 'match', deleted: false, matchType: 'cup' }
+            ];
+            expect(formatMatchOrdinalBadge(sessions[0])).toBe('C01');
+            expect(formatMatchdayClipboardLabel(sessions[0])).toBe('Cup match #01');
+            expect(formatMatchOrdinalBadge(sessions[2])).toBe('C02');
         });
     });
 });

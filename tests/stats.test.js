@@ -205,6 +205,25 @@ describe('Statistics', () => {
         });
     });
 
+    describe('buildSeasonMatchMetrics', () => {
+        test('counts clean sheets as matches with zero goals conceded', () => {
+            const completed = [
+                { result: 'win', teamScore: 2, opponentScore: 0 },
+                { result: 'win', teamScore: 1, opponentScore: 0 },
+                { result: 'loss', teamScore: 0, opponentScore: 3 }
+            ];
+            const m = window.buildSeasonMatchMetrics(completed);
+            expect(m.played).toBe(3);
+            expect(m.cleanSheets).toBe(2);
+            expect(m.totalGoalsConceded).toBe(3);
+        });
+
+        test('treats missing opponent score like zero conceded for clean sheet count', () => {
+            const m = window.buildSeasonMatchMetrics([{ result: 'win', teamScore: 1 }]);
+            expect(m.cleanSheets).toBe(1);
+        });
+    });
+
     describe('handleChartSort', () => {
         beforeEach(() => {
             global.renderStats = jest.fn();
@@ -224,6 +243,63 @@ describe('Statistics', () => {
         test('should set trainingAttendanceSortBy for training-attendance chart', () => {
             window.handleChartSort('training-attendance', 'attended-asc');
             expect(global.trainingAttendanceSortBy).toBe('attended-asc');
+        });
+    });
+
+    describe('exportStatsToExcel', () => {
+        let originalXLSX;
+
+        beforeEach(() => {
+            originalXLSX = global.XLSX;
+        });
+
+        afterEach(() => {
+            global.XLSX = originalXLSX;
+        });
+
+        test('shows error toast when XLSX is not loaded', () => {
+            delete global.XLSX;
+            global.players = [{ player: 'Alice', returning: 'yes' }];
+            const spy = jest.spyOn(global, 'showToast').mockImplementation(() => {});
+            window.exportStatsToExcel();
+            expect(spy).toHaveBeenCalledWith(expect.stringContaining('unavailable'), true);
+            spy.mockRestore();
+        });
+
+        test('shows error toast when no players pass the stats filter', () => {
+            global.XLSX = {
+                utils: { book_new: jest.fn(), aoa_to_sheet: jest.fn(), book_append_sheet: jest.fn() },
+                writeFile: jest.fn()
+            };
+            global.players = [{ player: 'Bob', returning: 'no' }];
+            const spy = jest.spyOn(global, 'showToast').mockImplementation(() => {});
+            window.exportStatsToExcel();
+            expect(spy).toHaveBeenCalledWith(expect.stringContaining('No players'), true);
+            expect(global.XLSX.writeFile).not.toHaveBeenCalled();
+            spy.mockRestore();
+        });
+
+        test('builds workbook and writes xlsx file when data and XLSX exist', () => {
+            const writeFile = jest.fn();
+            global.XLSX = {
+                utils: {
+                    book_new: jest.fn(() => ({})),
+                    aoa_to_sheet: jest.fn(() => ({})),
+                    book_append_sheet: jest.fn()
+                },
+                writeFile
+            };
+            global.players = [{ player: 'Alice', returning: 'yes' }];
+            global.sessions = [];
+            const spy = jest.spyOn(global, 'showToast').mockImplementation(() => {});
+            window.exportStatsToExcel();
+            expect(global.XLSX.utils.book_append_sheet).toHaveBeenCalledTimes(5);
+            expect(writeFile).toHaveBeenCalledWith(
+                expect.anything(),
+                expect.stringMatching(/^team-stats-\d{4}-\d{2}-\d{2}\.xlsx$/)
+            );
+            expect(spy).toHaveBeenCalledWith('Stats exported to Excel.');
+            spy.mockRestore();
         });
     });
 });

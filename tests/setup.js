@@ -42,6 +42,7 @@ Object.assign(navigator, {
 });
 
 // Load all application JavaScript files to make their globals available
+require('../js/kickoffTime');
 require('../js/data');
 require('../js/auth');
 require('../js/ui');
