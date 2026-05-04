@@ -183,24 +183,29 @@ window.generateMatchCard = function(session) {
 
 // Generate match back content (attendance and goal scorers)
 window.generateMatchBackContent = function(session) {
-    const attendance = session.attendance || [];
-    const captain = session.captain || '';
-    const viceCaptain = session.viceCaptain || '';
-    const goalkeeper = session.goalkeeper || '';
+    const effectiveAttendance =
+        typeof window.getEffectiveMatchAttendance === 'function'
+            ? window.getEffectiveMatchAttendance(session)
+            : session.attendance || [];
     const matchGoals = session.matchGoals || {};
-    
+
     // Get all active players
     const activePlayers = players.filter(p => {
         const returning = (p.returning || '').toString().toLowerCase().trim();
         const playerName = (p.player || '').toString().toLowerCase();
-        return p.player && 
-               p.player !== '?' && 
+        return p.player &&
+               p.player !== '?' &&
                !playerName.includes('child') &&
                returning !== 'no' &&
                !p.deleted;
     }).sort((a, b) => (a.player || '').localeCompare(b.player || ''));
-    
-    const attendingPlayers = activePlayers.filter(p => attendance.includes(p.player));
+
+    const attendingPlayers = activePlayers.filter(p => effectiveAttendance.includes(p.player));
+
+    const halfLineupHtml =
+        typeof window.generateMatchHalfLineupSection === 'function'
+            ? window.generateMatchHalfLineupSection(session)
+            : '';
 
     return `
         <div class="attendance-section">
@@ -209,57 +214,10 @@ window.generateMatchBackContent = function(session) {
                 <button type="button" class="copy-attendance-btn" onclick="event.stopPropagation(); copyMatchAttendanceToClipboard(${session.id})" title="Copy attending player names">📋</button>
             </div>
             <div class="attendance-summary" style="text-align: center; margin-bottom: 15px; font-size: 16px; color: var(--text-secondary);">
-                <span style="font-size: 24px; font-weight: bold; color: var(--accent-primary);">${attendance.length}</span> of ${activePlayers.length} players attending
+                <span style="font-size: 24px; font-weight: bold; color: var(--accent-primary);">${effectiveAttendance.length}</span> of ${activePlayers.length} players attending
             </div>
-            <div class="attendance-header">
-                <span class="attendance-header-label">✓</span>
-                <span class="attendance-header-player">Player</span>
-                <span class="attendance-header-gk" title="Goalkeeper (full game)">GK</span>
-                <span class="attendance-header-captain">Captain</span>
-                <span class="attendance-header-vice-captain" title="Vice captain">VC</span>
-            </div>
-            <div class="attendance-checklist" id="attendance-list-${session.id}">
-                ${activePlayers.map(p => {
-                    const isAttending = attendance.includes(p.player);
-                    const isGK = goalkeeper === p.player;
-                    return `
-                    <div class="attendance-item">
-                        <input type="checkbox" 
-                               class="attendance-checkbox" 
-                               data-session="${session.id}" 
-                               data-player="${p.player}"
-                               ${isAttending ? 'checked' : ''}
-                               onclick="event.stopPropagation(); handleAttendanceChange(${session.id}, '${p.player}', this.checked)">
-                        <span class="attendance-player-name">${p.player}</span>
-                        <input type="checkbox" 
-                               class="goalkeeper-checkbox" 
-                               data-session="${session.id}" 
-                               data-player="${p.player}"
-                               ${isGK ? 'checked' : ''}
-                               ${!isAttending ? 'disabled' : ''}
-                               onclick="event.stopPropagation(); handleGoalkeeperCheckbox(${session.id}, '${p.player}', this.checked)"
-                               title="Goalkeeper (plays full game)">
-                        <input type="checkbox" 
-                               class="captain-checkbox" 
-                               data-session="${session.id}" 
-                               data-player="${p.player}"
-                               ${captain === p.player ? 'checked' : ''}
-                               ${!isAttending ? 'disabled' : ''}
-                               onclick="event.stopPropagation(); handleCaptainCheckbox(${session.id}, '${p.player}', this.checked)"
-                               title="Captain">
-                        <input type="checkbox" 
-                               class="vice-captain-checkbox" 
-                               data-session="${session.id}" 
-                               data-player="${p.player}"
-                               ${viceCaptain === p.player ? 'checked' : ''}
-                               ${!isAttending ? 'disabled' : ''}
-                               onclick="event.stopPropagation(); handleViceCaptainCheckbox(${session.id}, '${p.player}', this.checked)"
-                               title="Vice captain">
-                    </div>
-                `;
-                }).join('')}
-            </div>
-            
+            ${halfLineupHtml}
+
             <div class="goal-scorers-section">
                 <h3 class="attendance-section-title">Goal Scorers</h3>
                 <div id="goal-scorers-${session.id}">
@@ -286,7 +244,10 @@ window.copyMatchAttendanceToClipboard = async function(sessionId) {
         showToast('Session not found.', true);
         return;
     }
-    const attendance = session.attendance || [];
+    const effective =
+        typeof window.getEffectiveMatchAttendance === 'function'
+            ? window.getEffectiveMatchAttendance(session)
+            : session.attendance || [];
     const activePlayers = players.filter(p => {
         const returning = (p.returning || '').toString().toLowerCase().trim();
         const playerName = (p.player || '').toString().toLowerCase();
@@ -296,7 +257,7 @@ window.copyMatchAttendanceToClipboard = async function(sessionId) {
                returning !== 'no' &&
                !p.deleted;
     }).sort((a, b) => (a.player || '').localeCompare(b.player || ''));
-    const names = activePlayers.filter(p => attendance.includes(p.player)).map(p => p.player);
+    const names = activePlayers.filter(p => effective.includes(p.player)).map(p => p.player);
     if (names.length === 0) {
         showToast('No players marked as attending.', true);
         return;
@@ -527,7 +488,7 @@ window.handleMatchTypeChange = function(sessionId, matchType) {
 window.handleMatchCardClick = function(event, sessionId) {
     // Don't flip if clicking on interactive elements
     const target = event.target;
-    if (target.closest('input, textarea, button, select, .attendance-checkbox, .goalkeeper-checkbox, .captain-checkbox, .vice-captain-checkbox, .goal-btn, .captain-selector, .match-photo-btn, .match-photo-remove-btn, .match-photo-preview')) {
+    if (target.closest('input, textarea, button, select, .attendance-checkbox, .goalkeeper-checkbox, .captain-checkbox, .vice-captain-checkbox, .half-lineup-select, .match-captain-select, .match-vice-captain-select, .goal-btn, .captain-selector, .match-photo-btn, .match-photo-remove-btn, .match-photo-preview')) {
         return; // Don't stop propagation here, let the event bubble to the specific handlers
     }
     
@@ -612,8 +573,19 @@ window.updateAttendanceSummaryDisplay = function(sessionId) {
     const summaryEl = backContentDiv.querySelector('.attendance-summary');
     if (!summaryEl) return;
 
-    const totalPlayers = backContentDiv.querySelectorAll('.attendance-item').length;
-    const attendanceCount = (session.attendance || []).length;
+    const totalPlayers = players.filter(p => {
+        const returning = (p.returning || '').toString().toLowerCase().trim();
+        const playerName = (p.player || '').toString().toLowerCase();
+        return p.player &&
+               p.player !== '?' &&
+               !playerName.includes('child') &&
+               returning !== 'no' &&
+               !p.deleted;
+    }).length;
+    const attendanceCount =
+        typeof window.getEffectiveMatchAttendance === 'function'
+            ? window.getEffectiveMatchAttendance(session).length
+            : (session.attendance || []).length;
     summaryEl.innerHTML = `<span style="font-size: 24px; font-weight: bold; color: var(--accent-primary);">${attendanceCount}</span> of ${totalPlayers} players attending`;
 };
 
@@ -791,9 +763,13 @@ window.getPlayerCleanSheets = function(playerName) {
     let totalMatches = 0;
     
     sessions.forEach(session => {
-        if (session.type === 'match' && !session.deleted && session.attendance) {
+        if (session.type === 'match' && !session.deleted) {
+            const att =
+                typeof window.getEffectiveMatchAttendance === 'function'
+                    ? window.getEffectiveMatchAttendance(session)
+                    : session.attendance || [];
             // Only count if player attended and score was recorded
-            if (session.attendance.includes(playerName) && 
+            if (att.includes(playerName) && 
                 session.teamScore !== undefined && session.teamScore !== '' &&
                 session.opponentScore !== undefined && session.opponentScore !== '') {
                 totalMatches++;
@@ -819,15 +795,18 @@ window.updateGoalScorersDisplay = function(sessionId) {
     const goalScorersContainer = document.getElementById(`goal-scorers-${sessionId}`);
     if (!goalScorersContainer) return;
     
-    const attendance = session.attendance || [];
+    const attendance =
+        typeof window.getEffectiveMatchAttendance === 'function'
+            ? window.getEffectiveMatchAttendance(session)
+            : session.attendance || [];
     const matchGoals = session.matchGoals || {};
-    
+
     // Get all active players who are attending
     const activePlayers = players.filter(p => {
         const returning = (p.returning || '').toString().toLowerCase().trim();
         const playerName = (p.player || '').toString().toLowerCase();
-        return p.player && 
-               p.player !== '?' && 
+        return p.player &&
+               p.player !== '?' &&
                !playerName.includes('child') &&
                returning !== 'no' &&
                !p.deleted &&
@@ -866,7 +845,10 @@ window.saveMatchData = async function(sessionId) {
     // Integrate match goals with player goals
     const matchDate = session.date ? new Date(session.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
         const matchGoals = session.matchGoals || {};
-        const attendingPlayers = session.attendance || [];
+        const attendingPlayers =
+            typeof window.getEffectiveMatchAttendance === 'function'
+                ? window.getEffectiveMatchAttendance(session)
+                : session.attendance || [];
         const kickOffTime = session.kickOffTime || '';
     
     // Set goals for each player's record (not add, to avoid duplicates)
@@ -904,5 +886,17 @@ window.saveMatchData = async function(sessionId) {
     const playersTab = document.getElementById('players-tab');
     if (playersTab && playersTab.classList.contains('active')) {
         renderPlayers();
+    }
+};
+
+// Refresh match card back (lineups / goal scorers) without re-flipping
+window.refreshMatchCardBack = function(sessionId) {
+    const session = sessions.find(s => s.id === parseInt(sessionId, 10));
+    if (!session || session.type !== 'match') return;
+    const card = document.querySelector(`.session-card[data-session="${sessionId}"]`);
+    if (!card) return;
+    const back = card.querySelector('.session-card-back');
+    if (back) {
+        back.innerHTML = generateMatchBackContent(session);
     }
 };

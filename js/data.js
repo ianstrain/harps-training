@@ -114,6 +114,9 @@ window.loadData = async function() {
                         s.captain = sessionData.captain || '';
                         s.viceCaptain = sessionData.viceCaptain || '';
                         if (s.type === 'match') s.goalkeeper = sessionData.goalkeeper || '';
+                        if (s.type === 'match' && sessionData.halfLineups) {
+                            s.halfLineups = sessionData.halfLineups;
+                        }
                         s.matchGoals = sessionData.matchGoals || {};
                         s.teamScore = sessionData.teamScore || '';
                         s.opponentScore = sessionData.opponentScore || '';
@@ -144,6 +147,13 @@ window.loadData = async function() {
             s.captain = data[s.id + '_captain'] || '';
             s.viceCaptain = data[s.id + '_viceCaptain'] || '';
             if (s.type === 'match') s.goalkeeper = data[s.id + '_goalkeeper'] || '';
+            if (s.type === 'match' && data[s.id + '_halfLineups']) {
+                try {
+                    s.halfLineups = JSON.parse(data[s.id + '_halfLineups']);
+                } catch (e) {
+                    s.halfLineups = undefined;
+                }
+            }
             s.matchGoals = data[s.id + '_matchGoals'] ? JSON.parse(data[s.id + '_matchGoals']) : {};
             s.teamScore = data[s.id + '_teamScore'] || '';
             s.opponentScore = data[s.id + '_opponentScore'] || '';
@@ -203,6 +213,8 @@ window.saveData = async function() {
         data[s.id + '_captain'] = s.captain || '';
         data[s.id + '_viceCaptain'] = s.viceCaptain || '';
         data[s.id + '_goalkeeper'] = (s.type === 'match' && s.goalkeeper) ? s.goalkeeper : '';
+        data[s.id + '_halfLineups'] =
+            s.type === 'match' && s.halfLineups ? JSON.stringify(s.halfLineups) : '';
         data[s.id + '_matchGoals'] = JSON.stringify(s.matchGoals || {});
         data[s.id + '_teamScore'] = s.teamScore || '';
         data[s.id + '_opponentScore'] = s.opponentScore || '';
@@ -234,6 +246,7 @@ window.saveData = async function() {
                     captain: s.captain || '',
                     viceCaptain: s.viceCaptain || '',
                     goalkeeper: (s.type === 'match' && s.goalkeeper) ? s.goalkeeper : '',
+                    halfLineups: s.type === 'match' && s.halfLineups ? s.halfLineups : null,
                     matchGoals: s.matchGoals || {},
                     teamScore: s.teamScore || '',
                     opponentScore: s.opponentScore || '',

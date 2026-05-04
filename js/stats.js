@@ -7,6 +7,27 @@ window.goalsSortBy = 'goals-desc'; // Default: sort by goals descending
 window.matchAttendanceSortBy = 'attended-desc'; // Default: sort by attended descending
 window.trainingAttendanceSortBy = 'attended-desc'; // Default: sort by attended descending
 
+function statsEffectiveAttendanceIncludes(match, playerName) {
+    if (typeof window.getEffectiveMatchAttendance === 'function') {
+        return window.getEffectiveMatchAttendance(match).includes(playerName);
+    }
+    return (match.attendance || []).includes(playerName);
+}
+
+function statsMatchCaptain(match) {
+    if (typeof window.getMatchCaptainForStats === 'function') {
+        return window.getMatchCaptainForStats(match) || '';
+    }
+    return match.captain || '';
+}
+
+function statsMatchViceCaptain(match) {
+    if (typeof window.getMatchViceCaptainForStats === 'function') {
+        return window.getMatchViceCaptainForStats(match) || '';
+    }
+    return match.viceCaptain || '';
+}
+
 // Sorting functions (global for testability)
 window.sortPlayerData = function(data, sortBy, valueKey = 'total') {
     const sorted = [...data];
@@ -140,7 +161,8 @@ window.renderStats = function() {
         const attendanceChart = generateAttendanceChart(filteredPlayers);
         const trainingAttendanceChart = generateTrainingAttendanceChart(filteredPlayers);
         const captainHistory = generateCaptainHistoryChart();
-        container.innerHTML = seasonStats + attendanceChart + trainingAttendanceChart + captainHistory;
+        const lineupExtras = generateFullMatchesAndPositionsCharts(filteredPlayers);
+        container.innerHTML = seasonStats + attendanceChart + trainingAttendanceChart + lineupExtras + captainHistory;
         return;
     }
     
@@ -271,11 +293,12 @@ window.renderStats = function() {
     const attendanceChart = generateAttendanceChart(filteredPlayers);
     const trainingAttendanceChart = generateTrainingAttendanceChart(filteredPlayers); 
     const captainHistory = generateCaptainHistoryChart();
-    
+    const lineupExtras = generateFullMatchesAndPositionsCharts(filteredPlayers);
+
     // Generate season stats
     const seasonStats = generateSeasonStats();
-    
-    container.innerHTML = seasonStats + attendanceChart + trainingAttendanceChart + captainHistory + goalsSvg;
+
+    container.innerHTML = seasonStats + attendanceChart + trainingAttendanceChart + lineupExtras + captainHistory + goalsSvg;
 }
 
 function getStatsMatchKind(session) {
@@ -339,7 +362,7 @@ function aggregatePlayerMatchAttendanceByMatchKind(playerName, matchList) {
     let friendly = 0;
     let cup = 0;
     for (const m of matchList) {
-        if (!m.attendance || !m.attendance.includes(playerName)) continue;
+        if (!statsEffectiveAttendanceIncludes(m, playerName)) continue;
         const kind = getStatsMatchKind(m);
         if (kind === 'league') league++;
         else if (kind === 'cup') cup++;
@@ -520,10 +543,10 @@ function generateAttendanceChart(filteredPlayers) {
         let captainCount = 0;
 
         matches.forEach(match => {
-            if (match.attendance && match.attendance.includes(playerName)) {
+            if (statsEffectiveAttendanceIncludes(match, playerName)) {
                 attended++;
             }
-            if (match.captain === playerName) {
+            if (statsMatchCaptain(match) === playerName) {
                 captainCount++;
             }
         });
@@ -829,6 +852,107 @@ function generateTrainingAttendanceChart(filteredPlayers) {
     return svg;
 }
 
+/** Full games (player in both halves) and position list from match half lineups. */
+function generateFullMatchesAndPositionsCharts(filteredPlayers) {
+    const played = getPlayedMatchesForAttendance();
+    if (played.length === 0) {
+        return `
+            <div class="stats-chart-container">
+                <div class="stats-chart-title">Full matches & positions</div>
+                <div class="stats-empty" style="padding: 28px;">
+                    <p>No completed matches yet</p>
+                    <small>Enter a result on each match, then set first- and second-half lineups on the back of the card.</small>
+                </div>
+            </div>
+        `;
+    }
+
+    const rows = filteredPlayers.map(p => {
+        const name = p.player || '';
+        const full =
+            typeof window.countFullMatchesForPlayer === 'function'
+                ? window.countFullMatchesForPlayer(name, played)
+                : 0;
+        const positions =
+            typeof window.collectPositionsPlayedForPlayer === 'function'
+                ? window.collectPositionsPlayedForPlayer(name)
+                : [];
+        return { name, full, positions };
+    });
+
+    const hasLineupStats = rows.some(r => r.full > 0 || r.positions.length > 0);
+    if (!hasLineupStats) {
+        return `
+            <div class="stats-chart-container">
+                <div class="stats-chart-title">Full matches & positions</div>
+                <div class="stats-empty" style="padding: 28px;">
+                    <p>No half-lineup data on completed matches</p>
+                    <small>Pick players for both halves on each match card. Appearing in both halves counts as one full match.</small>
+                </div>
+            </div>
+        `;
+    }
+
+    const fullSorted = [...rows]
+        .filter(r => r.full > 0)
+        .sort((a, b) => b.full - a.full || a.name.localeCompare(b.name));
+    const posRows = [...rows]
+        .filter(r => r.positions.length > 0)
+        .sort((a, b) => a.name.localeCompare(b.name));
+
+    const fullTable =
+        fullSorted.length === 0
+            ? `<p style="font-size: 13px; color: var(--text-muted); margin: 0 0 16px;">No players with both halves filled yet.</p>`
+            : `<div style="overflow-x: auto; margin-bottom: 20px;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                    <thead>
+                        <tr style="border-bottom: 2px solid var(--border-color); color: var(--text-secondary); text-align: left;">
+                            <th style="padding: 8px;">Player</th>
+                            <th style="padding: 8px; text-align: center;">Full matches</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${fullSorted
+                            .map(
+                                r => `
+                            <tr style="border-bottom: 1px solid var(--border-color);">
+                                <td style="padding: 8px; color: var(--text-primary);">${r.name}</td>
+                                <td style="padding: 8px; text-align: center; font-weight: 600; color: var(--accent-primary);">${r.full}</td>
+                            </tr>`
+                            )
+                            .join('')}
+                    </tbody>
+                </table>
+            </div>`;
+
+    const posBlock =
+        posRows.length === 0
+            ? `<p style="font-size: 13px; color: var(--text-muted); margin: 0;">No positions recorded yet.</p>`
+            : `<div style="display: flex; flex-direction: column; gap: 10px;">
+                ${posRows
+                    .map(
+                        r => `
+                    <div style="padding: 10px 12px; background: var(--bg-section); border-radius: 8px; border: 1px solid var(--border-color);">
+                        <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 6px;">${r.name}</div>
+                        <div style="font-size: 13px; color: var(--text-secondary);">${r.positions.join(', ')}</div>
+                    </div>`
+                    )
+                    .join('')}
+               </div>`;
+
+    return `
+        <div class="stats-chart-container">
+            <div class="stats-chart-title">Full matches & positions (${played.length} played)</div>
+            <div style="padding: 16px 20px 24px;">
+                <div style="font-size: 12px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px;">Full matches (both halves)</div>
+                ${fullTable}
+                <div style="font-size: 12px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin: 20px 0 10px;">Positions played</div>
+                ${posBlock}
+            </div>
+        </div>
+    `;
+}
+
 // Navigate to player profile
 window.navigateToPlayerProfile = function(playerName) {
     // Store the current player name for the profile view
@@ -887,17 +1011,26 @@ window.renderPlayerProfile = function() {
     const pastMatchSessions = allPastSessions.filter(s => s.type === 'match');
     const playedMatchSessions = getPlayedMatchesForAttendance();
     const pastTrainingSessions = allPastSessions.filter(s => s.type === 'training');
-    
+
+    const fullMatchesCount =
+        typeof window.countFullMatchesForPlayer === 'function'
+            ? window.countFullMatchesForPlayer(playerName, playedMatchSessions)
+            : 0;
+    const positionsPlayed =
+        typeof window.collectPositionsPlayedForPlayer === 'function'
+            ? window.collectPositionsPlayedForPlayer(playerName)
+            : [];
+
     // Calculate match attendance (games played only — matches with a result)
     let matchesAttended = 0;
     let captainCount = 0;
     let viceCaptainCount = 0;
     const matchAttendanceRecords = [];
     playedMatchSessions.forEach(match => {
-        if (match.attendance && match.attendance.includes(playerName)) {
+        if (statsEffectiveAttendanceIncludes(match, playerName)) {
             matchesAttended++;
-            const wasCaptain = match.captain === playerName;
-            const wasViceCaptain = match.viceCaptain === playerName;
+            const wasCaptain = statsMatchCaptain(match) === playerName;
+            const wasViceCaptain = statsMatchViceCaptain(match) === playerName;
             if (wasCaptain) captainCount++;
             if (wasViceCaptain) viceCaptainCount++;
             matchAttendanceRecords.push({
@@ -935,7 +1068,7 @@ window.renderPlayerProfile = function() {
     
     // Get captain history
     const captainHistory = pastMatchSessions
-        .filter(m => m.captain === playerName)
+        .filter(m => statsMatchCaptain(m) === playerName)
         .map(m => ({
             date: m.date,
             opponent: m.opponent || 'Unknown'
@@ -943,7 +1076,7 @@ window.renderPlayerProfile = function() {
         .sort((a, b) => new Date(b.date) - new Date(a.date));
 
     const viceCaptainHistory = pastMatchSessions
-        .filter(m => m.viceCaptain === playerName)
+        .filter(m => statsMatchViceCaptain(m) === playerName)
         .map(m => ({
             date: m.date,
             opponent: m.opponent || 'Unknown'
@@ -986,6 +1119,10 @@ window.renderPlayerProfile = function() {
             <div class="player-profile-stat-card">
                 <div class="player-profile-stat-value">${cleanSheetData.cleanSheets}</div>
                 <div class="player-profile-stat-label">Clean Sheets</div>
+            </div>
+            <div class="player-profile-stat-card">
+                <div class="player-profile-stat-value">${fullMatchesCount}</div>
+                <div class="player-profile-stat-label">Full matches</div>
             </div>
             <div class="player-profile-stat-card">
                 <div class="player-profile-stat-value">${matchAttendancePercent}%</div>
@@ -1034,6 +1171,17 @@ window.renderPlayerProfile = function() {
             </div>
         ` : ''}
         
+        <div class="player-profile-section">
+            <div class="player-profile-section-title">📍 Positions played</div>
+            <div class="player-profile-section-content">
+                ${positionsPlayed.length > 0 ? `
+                    <div style="font-size: 14px; color: var(--text-primary); line-height: 1.5;">${positionsPlayed.join(', ')}</div>
+                ` : `
+                    <div class="player-profile-no-data">No lineup positions recorded yet</div>
+                `}
+            </div>
+        </div>
+
         <div class="player-profile-section">
             <div class="player-profile-section-title">⚽ Goals Scored (${totalGoals})</div>
             <div class="player-profile-section-content">
@@ -1100,10 +1248,52 @@ window.renderPlayerProfile = function() {
     `;
 }
 
+// Players on the stats roster who have never been captain or vice captain on any recorded match
+function getPlayersNeverCaptainOrViceCaptain() {
+    const everCaptainOrVc = new Set();
+    sessions.forEach(s => {
+        if (s.type !== 'match' || s.deleted) return;
+        const c = statsMatchCaptain(s);
+        const v = statsMatchViceCaptain(s);
+        if (c) everCaptainOrVc.add(c);
+        if (v) everCaptainOrVc.add(v);
+    });
+    return getFilteredPlayersForStatsExport()
+        .map(p => p.player)
+        .filter(name => !everCaptainOrVc.has(name))
+        .sort((a, b) => a.localeCompare(b));
+}
+
+function renderNeverCaptainOrViceSection(names) {
+    const heading =
+        names.length === 0
+            ? 'Never captain or vice captain'
+            : `Never captain or vice captain (${names.length})`;
+    const body =
+        names.length === 0
+            ? `<p style="font-size: 13px; color: var(--text-muted); margin: 0;">Everyone on the squad has been captain or vice captain in at least one recorded match.</p>`
+            : `<div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                    ${names.map(n => `<span style="padding: 4px 10px; background: var(--bg-section); border-radius: 6px; font-size: 13px; color: var(--text-primary);">${n}</span>`).join('')}
+               </div>`;
+    return `
+        <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border-color);">
+            <div style="font-size: 12px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px;">${heading}</div>
+            ${body}
+        </div>
+    `;
+}
+
 // Generate captain history chart
 function generateCaptainHistoryChart() {
-    const matches = sessions.filter(s => s.type === 'match' && !s.deleted && (s.captain || s.viceCaptain));
-    
+    const matches = sessions.filter(
+        s =>
+            s.type === 'match' &&
+            !s.deleted &&
+            (statsMatchCaptain(s) || statsMatchViceCaptain(s))
+    );
+    const neverCaptainOrVc = getPlayersNeverCaptainOrViceCaptain();
+    const neverSection = renderNeverCaptainOrViceSection(neverCaptainOrVc);
+
     if (matches.length === 0) {
         return `
             <div class="stats-chart-container">
@@ -1112,13 +1302,16 @@ function generateCaptainHistoryChart() {
                     <p>No captains or vice captains recorded yet</p>
                     <small>Assign captains and vice captains in match cards to see history here.</small>
                 </div>
+                <div style="padding: 0 20px 20px;">
+                    ${neverSection}
+                </div>
             </div>
         `;
     }
-    
+
     const sortedMatches = [...matches].sort((a, b) => new Date(b.date) - new Date(a.date));
     const dash = '—';
-    
+
     return `
         <div class="stats-chart-container">
             <div class="stats-chart-title">Captain & Vice Captain History (${matches.length} ${matches.length === 1 ? 'match' : 'matches'})</div>
@@ -1132,11 +1325,13 @@ function generateCaptainHistoryChart() {
                 ${sortedMatches.map(match => {
                     const matchDate = new Date(match.date);
                     const formattedDate = matchDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
-                    const captainCell = match.captain
-                        ? `<div style="color: var(--accent-primary); font-weight: 600;">${match.captain}</div>`
+                    const capName = statsMatchCaptain(match);
+                    const vcName = statsMatchViceCaptain(match);
+                    const captainCell = capName
+                        ? `<div style="color: var(--accent-primary); font-weight: 600;">${capName}</div>`
                         : `<div style="color: var(--text-muted); font-weight: 500;">${dash}</div>`;
-                    const viceCell = match.viceCaptain
-                        ? `<div style="color: var(--accent-primary); font-weight: 600;">${match.viceCaptain}</div>`
+                    const viceCell = vcName
+                        ? `<div style="color: var(--accent-primary); font-weight: 600;">${vcName}</div>`
                         : `<div style="color: var(--text-muted); font-weight: 500;">${dash}</div>`;
                     return `
                         <div style="display: grid; grid-template-columns: 1fr 2fr 2fr 2fr; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border-color); font-size: 14px; color: var(--text-primary); transition: all 0.2s ease;">
@@ -1147,6 +1342,7 @@ function generateCaptainHistoryChart() {
                         </div>
                     `;
                 }).join('')}
+                ${neverSection}
             </div>
         </div>
     `;
@@ -1169,7 +1365,7 @@ window.getPlayerAttendanceStats = function(playerName) {
 
     let matchesAttended = 0;
     playedMatchSessions.forEach(match => {
-        if (match.attendance && match.attendance.includes(playerName)) {
+        if (statsEffectiveAttendanceIncludes(match, playerName)) {
             matchesAttended++;
         }
     });
@@ -1312,8 +1508,8 @@ window.exportStatsToExcel = function() {
         let attended = 0;
         let captainCount = 0;
         playedMatches.forEach(match => {
-            if (match.attendance && match.attendance.includes(name)) attended++;
-            if (match.captain === name) captainCount++;
+            if (statsEffectiveAttendanceIncludes(match, name)) attended++;
+            if (statsMatchCaptain(match) === name) captainCount++;
         });
         const mk = aggregatePlayerMatchAttendanceByMatchKind(name, playedMatches);
         const pct = playedMatches.length > 0 ? Math.round((attended / playedMatches.length) * 100) : 0;
@@ -1327,7 +1523,11 @@ window.exportStatsToExcel = function() {
     );
     for (const m of sortedPlayed) {
         const d = m.date ? new Date(m.date) : null;
-        const attendees = Array.isArray(m.attendance) ? m.attendance.join(', ') : '';
+        const effAtt =
+            typeof window.getEffectiveMatchAttendance === 'function'
+                ? window.getEffectiveMatchAttendance(m)
+                : m.attendance || [];
+        const attendees = Array.isArray(effAtt) ? effAtt.join(', ') : '';
         matchAoa.push([
             isoDate(d),
             m.opponent || '',
@@ -1336,8 +1536,8 @@ window.exportStatsToExcel = function() {
             m.teamScore != null && m.teamScore !== '' ? m.teamScore : '',
             m.opponentScore != null && m.opponentScore !== '' ? m.opponentScore : '',
             attendees,
-            m.captain || '',
-            m.viceCaptain || ''
+            statsMatchCaptain(m) || '',
+            statsMatchViceCaptain(m) || ''
         ]);
     }
     if (sortedPlayed.length === 0) {
@@ -1376,7 +1576,9 @@ window.exportStatsToExcel = function() {
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(trainingAoa), 'Training Attendance');
 
     // —— Captain & Vice Captain History ——
-    const capMatches = sessions.filter(s => s.type === 'match' && !s.deleted && (s.captain || s.viceCaptain));
+    const capMatches = sessions.filter(
+        s => s.type === 'match' && !s.deleted && (statsMatchCaptain(s) || statsMatchViceCaptain(s))
+    );
     const sortedCaps = [...capMatches].sort((a, b) => new Date(b.date) - new Date(a.date));
     const capAoa = [
         ['Captain & Vice Captain History'],
@@ -1386,7 +1588,7 @@ window.exportStatsToExcel = function() {
     ];
     for (const m of sortedCaps) {
         const d = m.date ? new Date(m.date) : null;
-        capAoa.push([isoDate(d), m.opponent || '', m.captain || '', m.viceCaptain || '']);
+        capAoa.push([isoDate(d), m.opponent || '', statsMatchCaptain(m) || '', statsMatchViceCaptain(m) || '']);
     }
     if (sortedCaps.length === 0) {
         capAoa.push(['—', 'No captains or vice captains recorded yet.', '', '']);

@@ -597,6 +597,9 @@ window.renderPlayers = function() {
                         session.viceCaptain = newValue;
                     }
                 });
+                if (typeof window.updateHalfLineupPlayerReferences === 'function') {
+                    window.updateHalfLineupPlayerReferences(oldPlayerName, newValue);
+                }
                 
                 // Move goals data to new player name
                 const oldGoalsKey = `goals_${oldPlayerName}`;
@@ -616,7 +619,8 @@ window.renderPlayers = function() {
                 // Save all changes
                 await savePlayersList();
                 await saveSessionsList();
-                
+                await saveData();
+
                 // Re-render to update UI
                 renderPlayers();
                 showToast(`Player renamed from "${oldPlayerName}" to "${newValue}"`);

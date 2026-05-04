@@ -79,11 +79,11 @@ window.showLineupBuilder = function(sessionId) {
     }
     
     const formation = FORMATIONS[session.lineup.formation || '3-3-2'];
-    const attendingPlayers = players.filter(p => 
-        !p.deleted && 
-        session.attendance && 
-        session.attendance.includes(p.player)
-    );
+    const eff =
+        typeof window.getEffectiveMatchAttendance === 'function'
+            ? window.getEffectiveMatchAttendance(session)
+            : session.attendance || [];
+    const attendingPlayers = players.filter(p => !p.deleted && eff.includes(p.player));
     
     const dialogHtml = `
         <div class="lineup-overlay" onclick="closeLineupBuilder()" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 20px;">
@@ -389,16 +389,365 @@ window.downloadLineupImage = async function(sessionId) {
 
 // Render lineup indicator on match cards
 window.renderLineupIndicator = function(session) {
+    if (session.type === 'match' && session.halfLineups && halfLineupHasPlayerData(session.halfLineups)) {
+        let filled = 0;
+        ['firstHalf', 'secondHalf'].forEach(h => {
+            (session.halfLineups[h] || []).forEach(row => {
+                if ((row.player || '').trim()) filled++;
+            });
+        });
+        const totalSlots = 18;
+        return `
+        <div style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; background: rgba(0, 212, 170, 0.15); color: var(--accent-primary); border-radius: 12px; font-size: 11px; font-weight: 600; margin-top: 8px;">
+            📋 Half lineups: ${filled}/${totalSlots} slots
+        </div>
+    `;
+    }
     if (!session.lineup || Object.keys(session.lineup.positions).length === 0) {
         return '';
     }
-    
+
     const assignedCount = Object.keys(session.lineup.positions).length;
     const totalPositions = FORMATIONS[session.lineup.formation || '3-3-2'].positions.length;
-    
+
     return `
         <div style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; background: rgba(0, 212, 170, 0.15); color: var(--accent-primary); border-radius: 12px; font-size: 11px; font-weight: 600; margin-top: 8px;">
             ⚽ Lineup: ${assignedCount}/${totalPositions} (${session.lineup.formation})
         </div>
     `;
+};
+
+// ============================================
+// FIRST / SECOND HALF LINEUPS (positions only; captain / VC = whole game on session)
+// ============================================
+
+const HALF_LINEUP_POSITIONS = ['GK', 'LB', 'CB', 'RB', 'LM', 'CM', 'RM', 'AM', 'S'];
+
+function createEmptyHalfRows() {
+    return HALF_LINEUP_POSITIONS.map(position => ({
+        position,
+        player: ''
+    }));
+}
+
+function ensureSessionHalfLineups(session) {
+    if (!session || session.type !== 'match') return;
+    if (!session.halfLineups || !Array.isArray(session.halfLineups.firstHalf)) {
+        session.halfLineups = {
+            firstHalf: createEmptyHalfRows(),
+            secondHalf: createEmptyHalfRows()
+        };
+        return;
+    }
+    ['firstHalf', 'secondHalf'].forEach(key => {
+        const rows = session.halfLineups[key];
+        if (!Array.isArray(rows) || rows.length !== HALF_LINEUP_POSITIONS.length) {
+            session.halfLineups[key] = createEmptyHalfRows();
+            return;
+        }
+        rows.forEach((row, i) => {
+            if (!row.position) row.position = HALF_LINEUP_POSITIONS[i];
+            if (row.player === undefined) row.player = '';
+            const pname = (row.player || '').trim();
+            if (pname) {
+                if (!session.captain && row.captain) session.captain = pname;
+                if (!session.viceCaptain && row.viceCaptain) session.viceCaptain = pname;
+            }
+            delete row.captain;
+            delete row.viceCaptain;
+        });
+    });
+}
+
+function halfLineupHasPlayerData(halfLineups) {
+    if (!halfLineups) return false;
+    for (const key of ['firstHalf', 'secondHalf']) {
+        const rows = halfLineups[key];
+        if (!rows) continue;
+        for (let i = 0; i < rows.length; i++) {
+            if ((rows[i].player || '').trim()) return true;
+        }
+    }
+    return false;
+}
+
+function collectUniquePlayersFromHalfLineups(halfLineups) {
+    const out = [];
+    const seen = new Set();
+    for (const key of ['firstHalf', 'secondHalf']) {
+        const rows = halfLineups[key] || [];
+        for (let i = 0; i < rows.length; i++) {
+            const name = (rows[i].player || '').trim();
+            if (name && !seen.has(name)) {
+                seen.add(name);
+                out.push(name);
+            }
+        }
+    }
+    return out;
+}
+
+window.getEffectiveMatchAttendance = function(session) {
+    if (!session || session.type !== 'match') {
+        return session && session.attendance ? session.attendance : [];
+    }
+    ensureSessionHalfLineups(session);
+    if (halfLineupHasPlayerData(session.halfLineups)) {
+        return collectUniquePlayersFromHalfLineups(session.halfLineups);
+    }
+    return session.attendance || [];
+};
+
+window.getMatchCaptainForStats = function(session) {
+    if (!session || session.type !== 'match') return '';
+    return session.captain || '';
+};
+
+window.getMatchViceCaptainForStats = function(session) {
+    if (!session || session.type !== 'match') return '';
+    return session.viceCaptain || '';
+};
+
+window.syncSessionFromHalfLineups = function(session) {
+    if (!session || session.type !== 'match') return;
+    ensureSessionHalfLineups(session);
+    if (!halfLineupHasPlayerData(session.halfLineups)) return;
+    session.attendance = collectUniquePlayersFromHalfLineups(session.halfLineups);
+    const gk1 = session.halfLineups.firstHalf[0];
+    const gk2 = session.halfLineups.secondHalf[0];
+    const n1 = gk1 && (gk1.player || '').trim();
+    const n2 = gk2 && (gk2.player || '').trim();
+    if (n1 && n2 && n1 === n2) session.goalkeeper = n1;
+    else if (n1) session.goalkeeper = n1;
+    else if (n2) session.goalkeeper = n2;
+    else session.goalkeeper = '';
+};
+
+window.playerPlayedFullMatchInSession = function(session, playerName) {
+    if (!session || session.type !== 'match' || !playerName) return false;
+    ensureSessionHalfLineups(session);
+    if (!halfLineupHasPlayerData(session.halfLineups)) return false;
+    let inFirst = false;
+    let inSecond = false;
+    (session.halfLineups.firstHalf || []).forEach(row => {
+        if ((row.player || '').trim() === playerName) inFirst = true;
+    });
+    (session.halfLineups.secondHalf || []).forEach(row => {
+        if ((row.player || '').trim() === playerName) inSecond = true;
+    });
+    return inFirst && inSecond;
+};
+
+window.collectPositionsPlayedForPlayer = function(playerName) {
+    const positions = new Set();
+    if (!playerName) return [];
+    sessions.forEach(s => {
+        if (s.type !== 'match' || s.deleted || !s.halfLineups) return;
+        ensureSessionHalfLineups(s);
+        if (!halfLineupHasPlayerData(s.halfLineups)) return;
+        ['firstHalf', 'secondHalf'].forEach(key => {
+            (s.halfLineups[key] || []).forEach(row => {
+                if ((row.player || '').trim() === playerName && row.position) {
+                    positions.add(row.position);
+                }
+            });
+        });
+    });
+    return Array.from(positions).sort((a, b) => HALF_LINEUP_POSITIONS.indexOf(a) - HALF_LINEUP_POSITIONS.indexOf(b));
+};
+
+window.countFullMatchesForPlayer = function(playerName, playedMatches) {
+    let n = 0;
+    const list = playedMatches || sessions.filter(s => s.type === 'match' && !s.deleted && s.result);
+    list.forEach(m => {
+        if (playerPlayedFullMatchInSession(m, playerName)) n++;
+    });
+    return n;
+};
+
+function halfLineupRoleRefresh(sessionId) {
+    const sid = parseInt(sessionId, 10);
+    const session = sessions.find(s => s.id === sid);
+    if (session && session.type === 'match') {
+        syncSessionFromHalfLineups(session);
+    }
+    if (typeof window.saveMatchData === 'function') {
+        window.saveMatchData(sid);
+    }
+    if (typeof window.refreshMatchCardBack === 'function') {
+        window.refreshMatchCardBack(sid);
+    } else if (typeof renderSessions === 'function') {
+        renderSessions();
+    }
+}
+
+window.halfLineupSetPlayer = function(sessionId, halfKey, rowIndex, playerValue) {
+    const session = sessions.find(s => s.id === parseInt(sessionId, 10));
+    if (!session || session.type !== 'match') return;
+    ensureSessionHalfLineups(session);
+    const rows = session.halfLineups[halfKey];
+    if (!rows || rowIndex < 0 || rowIndex >= rows.length) return;
+    rows[rowIndex].player = playerValue ? String(playerValue).trim() : '';
+    syncSessionFromHalfLineups(session);
+    // Clear whole-game captain / VC if that player no longer appears in either half
+    const names = new Set(
+        collectUniquePlayersFromHalfLineups(session.halfLineups).map(n => n.trim())
+    );
+    if (session.captain && !names.has(session.captain)) session.captain = '';
+    if (session.viceCaptain && !names.has(session.viceCaptain)) session.viceCaptain = '';
+    halfLineupRoleRefresh(sessionId);
+};
+
+window.matchCaptainSelectChange = function(sessionId, playerName) {
+    const session = sessions.find(s => s.id === parseInt(sessionId, 10));
+    if (!session || session.type !== 'match') return;
+    const name = playerName ? String(playerName).trim() : '';
+    session.captain = name;
+    if (name && session.viceCaptain === name) session.viceCaptain = '';
+    if (typeof window.saveMatchData === 'function') window.saveMatchData(parseInt(sessionId, 10));
+    if (typeof window.refreshMatchCardBack === 'function') {
+        window.refreshMatchCardBack(parseInt(sessionId, 10));
+    }
+};
+
+window.matchViceCaptainSelectChange = function(sessionId, playerName) {
+    const session = sessions.find(s => s.id === parseInt(sessionId, 10));
+    if (!session || session.type !== 'match') return;
+    const name = playerName ? String(playerName).trim() : '';
+    session.viceCaptain = name;
+    if (name && session.captain === name) session.captain = '';
+    if (typeof window.saveMatchData === 'function') window.saveMatchData(parseInt(sessionId, 10));
+    if (typeof window.refreshMatchCardBack === 'function') {
+        window.refreshMatchCardBack(parseInt(sessionId, 10));
+    }
+};
+
+window.copyHalfLineupMatchText = function(sessionId) {
+    const session = sessions.find(s => s.id === parseInt(sessionId, 10));
+    if (!session || session.type !== 'match') return;
+    ensureSessionHalfLineups(session);
+    if (!halfLineupHasPlayerData(session.halfLineups)) {
+        if (typeof showToast === 'function') showToast('Fill at least one player in the lineups first.', true);
+        return;
+    }
+    const opp = session.opponent || 'Opponent';
+    const lines = [`vs ${opp}`, ''];
+    const cap = (session.captain || '').trim();
+    const vc = (session.viceCaptain || '').trim();
+    if (cap) lines.push(`Captain: ${cap}`);
+    if (vc) lines.push(`Vice captain: ${vc}`);
+    if (cap || vc) lines.push('');
+
+    function formatHalf(title, halfKey) {
+        lines.push(title);
+        (session.halfLineups[halfKey] || []).forEach(row => {
+            const name = (row.player || '').trim();
+            if (!name) return;
+            lines.push(`  ${name} (${row.position})`);
+        });
+        lines.push('');
+    }
+
+    formatHalf('First half', 'firstHalf');
+    formatHalf('Second half', 'secondHalf');
+
+    const text = lines.join('\n').trim();
+    if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => {
+            if (typeof showToast === 'function') showToast('Lineup text copied to clipboard.');
+        }).catch(() => {
+            if (typeof showToast === 'function') showToast('Could not copy.', true);
+        });
+    }
+};
+
+window.generateMatchHalfLineupSection = function(session) {
+    ensureSessionHalfLineups(session);
+    const activePlayers = players.filter(p => {
+        const returning = (p.returning || '').toString().toLowerCase().trim();
+        const playerName = (p.player || '').toString().toLowerCase();
+        return p.player &&
+            p.player !== '?' &&
+            !playerName.includes('child') &&
+            returning !== 'no' &&
+            !p.deleted;
+    }).sort((a, b) => (a.player || '').localeCompare(b.player || ''));
+
+    function renderHalfColumn(halfKey, title) {
+        const rows = session.halfLineups[halfKey] || createEmptyHalfRows();
+        return `
+            <div class="half-lineup-column" style="flex: 1; min-width: 200px;">
+                <div style="font-size: 13px; font-weight: 700; color: var(--accent-primary); margin-bottom: 10px; text-align: center;">${title}</div>
+                <div style="display: grid; grid-template-columns: 36px 1fr; gap: 6px 8px; align-items: center; font-size: 11px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px;">
+                    <span></span><span>Player</span>
+                </div>
+                ${rows.map((row, idx) => `
+                    <div style="display: grid; grid-template-columns: 36px 1fr; gap: 6px 8px; align-items: center; margin-bottom: 6px;">
+                        <span style="font-size: 11px; font-weight: 700; color: var(--text-secondary);">${row.position}</span>
+                        <select class="half-lineup-select"
+                            data-session="${session.id}"
+                            style="padding: 6px 8px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-section); color: var(--text-primary); font-size: 12px; max-width: 100%;"
+                            onchange="event.stopPropagation(); halfLineupSetPlayer(${session.id}, '${halfKey}', ${idx}, this.value)">
+                            <option value="">—</option>
+                            ${activePlayers.map(p => `
+                                <option value="${p.player.replace(/"/g, '&quot;')}" ${row.player === p.player ? 'selected' : ''}>${p.player}</option>
+                            `).join('')}
+                        </select>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    }
+
+    return `
+        <div class="half-lineup-section" onclick="event.stopPropagation()" style="margin-bottom: 20px;">
+            <div style="display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <span style="font-size: 12px; color: var(--text-muted);">Captain and vice captain apply to the whole game. Set both halves for positions; same player in both halves = full match.</span>
+                <button type="button" class="copy-attendance-btn" onclick="event.stopPropagation(); copyHalfLineupMatchText(${session.id})" title="Copy lineup as text">📋</button>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; max-width: 520px; margin: 0 auto 16px;">
+                <div>
+                    <label style="display: block; font-size: 11px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px;">⭐ Captain (whole game)</label>
+                    <select class="half-lineup-select match-captain-select"
+                        style="width: 100%; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-section); color: var(--text-primary); font-size: 13px;"
+                        onchange="event.stopPropagation(); matchCaptainSelectChange(${session.id}, this.value)">
+                        <option value="">—</option>
+                        ${activePlayers.map(p => `
+                            <option value="${p.player.replace(/"/g, '&quot;')}" ${session.captain === p.player ? 'selected' : ''}>${p.player}</option>
+                        `).join('')}
+                    </select>
+                </div>
+                <div>
+                    <label style="display: block; font-size: 11px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px;">Vice captain (whole game)</label>
+                    <select class="half-lineup-select match-vice-captain-select"
+                        style="width: 100%; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-section); color: var(--text-primary); font-size: 13px;"
+                        onchange="event.stopPropagation(); matchViceCaptainSelectChange(${session.id}, this.value)">
+                        <option value="">—</option>
+                        ${activePlayers.map(p => `
+                            <option value="${p.player.replace(/"/g, '&quot;')}" ${session.viceCaptain === p.player ? 'selected' : ''}>${p.player}</option>
+                        `).join('')}
+                    </select>
+                </div>
+            </div>
+            <div style="display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; align-items: flex-start;">
+                ${renderHalfColumn('firstHalf', 'First half')}
+                ${renderHalfColumn('secondHalf', 'Second half')}
+            </div>
+            <p style="font-size: 11px; color: var(--text-muted); margin-top: 12px; text-align: center;">
+                Pitch diagram: use “Set Lineup” on the front of the card. Lineups update attendance for stats.
+            </p>
+        </div>
+    `;
+};
+
+window.updateHalfLineupPlayerReferences = function(oldName, newName) {
+    if (!oldName || !newName || oldName === newName) return;
+    sessions.forEach(session => {
+        if (session.type !== 'match' || !session.halfLineups) return;
+        ['firstHalf', 'secondHalf'].forEach(key => {
+            (session.halfLineups[key] || []).forEach(row => {
+                if (row.player === oldName) row.player = newName;
+            });
+        });
+    });
 };
