@@ -867,7 +867,8 @@ function generateFullMatchesAndPositionsCharts(filteredPlayers) {
         `;
     }
 
-    const rows = filteredPlayers.map(p => {
+    const roster = filteredPlayers.filter(p => !p.deleted);
+    const rows = roster.map(p => {
         const name = p.player || '';
         const full =
             typeof window.countFullMatchesForPlayer === 'function'
@@ -896,6 +897,9 @@ function generateFullMatchesAndPositionsCharts(filteredPlayers) {
     const fullSorted = [...rows]
         .filter(r => r.full > 0)
         .sort((a, b) => b.full - a.full || a.name.localeCompare(b.name));
+    const noFullGameYet = [...rows]
+        .filter(r => r.full === 0)
+        .sort((a, b) => a.name.localeCompare(b.name));
     const posRows = [...rows]
         .filter(r => r.positions.length > 0)
         .sort((a, b) => a.name.localeCompare(b.name));
@@ -925,6 +929,12 @@ function generateFullMatchesAndPositionsCharts(filteredPlayers) {
                 </table>
             </div>`;
 
+    const noFullGameBlock =
+        noFullGameYet.length === 0
+            ? ''
+            : `<div style="font-size: 12px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin: 20px 0 10px;">No full game yet</div>
+                <div style="font-size: 13px; color: var(--text-secondary); line-height: 1.6;">${noFullGameYet.map(r => r.name).join(', ')}</div>`;
+
     const posBlock =
         posRows.length === 0
             ? `<p style="font-size: 13px; color: var(--text-muted); margin: 0;">No positions recorded yet.</p>`
@@ -946,6 +956,7 @@ function generateFullMatchesAndPositionsCharts(filteredPlayers) {
             <div style="padding: 16px 20px 24px;">
                 <div style="font-size: 12px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px;">Full matches (both halves)</div>
                 ${fullTable}
+                ${noFullGameBlock}
                 <div style="font-size: 12px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin: 20px 0 10px;">Positions played</div>
                 ${posBlock}
             </div>
