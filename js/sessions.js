@@ -87,6 +87,7 @@ window.generateSessionCard = function(session) {
                         <label class="match-input-label">Match Type</label>
                         <select class="match-type-select new-session-matchtype-select">
                             <option value="friendly" ${session.matchType === 'friendly' ? 'selected' : ''}>Friendly</option>
+                            <option value="groupStage" ${session.matchType === 'groupStage' ? 'selected' : ''}>Group Stage</option>
                             <option value="league" ${session.matchType === 'league' ? 'selected' : ''}>League</option>
                             <option value="cup" ${session.matchType === 'cup' ? 'selected' : ''}>Cup</option>
                         </select>

@@ -11,11 +11,27 @@ window.formatDate = function(date) {
     return formatted.replace(day, day + suffix);
 }
 
+/** League ordinals count only fixtures on or after this date (local midnight). */
+window.LEAGUE_MATCH_ORDINAL_START = new Date(2026, 4, 26);
+
+function sessionDateAtMidnight(session) {
+    const d = new Date(session.date);
+    d.setHours(0, 0, 0, 0);
+    return d;
+}
+
+function isLeagueOrdinalMatch(session) {
+    const start = new Date(window.LEAGUE_MATCH_ORDINAL_START);
+    start.setHours(0, 0, 0, 0);
+    return sessionDateAtMidnight(session) >= start;
+}
+
 /** Match competition kind (aligned with stats / dashboard). */
 window.getSessionMatchKind = function(session) {
     const t = session.matchType || 'friendly';
     if (t === 'league') return 'league';
     if (t === 'cup') return 'cup';
+    if (t === 'groupStage') return 'groupStage';
     return 'friendly';
 };
 
@@ -23,29 +39,58 @@ window.getSessionMatchKind = function(session) {
 window.getMatchKindOrdinal = function(session) {
     if (!session || session.type !== 'match' || session.deleted) return 0;
     const kind = getSessionMatchKind(session);
-    return sessions.filter(s =>
-        s.type === 'match' &&
-        !s.deleted &&
-        getSessionMatchKind(s) === kind &&
-        s.id <= session.id
-    ).length;
+    return sessions.filter(s => {
+        if (s.type !== 'match' || s.deleted || getSessionMatchKind(s) !== kind || s.id > session.id) {
+            return false;
+        }
+        if (kind === 'league' && !isLeagueOrdinalMatch(s)) {
+            return false;
+        }
+        return true;
+    }).length;
 };
 
-/** Card badge: L01 / F02 / C01 */
+/** Card badge: L01 / F02 / C01 / G01 */
 window.formatMatchOrdinalBadge = function(session) {
     const kind = getSessionMatchKind(session);
-    const prefix = kind === 'league' ? 'L' : kind === 'cup' ? 'C' : 'F';
+    const prefix =
+        kind === 'league' ? 'L' :
+        kind === 'cup' ? 'C' :
+        kind === 'groupStage' ? 'G' :
+        'F';
     return `${prefix}${String(getMatchKindOrdinal(session)).padStart(2, '0')}`;
 };
 
-/** Share line: "League match #01" / "Friendly match #02" / "Cup match #01" */
+/** Share line: "League match #01" / "Group Stage match #02" / etc. */
 window.formatMatchdayClipboardLabel = function(session) {
     const kind = getSessionMatchKind(session);
     const num = String(getMatchKindOrdinal(session)).padStart(2, '0');
     if (kind === 'league') return `League match #${num}`;
     if (kind === 'cup') return `Cup match #${num}`;
+    if (kind === 'groupStage') return `Group Stage match #${num}`;
     return `Friendly match #${num}`;
 };
+
+/** Badge label on match cards. */
+window.getMatchTypeBadgeLabel = function(matchType) {
+    if (matchType === 'cup') return 'Cup Match';
+    if (matchType === 'league') return 'League Match';
+    if (matchType === 'groupStage') return 'Group Stage Match';
+    return 'Friendly Match';
+};
+
+/** Firebase may return sparse arrays (null at index 0) or keyed objects. */
+function normalizeFirebaseRecords(data) {
+    if (!data) return [];
+    const list = Array.isArray(data) ? data.filter(Boolean) : Object.values(data);
+    return list.filter(s => s && s.id != null);
+}
+
+function getFirebaseRecordById(data, id) {
+    if (!data) return null;
+    if (Array.isArray(data)) return data[id] || null;
+    return data[id] || null;
+}
 
 // Convert YouTube URLs to embedded videos
 window.parseContent = function(text) {
@@ -75,11 +120,10 @@ window.loadSessionsFromFirebase = async function() {
         const sessionsData = snapshot.val();
         
         if (sessionsData) {
-            // Convert Firebase object to array and parse dates
-            sessions = Object.values(sessionsData).map(s => ({
+            sessions = normalizeFirebaseRecords(sessionsData).map(s => ({
                 ...s,
                 date: new Date(s.date),
-                type: s.type || 'training' // Default to training if not specified
+                type: s.type || 'training'
             }));
             console.log('Sessions loaded from Firebase:', sessions.length);
         } else {
@@ -104,7 +148,7 @@ window.loadData = async function() {
             if (firebaseData) {
                 // Merge Firebase data with sessions
                 sessions.forEach(s => {
-                    const sessionData = firebaseData[s.id];
+                    const sessionData = getFirebaseRecordById(firebaseData, s.id);
                     if (sessionData) {
                         s.desc = sessionData.desc || '';
                         s.warmup = sessionData.warmup || '';
@@ -123,6 +167,10 @@ window.loadData = async function() {
                         s.result = sessionData.result || '';
                         s.cleanSheet = sessionData.cleanSheet || false;
                         if (s.type === 'match') s.matchPhoto = sessionData.matchPhoto || '';
+                        if (s.type === 'match') {
+                            s.refPaidBy = sessionData.refPaidBy || '';
+                            s.refPaidConfirmed = !!sessionData.refPaidConfirmed;
+                        }
                     }
                 });
                 console.log('Session data loaded from Firebase');
@@ -160,6 +208,12 @@ window.loadData = async function() {
             s.result = data[s.id + '_result'] || '';
             s.cleanSheet = data[s.id + '_cleanSheet'] === 'true' || data[s.id + '_cleanSheet'] === true;
             if (s.type === 'match') s.matchPhoto = data[s.id + '_matchPhoto'] || '';
+            if (s.type === 'match') {
+                s.refPaidBy = data[s.id + '_refPaidBy'] || '';
+                s.refPaidConfirmed =
+                    data[s.id + '_refPaidConfirmed'] === 'true' ||
+                    data[s.id + '_refPaidConfirmed'] === true;
+            }
         });
         renderSessions();
     }
@@ -222,6 +276,8 @@ window.saveData = async function() {
         data[s.id + '_cleanSheet'] = s.cleanSheet || false;
         if (s.type === 'match') {
             data[s.id + '_matchPhoto'] = s.matchPhoto || '';
+            data[s.id + '_refPaidBy'] = s.refPaidBy || '';
+            data[s.id + '_refPaidConfirmed'] = !!s.refPaidConfirmed;
         }
     });
     
@@ -254,6 +310,8 @@ window.saveData = async function() {
                     cleanSheet: s.cleanSheet || false,
                     kickOffTime: s.kickOffTime || '',
                     matchPhoto: (s.type === 'match' && s.matchPhoto) ? s.matchPhoto : '',
+                    refPaidBy: s.type === 'match' ? (s.refPaidBy || '') : '',
+                    refPaidConfirmed: s.type === 'match' ? !!s.refPaidConfirmed : false,
                     lastUpdated: new Date().toISOString()
                 };
             });

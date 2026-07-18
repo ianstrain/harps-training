@@ -13,7 +13,9 @@ function matchPhotoUrlForImgAttr(url) {
 // Generate match card HTML
 window.generateMatchCard = function(session) {
     const matchTypeBadgeClass = session.matchType || 'friendly';
-    const matchTypeLabel = session.matchType === 'cup' ? 'Cup Match' : session.matchType === 'league' ? 'League Match' : 'Friendly Match';
+    const matchTypeLabel = typeof window.getMatchTypeBadgeLabel === 'function'
+        ? window.getMatchTypeBadgeLabel(session.matchType || 'friendly')
+        : 'Friendly Match';
     
     const matchOrdinalBadge = formatMatchOrdinalBadge(session);
 
@@ -46,6 +48,7 @@ window.generateMatchCard = function(session) {
                         <label class="match-input-label">Match Type</label>
                         <select class="match-type-select" data-session="${session.id}" data-field="matchType" onclick="event.stopPropagation()" onchange="handleMatchTypeChange(${session.id}, this.value)">
                             <option value="friendly" ${session.matchType === 'friendly' ? 'selected' : ''}>Friendly</option>
+                            <option value="groupStage" ${session.matchType === 'groupStage' ? 'selected' : ''}>Group Stage</option>
                             <option value="league" ${session.matchType === 'league' ? 'selected' : ''}>League</option>
                             <option value="cup" ${session.matchType === 'cup' ? 'selected' : ''}>Cup</option>
                         </select>
@@ -63,7 +66,8 @@ window.generateMatchCard = function(session) {
                 `}
                 ${session.matchPhoto ? `
                     <div class="match-photo-section${editMode ? ' match-photo-section--edit-mode' : ''}">
-                        <img class="match-photo-preview" src="${matchPhotoUrlForImgAttr(session.matchPhoto)}" alt="Match photo" loading="lazy" onclick="event.stopPropagation()" />
+                        <img class="match-photo-preview" src="${matchPhotoUrlForImgAttr(session.matchPhoto)}" alt="Match photo" loading="lazy" onclick="event.stopPropagation()" onerror="handleMatchPhotoLoadError(this)" />
+                        <div class="match-photo-unavailable hidden">Photo unavailable — re-upload in edit mode if Firebase Storage billing is disabled.</div>
                     </div>
                 ` : ''}
                 ${editMode ? `
@@ -233,6 +237,18 @@ window.generateMatchBackContent = function(session) {
                     `).join('') : '<p style="text-align: center; color: var(--text-muted); padding: 20px;">No players attending yet</p>'}
                 </div>
             </div>
+            <div class="ref-paid-section" style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border-color);">
+                <h3 class="attendance-section-title">Ref payment</h3>
+                <label for="ref-paid-by-${session.id}" style="display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 6px;">Who paid the ref?</label>
+                <input type="text"
+                       id="ref-paid-by-${session.id}"
+                       class="ref-paid-by-input"
+                       value="${(session.refPaidBy || '').replace(/"/g, '&quot;')}"
+                       placeholder="e.g. Sinead, Mark, Ian"
+                       data-session="${session.id}"
+                       onclick="event.stopPropagation()"
+                       onchange="handleRefPaidByChange(${session.id}, this.value)" />
+            </div>
         </div>
     `;
 }
@@ -305,6 +321,26 @@ function deleteMatchPhotoFromStorageIfNeeded(url) {
     return st.refFromURL(url).delete().catch(function() {});
 }
 
+function saveMatchPhotoDataUrlFromCanvas(session, canvas, fileInput) {
+    let dataUrl = canvas.toDataURL('image/jpeg', 0.88);
+    if (dataUrl.length > 4 * 1024 * 1024) {
+        dataUrl = canvas.toDataURL('image/jpeg', 0.72);
+    }
+    session.matchPhoto = dataUrl;
+    if (fileInput) fileInput.value = '';
+    return Promise.resolve(saveData()).then(function() { renderSessions(); });
+}
+
+window.handleMatchPhotoLoadError = function(imgEl) {
+    if (!imgEl || imgEl.dataset.photoErrorHandled) return;
+    imgEl.dataset.photoErrorHandled = '1';
+    imgEl.classList.add('match-photo-preview--failed');
+    imgEl.alt = 'Match photo unavailable';
+    const section = imgEl.closest('.match-photo-section');
+    const notice = section && section.querySelector('.match-photo-unavailable');
+    if (notice) notice.classList.remove('hidden');
+};
+
 window.handleMatchPhotoFile = function(sessionId, fileInput) {
     const file = fileInput.files && fileInput.files[0];
     if (!file) return;
@@ -360,27 +396,25 @@ window.handleMatchPhotoFile = function(sessionId, fileInput) {
                     .then(function() { renderSessions(); })
                     .catch(function(err) {
                         console.error('Match photo upload failed:', err);
-                        fileInput.value = '';
                         var code = err && err.code;
+                        var msg = (err && err.message) ? err.message : '';
                         var is403 = code === 'storage/unauthorized' || code === 'storage/permission-denied' ||
-                            (err && err.message && err.message.indexOf('Permission denied') !== -1);
+                            msg.indexOf('Permission denied') !== -1;
+                        var isBilling = /billing|402|closed/i.test(msg) || code === 'storage/quota-exceeded';
                         if (is403) {
-                            showToast('Storage 403: Firebase Console → Storage → Rules — publish rules from storage.rules (allow auth to write matchPhotos/).', true);
+                            showToast('Storage permission denied — saving photo in the schedule database instead.', true);
+                        } else if (isBilling) {
+                            showToast('Firebase Storage billing is disabled — saving photo in the schedule database instead.', true);
                         } else {
-                            showToast('Could not upload photo: ' + (err && err.message ? err.message : 'Unknown error'), true);
+                            showToast('Storage upload failed — saving photo in the schedule database instead.', true);
                         }
+                        saveMatchPhotoDataUrlFromCanvas(session, canvas, fileInput);
                     });
             }, 'image/jpeg', 0.88);
             return;
         }
 
-        let dataUrl = canvas.toDataURL('image/jpeg', 0.88);
-        if (dataUrl.length > 4 * 1024 * 1024) {
-            dataUrl = canvas.toDataURL('image/jpeg', 0.72);
-        }
-        session.matchPhoto = dataUrl;
-        fileInput.value = '';
-        Promise.resolve(saveData()).then(function() { renderSessions(); });
+        saveMatchPhotoDataUrlFromCanvas(session, canvas, fileInput);
     }
 
     function decodeWithImage(src, revokeObjectUrl) {
@@ -488,7 +522,7 @@ window.handleMatchTypeChange = function(sessionId, matchType) {
 window.handleMatchCardClick = function(event, sessionId) {
     // Don't flip if clicking on interactive elements
     const target = event.target;
-    if (target.closest('input, textarea, button, select, .attendance-checkbox, .goalkeeper-checkbox, .captain-checkbox, .vice-captain-checkbox, .half-lineup-select, .match-captain-select, .match-vice-captain-select, .goal-btn, .captain-selector, .match-photo-btn, .match-photo-remove-btn, .match-photo-preview')) {
+    if (target.closest('input, textarea, button, select, .attendance-checkbox, .goalkeeper-checkbox, .captain-checkbox, .vice-captain-checkbox, .half-lineup-select, .match-captain-select, .match-vice-captain-select, .goal-btn, .captain-selector, .match-photo-btn, .match-photo-remove-btn, .match-photo-preview, .ref-paid-by-input')) {
         return; // Don't stop propagation here, let the event bubble to the specific handlers
     }
     
@@ -887,6 +921,18 @@ window.saveMatchData = async function(sessionId) {
     if (playersTab && playersTab.classList.contains('active')) {
         renderPlayers();
     }
+};
+
+window.handleRefPaidByChange = function(sessionId, value) {
+    const session = sessions.find(s => s.id === parseInt(sessionId, 10));
+    if (!session) return;
+
+    session.refPaidBy = (value || '').trim();
+    if (!session.refPaidBy) {
+        session.refPaidConfirmed = false;
+    }
+
+    saveMatchData(sessionId);
 };
 
 // Refresh match card back (lineups / goal scorers) without re-flipping

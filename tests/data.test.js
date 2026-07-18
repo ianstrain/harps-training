@@ -212,10 +212,10 @@ describe('Data Management', () => {
     describe('Match kind ordinal helpers', () => {
         test('badges and clipboard labels are separate per league vs friendly', () => {
             global.sessions = [
-                { id: 1, type: 'match', deleted: false, matchType: 'league' },
-                { id: 2, type: 'match', deleted: false, matchType: 'friendly' },
-                { id: 3, type: 'match', deleted: false, matchType: 'league' },
-                { id: 4, type: 'match', deleted: false }
+                { id: 1, type: 'match', deleted: false, matchType: 'league', date: new Date(2026, 4, 26) },
+                { id: 2, type: 'match', deleted: false, matchType: 'friendly', date: new Date(2026, 4, 12) },
+                { id: 3, type: 'match', deleted: false, matchType: 'league', date: new Date(2026, 5, 2) },
+                { id: 4, type: 'match', deleted: false, date: new Date(2026, 4, 19) }
             ];
             expect(formatMatchOrdinalBadge(sessions[0])).toBe('L01');
             expect(formatMatchdayClipboardLabel(sessions[0])).toBe('League match #01');
@@ -234,6 +234,28 @@ describe('Data Management', () => {
             expect(formatMatchOrdinalBadge(sessions[0])).toBe('C01');
             expect(formatMatchdayClipboardLabel(sessions[0])).toBe('Cup match #01');
             expect(formatMatchOrdinalBadge(sessions[2])).toBe('C02');
+        });
+
+        test('group stage matches use G prefix and own ordinal', () => {
+            global.sessions = [
+                { id: 15, type: 'match', deleted: false, matchType: 'groupStage', date: new Date(2026, 3, 6) },
+                { id: 16, type: 'match', deleted: false, matchType: 'groupStage', date: new Date(2026, 3, 14) },
+                { id: 35, type: 'match', deleted: false, matchType: 'league', date: new Date(2026, 4, 26) }
+            ];
+            expect(formatMatchOrdinalBadge(sessions[0])).toBe('G01');
+            expect(formatMatchdayClipboardLabel(sessions[1])).toBe('Group Stage match #02');
+            expect(formatMatchOrdinalBadge(sessions[2])).toBe('L01');
+            expect(formatMatchdayClipboardLabel(sessions[2])).toBe('League match #01');
+        });
+
+        test('league ordinals ignore fixtures before 26 May 2026', () => {
+            global.sessions = [
+                { id: 15, type: 'match', deleted: false, matchType: 'league', date: new Date(2026, 3, 6) },
+                { id: 35, type: 'match', deleted: false, matchType: 'league', date: new Date(2026, 4, 26) },
+                { id: 36, type: 'match', deleted: false, matchType: 'league', date: new Date(2026, 5, 2) }
+            ];
+            expect(formatMatchOrdinalBadge(sessions[1])).toBe('L01');
+            expect(formatMatchOrdinalBadge(sessions[2])).toBe('L02');
         });
     });
 });

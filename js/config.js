@@ -94,3 +94,13 @@ const defaults = {
     opponentScore: '',
     result: '' // 'win', 'draw', 'loss', or ''
 };
+
+/** Ref fee reimbursement (stats page copy-to-clipboard). */
+window.REF_PAYMENT_FEE_EUR = 31;
+window.REF_PAYMENT_COACH_REVOLUT = {
+    sinead: 'https://revolut.me/sinadah7t',
+    mark: 'https://revolut.me/mcbride75',
+    ian: 'https://revolut.me/ianstrain'
+};
+window.REF_PAYMENT_OTHER_COACH_NOTE =
+    'Ian is the other coach, his revolut is https://revolut.me/ianstrain';

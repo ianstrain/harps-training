@@ -126,12 +126,14 @@ describe('Statistics', () => {
             expect(window.aggregatePlayerMatchGoalsByMatchKind('Alice')).toEqual({
                 league: 2,
                 friendly: 3,
-                cup: 1
+                cup: 1,
+                groupStage: 0
             });
             expect(window.aggregatePlayerMatchGoalsByMatchKind('Bob')).toEqual({
                 league: 1,
                 friendly: 0,
-                cup: 0
+                cup: 0,
+                groupStage: 0
             });
         });
 
@@ -143,7 +145,8 @@ describe('Statistics', () => {
             expect(window.aggregatePlayerMatchGoalsByMatchKind('Alice')).toEqual({
                 league: 0,
                 friendly: 0,
-                cup: 0
+                cup: 0,
+                groupStage: 0
             });
         });
     });
@@ -178,12 +181,14 @@ describe('Statistics', () => {
             expect(window.aggregatePlayerMatchAttendanceByMatchKind('Alice', matches)).toEqual({
                 league: 1,
                 friendly: 1,
-                cup: 1
+                cup: 1,
+                groupStage: 0
             });
             expect(window.aggregatePlayerMatchAttendanceByMatchKind('Bob', matches)).toEqual({
                 league: 2,
                 friendly: 0,
-                cup: 1
+                cup: 1,
+                groupStage: 0
             });
         });
 
@@ -192,7 +197,8 @@ describe('Statistics', () => {
             expect(window.aggregatePlayerMatchAttendanceByMatchKind('Zed', m)).toEqual({
                 league: 0,
                 friendly: 1,
-                cup: 0
+                cup: 0,
+                groupStage: 0
             });
         });
     });
@@ -300,6 +306,53 @@ describe('Statistics', () => {
             );
             expect(spy).toHaveBeenCalledWith('Stats exported to Excel.');
             spy.mockRestore();
+        });
+    });
+
+    describe('Ref payments', () => {
+        test('getRefPaymentMatches returns only matches with a payer name', () => {
+            global.sessions = [
+                { id: 1, type: 'match', deleted: false, refPaidBy: 'Sinead', date: '2026-04-19' },
+                { id: 2, type: 'match', deleted: false, refPaidBy: '', date: '2026-04-26' },
+                { id: 3, type: 'match', deleted: true, refPaidBy: 'Mark', date: '2026-05-01' },
+                { id: 4, type: 'training', deleted: false, refPaidBy: 'Ian', date: '2026-05-02' }
+            ];
+
+            const matches = window.getRefPaymentMatches();
+            expect(matches).toHaveLength(1);
+            expect(matches[0].id).toBe(1);
+        });
+
+        test('buildRefPaymentClipboardText formats outstanding payments', () => {
+            global.sessions = [
+                {
+                    id: 1,
+                    type: 'match',
+                    deleted: false,
+                    refPaidBy: 'Mark',
+                    opponent: 'Glenree FC',
+                    date: new Date('2026-04-28')
+                },
+                {
+                    id: 2,
+                    type: 'match',
+                    deleted: false,
+                    refPaidBy: 'Sinead',
+                    opponent: 'Kildrum Tigers',
+                    date: new Date('2026-05-19')
+                }
+            ];
+
+            const text = window.buildRefPaymentClipboardText(global.sessions);
+            expect(text).toBe(
+                'Can you do the following payment\n\n' +
+                    'Mark €31 https://revolut.me/mcbride75\n\n' +
+                    'Sinead €31 https://revolut.me/sinadah7t\n\n' +
+                    'Mark - Tuesday, 28th April\n' +
+                    'vs Glenree FC\n\n' +
+                    'Sinead - Tuesday, 19th May\n' +
+                    'vs Kildrum Tigers'
+            );
         });
     });
 });

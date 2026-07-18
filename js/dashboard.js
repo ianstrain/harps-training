@@ -3,10 +3,9 @@
 // ============================================
 
 function getDashboardMatchKind(session) {
-    const t = session.matchType || 'friendly';
-    if (t === 'league') return 'league';
-    if (t === 'cup') return 'cup';
-    return 'friendly';
+    return typeof window.getSessionMatchKind === 'function'
+        ? window.getSessionMatchKind(session)
+        : (session.matchType || 'friendly');
 }
 
 function recordFromScores(matches) {
@@ -52,16 +51,20 @@ window.renderQuickStats = function() {
     );
 
     const leagueCompleted = completedMatches.filter(s => getDashboardMatchKind(s) === 'league');
+    const groupStageCompleted = completedMatches.filter(s => getDashboardMatchKind(s) === 'groupStage');
     const friendlyCompleted = completedMatches.filter(s => getDashboardMatchKind(s) === 'friendly');
     const cupCompleted = completedMatches.filter(s => getDashboardMatchKind(s) === 'cup');
+    const hasGroupStageScheduled = sessions.some(s => s.type === 'match' && !s.deleted && getDashboardMatchKind(s) === 'groupStage');
     const hasCupScheduled = sessions.some(s => s.type === 'match' && !s.deleted && getDashboardMatchKind(s) === 'cup');
 
     const leagueRec = recordFromScores(leagueCompleted);
+    const groupStageRec = recordFromScores(groupStageCompleted);
     const friendlyRec = recordFromScores(friendlyCompleted);
     const cupRec = recordFromScores(cupCompleted);
 
     const formLines = [];
     if (leagueCompleted.length) formLines.push(`League form: ${formStringFromScores(leagueCompleted)}`);
+    if (groupStageCompleted.length) formLines.push(`Group Stage form: ${formStringFromScores(groupStageCompleted)}`);
     if (friendlyCompleted.length) formLines.push(`Friendly form: ${formStringFromScores(friendlyCompleted)}`);
     if (cupCompleted.length) formLines.push(`Cup form: ${formStringFromScores(cupCompleted)}`);
     const formBlock = formLines.length ? formLines.join('<br>') : (completedMatches.length ? '' : 'No matches yet');
@@ -115,6 +118,11 @@ window.renderQuickStats = function() {
                         <span class="record-breakdown-label">League</span>
                         <span class="record-breakdown-value">${formatRecordHtml(leagueRec.wins, leagueRec.draws, leagueRec.losses)}</span>
                     </div>
+                    ${hasGroupStageScheduled ? `
+                    <div class="record-breakdown-row">
+                        <span class="record-breakdown-label">Group Stage</span>
+                        <span class="record-breakdown-value">${formatRecordHtml(groupStageRec.wins, groupStageRec.draws, groupStageRec.losses)}</span>
+                    </div>` : ''}
                     <div class="record-breakdown-row">
                         <span class="record-breakdown-label">Friendly</span>
                         <span class="record-breakdown-value">${formatRecordHtml(friendlyRec.wins, friendlyRec.draws, friendlyRec.losses)}</span>

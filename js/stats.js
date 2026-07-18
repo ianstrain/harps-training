@@ -134,6 +134,9 @@ window.renderStats = function() {
     const hasCupMatches = sessions.some(
         s => s.type === 'match' && !s.deleted && getStatsMatchKind(s) === 'cup'
     );
+    const hasGroupStageMatches = sessions.some(
+        s => s.type === 'match' && !s.deleted && getStatsMatchKind(s) === 'groupStage'
+    );
     
     // Filter out players with 0 goals and apply sorting
     const playersWithGoals = window.sortPlayerData(
@@ -162,7 +165,8 @@ window.renderStats = function() {
         const trainingAttendanceChart = generateTrainingAttendanceChart(filteredPlayers);
         const captainHistory = generateCaptainHistoryChart();
         const lineupExtras = generateFullMatchesAndPositionsCharts(filteredPlayers);
-        container.innerHTML = seasonStats + attendanceChart + trainingAttendanceChart + lineupExtras + captainHistory;
+        const refPayments = generateRefPaymentsChart();
+        container.innerHTML = seasonStats + attendanceChart + trainingAttendanceChart + lineupExtras + refPayments + captainHistory;
         return;
     }
     
@@ -182,6 +186,7 @@ window.renderStats = function() {
 
     const goalsLegendItems = [
         { fill: '#10b981', label: 'League' },
+        ...(hasGroupStageMatches ? [{ fill: '#8b5cf6', label: 'Group Stage' }] : []),
         { fill: '#0ea5e9', label: 'Friendly' },
         ...(hasCupMatches ? [{ fill: '#f59e0b', label: 'Cup' }] : []),
         { fill: '#64748b', label: 'Other (e.g. manual log)' }
@@ -239,9 +244,10 @@ window.renderStats = function() {
                     ${playersWithGoals.map((player, index) => {
                         const x = paddingGoals.left + index * (barWidth + 10);
                         const mk = player.matchKindTotals;
-                        const otherRaw = Math.max(0, player.total - mk.league - mk.friendly - mk.cup);
+                        const otherRaw = Math.max(0, player.total - mk.league - mk.friendly - mk.cup - (mk.groupStage || 0));
                         const tipParts = [];
                         if (mk.league) tipParts.push(`League ${mk.league}`);
+                        if (mk.groupStage) tipParts.push(`Group Stage ${mk.groupStage}`);
                         if (mk.friendly) tipParts.push(`Friendly ${mk.friendly}`);
                         if (mk.cup) tipParts.push(`Cup ${mk.cup}`);
                         if (otherRaw) tipParts.push(`Other ${otherRaw}`);
@@ -294,18 +300,18 @@ window.renderStats = function() {
     const trainingAttendanceChart = generateTrainingAttendanceChart(filteredPlayers); 
     const captainHistory = generateCaptainHistoryChart();
     const lineupExtras = generateFullMatchesAndPositionsCharts(filteredPlayers);
+    const refPayments = generateRefPaymentsChart();
 
     // Generate season stats
     const seasonStats = generateSeasonStats();
 
-    container.innerHTML = seasonStats + attendanceChart + trainingAttendanceChart + lineupExtras + captainHistory + goalsSvg;
+    container.innerHTML = seasonStats + attendanceChart + trainingAttendanceChart + lineupExtras + refPayments + captainHistory + goalsSvg;
 }
 
 function getStatsMatchKind(session) {
-    const t = session.matchType || 'friendly';
-    if (t === 'league') return 'league';
-    if (t === 'cup') return 'cup';
-    return 'friendly';
+    return typeof window.getSessionMatchKind === 'function'
+        ? window.getSessionMatchKind(session)
+        : (session.matchType || 'friendly');
 }
 
 /** Matches that count for attendance stats: played games (result entered), same as season "Played". */
@@ -318,6 +324,7 @@ function aggregatePlayerMatchGoalsByMatchKind(playerName) {
     let league = 0;
     let friendly = 0;
     let cup = 0;
+    let groupStage = 0;
     for (const s of sessions) {
         if (s.type !== 'match' || s.deleted) continue;
         const g = parseInt((s.matchGoals && s.matchGoals[playerName]) || 0, 10) || 0;
@@ -325,9 +332,10 @@ function aggregatePlayerMatchGoalsByMatchKind(playerName) {
         const kind = getStatsMatchKind(s);
         if (kind === 'league') league += g;
         else if (kind === 'cup') cup += g;
+        else if (kind === 'groupStage') groupStage += g;
         else friendly += g;
     }
-    return { league, friendly, cup };
+    return { league, friendly, cup, groupStage };
 }
 
 /**
@@ -338,17 +346,20 @@ function buildPlayerGoalChartSegments(total, matchKindTotals) {
     let L = matchKindTotals.league;
     let F = matchKindTotals.friendly;
     let C = matchKindTotals.cup;
-    const sumMatch = L + F + C;
+    let G = matchKindTotals.groupStage || 0;
+    const sumMatch = L + F + C + G;
     let other = Math.max(0, total - sumMatch);
     if (sumMatch > total && sumMatch > 0) {
         const scale = total / sumMatch;
         L *= scale;
         F *= scale;
         C *= scale;
+        G *= scale;
         other = 0;
     }
     const segments = [
         { key: 'league', value: L, fill: '#10b981', label: 'League' },
+        { key: 'groupStage', value: G, fill: '#8b5cf6', label: 'Group Stage' },
         { key: 'friendly', value: F, fill: '#0ea5e9', label: 'Friendly' },
         { key: 'cup', value: C, fill: '#f59e0b', label: 'Cup' },
         { key: 'other', value: other, fill: '#64748b', label: 'Other' }
@@ -361,19 +372,22 @@ function aggregatePlayerMatchAttendanceByMatchKind(playerName, matchList) {
     let league = 0;
     let friendly = 0;
     let cup = 0;
+    let groupStage = 0;
     for (const m of matchList) {
         if (!statsEffectiveAttendanceIncludes(m, playerName)) continue;
         const kind = getStatsMatchKind(m);
         if (kind === 'league') league++;
         else if (kind === 'cup') cup++;
+        else if (kind === 'groupStage') groupStage++;
         else friendly++;
     }
-    return { league, friendly, cup };
+    return { league, friendly, cup, groupStage };
 }
 
 function buildMatchAttendanceChartSegments(kindTotals) {
     return [
         { key: 'league', value: kindTotals.league, fill: '#10b981', label: 'League' },
+        { key: 'groupStage', value: kindTotals.groupStage || 0, fill: '#8b5cf6', label: 'Group Stage' },
         { key: 'friendly', value: kindTotals.friendly, fill: '#0ea5e9', label: 'Friendly' },
         { key: 'cup', value: kindTotals.cup, fill: '#f59e0b', label: 'Cup' }
     ].filter(s => s.value > 0);
@@ -487,11 +501,16 @@ function generateSeasonStats() {
     const matchSessions = sessions.filter(s => s.type === 'match' && !s.deleted);
     const completedMatches = matchSessions.filter(s => s.result);
     const leagueCompleted = completedMatches.filter(s => getStatsMatchKind(s) === 'league');
+    const groupStageCompleted = completedMatches.filter(s => getStatsMatchKind(s) === 'groupStage');
     const friendlyCompleted = completedMatches.filter(s => getStatsMatchKind(s) === 'friendly');
     const cupCompleted = completedMatches.filter(s => getStatsMatchKind(s) === 'cup');
+    const hasGroupStageMatches = matchSessions.some(s => getStatsMatchKind(s) === 'groupStage');
     const hasCupMatches = matchSessions.some(s => getStatsMatchKind(s) === 'cup');
 
     let body = seasonStatsSubsection('League matches', leagueCompleted, 0);
+    if (hasGroupStageMatches) {
+        body += seasonStatsSubsection('Group Stage matches', groupStageCompleted, 20);
+    }
     body += seasonStatsSubsection('Friendly matches', friendlyCompleted, 20);
     if (hasCupMatches) {
         body += seasonStatsSubsection('Cup matches', cupCompleted, 20);
@@ -535,6 +554,7 @@ function generateAttendanceChart(filteredPlayers) {
     }
 
     const hasCupMatchesAttendance = matches.some(m => getStatsMatchKind(m) === 'cup');
+    const hasGroupStageMatchesAttendance = matches.some(m => getStatsMatchKind(m) === 'groupStage');
 
     // Calculate attendance stats for each player (totals + league / friendly / cup breakdown)
     const playerAttendance = filteredPlayers.map(p => {
@@ -602,6 +622,7 @@ function generateAttendanceChart(filteredPlayers) {
 
     const attendanceLegendItems = [
         { fill: '#10b981', label: 'League' },
+        ...(hasGroupStageMatchesAttendance ? [{ fill: '#8b5cf6', label: 'Group Stage' }] : []),
         { fill: '#0ea5e9', label: 'Friendly' },
         ...(hasCupMatchesAttendance ? [{ fill: '#f59e0b', label: 'Cup' }] : [])
     ];
@@ -660,6 +681,7 @@ function generateAttendanceChart(filteredPlayers) {
                         const mk = player.matchKindTotals;
                         const tipParts = [];
                         if (mk.league) tipParts.push(`League ${mk.league}`);
+                        if (mk.groupStage) tipParts.push(`Group Stage ${mk.groupStage}`);
                         if (mk.friendly) tipParts.push(`Friendly ${mk.friendly}`);
                         if (mk.cup) tipParts.push(`Cup ${mk.cup}`);
                         const tipDetail = tipParts.length ? tipParts.join(', ') : '—';
@@ -963,6 +985,144 @@ function generateFullMatchesAndPositionsCharts(filteredPlayers) {
         </div>
     `;
 }
+
+function getRefPaymentFeeEur() {
+    return typeof window.REF_PAYMENT_FEE_EUR === 'number' ? window.REF_PAYMENT_FEE_EUR : 31;
+}
+
+function getRefRevolutLink(name) {
+    const map = window.REF_PAYMENT_COACH_REVOLUT || {};
+    const normalized = (name || '').trim().toLowerCase();
+    if (!normalized) return '';
+    if (map[normalized]) return map[normalized];
+    const firstName = normalized.split(/\s+/)[0];
+    return map[firstName] || '';
+}
+
+/** Matches with a ref payer name entered (non-deleted). */
+window.getRefPaymentMatches = function() {
+    return sessions
+        .filter(s => s.type === 'match' && !s.deleted && (s.refPaidBy || '').trim())
+        .sort((a, b) => new Date(a.date) - new Date(b.date));
+};
+
+window.buildRefPaymentClipboardText = function(matches) {
+    const fee = getRefPaymentFeeEur();
+    const list = (matches || []).filter(m => (m.refPaidBy || '').trim());
+    if (list.length === 0) return '';
+
+    const payerCounts = {};
+    list.forEach(match => {
+        const payer = (match.refPaidBy || '').trim();
+        payerCounts[payer] = (payerCounts[payer] || 0) + 1;
+    });
+
+    const payerSummary = Object.keys(payerCounts)
+        .sort((a, b) => a.localeCompare(b))
+        .map(payer => {
+            const amount = payerCounts[payer] * fee;
+            const link = getRefRevolutLink(payer);
+            return link ? `${payer} €${amount} ${link}` : `${payer} €${amount}`;
+        });
+
+    const matchLines = list.map(match => {
+        const payer = (match.refPaidBy || '').trim();
+        const dateStr = formatDate(new Date(match.date));
+        const opponent = (match.opponent || defaults.opponent || 'Unknown').trim();
+        return `${payer} - ${dateStr}\nvs ${opponent}`;
+    });
+
+    const body = [...payerSummary, ...matchLines].join('\n\n');
+    return `Can you do the following payment\n\n${body}`;
+};
+
+function generateRefPaymentsChart() {
+    const matches = window.getRefPaymentMatches();
+    if (matches.length === 0) return '';
+
+    const fee = getRefPaymentFeeEur();
+    const sortedMatches = [...matches].sort((a, b) => new Date(b.date) - new Date(a.date));
+    const unpaidCount = matches.filter(m => !m.refPaidConfirmed).length;
+
+    return `
+        <div class="stats-chart-container">
+            <div class="stats-chart-title">Ref payments (${matches.length})</div>
+            <div style="padding: 20px;">
+                <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px;">
+                    <p style="font-size: 13px; color: var(--text-secondary); margin: 0;">€${fee} per game. Tick when reimbursed.</p>
+                    <button type="button"
+                            onclick="copyRefPaymentsToClipboard()"
+                            style="padding: 8px 14px; background: var(--accent-primary); color: var(--bg-dark); border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;">
+                        Copy payment request${unpaidCount ? ` (${unpaidCount} outstanding)` : ''}
+                    </button>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 2fr 1.5fr auto; gap: 12px; font-size: 13px; font-weight: 700; color: var(--text-secondary); padding-bottom: 12px; border-bottom: 2px solid var(--border-color); text-transform: uppercase; letter-spacing: 0.5px;">
+                    <div style="text-align: center;">Date</div>
+                    <div>Match</div>
+                    <div>Paid by</div>
+                    <div style="text-align: center;">Paid</div>
+                </div>
+                ${sortedMatches
+                    .map(match => {
+                        const matchDate = new Date(match.date);
+                        const formattedDate = matchDate.toLocaleDateString('en-GB', {
+                            day: '2-digit',
+                            month: 'short'
+                        });
+                        const opponent = match.opponent || 'Unknown';
+                        const payer = (match.refPaidBy || '').trim();
+                        const checked = match.refPaidConfirmed ? 'checked' : '';
+                        return `
+                        <div style="display: grid; grid-template-columns: 1fr 2fr 1.5fr auto; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border-color); font-size: 14px; color: var(--text-primary); align-items: center;">
+                            <div style="text-align: center; color: var(--text-secondary); font-weight: 500;">${formattedDate}</div>
+                            <div style="font-weight: 500;">vs ${opponent}</div>
+                            <div style="color: var(--accent-primary); font-weight: 600;">${payer}</div>
+                            <div style="text-align: center;">
+                                <input type="checkbox"
+                                       class="ref-paid-confirmed-checkbox"
+                                       data-session="${match.id}"
+                                       ${checked}
+                                       onchange="handleRefPaidConfirmedChange(${match.id}, this.checked)"
+                                       title="Mark ref payment as reimbursed" />
+                            </div>
+                        </div>`;
+                    })
+                    .join('')}
+            </div>
+        </div>
+    `;
+}
+
+window.handleRefPaidConfirmedChange = async function(sessionId, isChecked) {
+    const session = sessions.find(s => s.id === parseInt(sessionId, 10));
+    if (!session) return;
+
+    session.refPaidConfirmed = !!isChecked;
+    await saveData();
+    showSaveIndicator();
+};
+
+window.copyRefPaymentsToClipboard = async function() {
+    const unpaid = window.getRefPaymentMatches().filter(m => !m.refPaidConfirmed);
+    if (unpaid.length === 0) {
+        if (typeof showToast === 'function') {
+            showToast('No outstanding ref payments to copy.', true);
+        }
+        return;
+    }
+
+    const text = window.buildRefPaymentClipboardText(unpaid);
+    try {
+        await navigator.clipboard.writeText(text);
+        if (typeof showToast === 'function') {
+            showToast(`Copied ref payment request (${unpaid.length} match${unpaid.length === 1 ? '' : 'es'}).`);
+        }
+    } catch (e) {
+        if (typeof showToast === 'function') {
+            showToast('Failed to copy to clipboard.', true);
+        }
+    }
+};
 
 // Navigate to player profile
 window.navigateToPlayerProfile = function(playerName) {
@@ -1434,8 +1594,10 @@ window.exportStatsToExcel = function() {
     const matchSessions = sessions.filter(s => s.type === 'match' && !s.deleted);
     const completedMatches = matchSessions.filter(s => s.result);
     const leagueCompleted = completedMatches.filter(s => getStatsMatchKind(s) === 'league');
+    const groupStageCompleted = completedMatches.filter(s => getStatsMatchKind(s) === 'groupStage');
     const friendlyCompleted = completedMatches.filter(s => getStatsMatchKind(s) === 'friendly');
     const cupCompleted = completedMatches.filter(s => getStatsMatchKind(s) === 'cup');
+    const hasGroupStageMatches = matchSessions.some(s => getStatsMatchKind(s) === 'groupStage');
     const hasCupMatches = matchSessions.some(s => getStatsMatchKind(s) === 'cup');
 
     function appendMetricBlock(aoa, title, m) {
@@ -1451,6 +1613,9 @@ window.exportStatsToExcel = function() {
         []
     ];
     appendMetricBlock(seasonAoa, 'League matches', buildSeasonMatchMetrics(leagueCompleted));
+    if (hasGroupStageMatches) {
+        appendMetricBlock(seasonAoa, 'Group Stage matches', buildSeasonMatchMetrics(groupStageCompleted));
+    }
     appendMetricBlock(seasonAoa, 'Friendly matches', buildSeasonMatchMetrics(friendlyCompleted));
     if (hasCupMatches) {
         appendMetricBlock(seasonAoa, 'Cup matches', buildSeasonMatchMetrics(cupCompleted));
@@ -1474,7 +1639,7 @@ window.exportStatsToExcel = function() {
         ['Goals by date lists each stored log entry per player.'],
         [],
         ['Player summary'],
-        ['Player', 'Total goals', 'League', 'Friendly', 'Cup', 'Other']
+        ['Player', 'Total goals', 'League', 'Group Stage', 'Friendly', 'Cup', 'Other']
     ];
     const goalsByDateRows = [];
     for (const p of filteredPlayers) {
@@ -1482,9 +1647,9 @@ window.exportStatsToExcel = function() {
         const goalsObj = typeof gp === 'function' ? gp(name) : {};
         const total = typeof gt === 'function' ? gt(goalsObj) : 0;
         const mk = aggregatePlayerMatchGoalsByMatchKind(name);
-        const sumMatch = mk.league + mk.friendly + mk.cup;
+        const sumMatch = mk.league + (mk.groupStage || 0) + mk.friendly + mk.cup;
         const other = Math.max(0, total - sumMatch);
-        goalsAoa.push([name, total, mk.league, mk.friendly, mk.cup, other]);
+        goalsAoa.push([name, total, mk.league, mk.groupStage || 0, mk.friendly, mk.cup, other]);
         if (goalsObj && typeof goalsObj === 'object') {
             for (const [dateKey, count] of Object.entries(goalsObj)) {
                 const n = parseInt(count, 10) || 0;
@@ -1507,6 +1672,7 @@ window.exportStatsToExcel = function() {
             'Player',
             'Matches attended',
             'League attended',
+            'Group Stage attended',
             'Friendly attended',
             'Cup attended',
             'Captain selections',
@@ -1524,7 +1690,7 @@ window.exportStatsToExcel = function() {
         });
         const mk = aggregatePlayerMatchAttendanceByMatchKind(name, playedMatches);
         const pct = playedMatches.length > 0 ? Math.round((attended / playedMatches.length) * 100) : 0;
-        matchAoa.push([name, attended, mk.league, mk.friendly, mk.cup, captainCount, pct, playedMatches.length]);
+        matchAoa.push([name, attended, mk.league, mk.groupStage || 0, mk.friendly, mk.cup, captainCount, pct, playedMatches.length]);
     }
     const sortedPlayed = [...playedMatches].sort((a, b) => new Date(b.date) - new Date(a.date));
     matchAoa.push(

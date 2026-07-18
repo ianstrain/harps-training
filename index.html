@@ -801,6 +801,11 @@
             color: var(--accent-secondary);
         }
 
+        .match-type-badge.groupStage {
+            background: rgba(139, 92, 246, 0.15);
+            color: #a78bfa;
+        }
+
         .match-type-badge.league {
             background: rgba(16, 185, 129, 0.15);
             color: var(--success);
@@ -845,6 +850,24 @@
             object-fit: cover;
             border-radius: 10px;
             border: 1px solid var(--border-color);
+        }
+
+        .match-photo-preview.match-photo-preview--failed {
+            display: none;
+        }
+
+        .match-photo-unavailable {
+            padding: 16px;
+            text-align: center;
+            font-size: 13px;
+            color: var(--text-secondary);
+            background: rgba(239, 68, 68, 0.08);
+            border: 1px dashed rgba(239, 68, 68, 0.35);
+            border-radius: 10px;
+        }
+
+        .match-photo-unavailable.hidden {
+            display: none;
         }
 
         .match-photo-edit-block {
