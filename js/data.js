@@ -92,6 +92,64 @@ function getFirebaseRecordById(data, id) {
     return data[id] || null;
 }
 
+/** Data URLs are stored in Firebase only — they exceed localStorage quota (~5MB). */
+function matchPhotoForLocalStorage(photo) {
+    if (!photo || typeof photo !== 'string') return '';
+    if (photo.indexOf('data:') === 0) return '';
+    return photo;
+}
+
+function buildLocalTrainingData() {
+    const data = {};
+    sessions.forEach(s => {
+        data[s.id + '_desc'] = s.desc;
+        data[s.id + '_warmup'] = s.warmup;
+        data[s.id + '_drills'] = s.drills;
+        data[s.id + '_game'] = s.game;
+        data[s.id + '_attendance'] = JSON.stringify(s.attendance || []);
+        data[s.id + '_captain'] = s.captain || '';
+        data[s.id + '_viceCaptain'] = s.viceCaptain || '';
+        data[s.id + '_goalkeeper'] = (s.type === 'match' && s.goalkeeper) ? s.goalkeeper : '';
+        data[s.id + '_halfLineups'] =
+            s.type === 'match' && s.halfLineups ? JSON.stringify(s.halfLineups) : '';
+        data[s.id + '_matchGoals'] = JSON.stringify(s.matchGoals || {});
+        data[s.id + '_teamScore'] = s.teamScore || '';
+        data[s.id + '_opponentScore'] = s.opponentScore || '';
+        data[s.id + '_result'] = s.result || '';
+        data[s.id + '_cleanSheet'] = s.cleanSheet || false;
+        if (s.type === 'match') {
+            data[s.id + '_matchPhoto'] = matchPhotoForLocalStorage(s.matchPhoto);
+            data[s.id + '_refPaidBy'] = s.refPaidBy || '';
+            data[s.id + '_refPaidConfirmed'] = !!s.refPaidConfirmed;
+        }
+    });
+    return data;
+}
+
+function saveLocalTrainingData() {
+    let data = buildLocalTrainingData();
+    try {
+        localStorage.setItem('trainingData', JSON.stringify(data));
+        return;
+    } catch (e) {
+        if (!e || e.name !== 'QuotaExceededError') throw e;
+    }
+    // Still over quota — drop all cached match photos and retry once.
+    sessions.forEach(s => {
+        if (s.type === 'match') data[s.id + '_matchPhoto'] = '';
+    });
+    try {
+        localStorage.setItem('trainingData', JSON.stringify(data));
+    } catch (e) {
+        console.warn('localStorage full — session data saved to Firebase only.', e);
+    }
+}
+
+if (typeof window !== 'undefined') {
+    window.matchPhotoForLocalStorage = matchPhotoForLocalStorage;
+    window.buildLocalTrainingData = buildLocalTrainingData;
+}
+
 // Convert YouTube URLs to embedded videos
 window.parseContent = function(text) {
     if (!text) return text;
@@ -207,7 +265,10 @@ window.loadData = async function() {
             s.opponentScore = data[s.id + '_opponentScore'] || '';
             s.result = data[s.id + '_result'] || '';
             s.cleanSheet = data[s.id + '_cleanSheet'] === 'true' || data[s.id + '_cleanSheet'] === true;
-            if (s.type === 'match') s.matchPhoto = data[s.id + '_matchPhoto'] || '';
+            if (s.type === 'match') {
+                const cachedPhoto = data[s.id + '_matchPhoto'] || '';
+                s.matchPhoto = cachedPhoto.indexOf('data:') === 0 ? '' : cachedPhoto;
+            }
             if (s.type === 'match') {
                 s.refPaidBy = data[s.id + '_refPaidBy'] || '';
                 s.refPaidConfirmed =
@@ -257,39 +318,13 @@ window.saveSessionsList = async function() {
 // Save session data to Firebase and localStorage
 window.saveData = async function() {
     console.log('Entering saveData function');
-    const data = {};
-    sessions.forEach(s => {
-        data[s.id + '_desc'] = s.desc;
-        data[s.id + '_warmup'] = s.warmup;
-        data[s.id + '_drills'] = s.drills;
-        data[s.id + '_game'] = s.game;
-        data[s.id + '_attendance'] = JSON.stringify(s.attendance || []);
-        data[s.id + '_captain'] = s.captain || '';
-        data[s.id + '_viceCaptain'] = s.viceCaptain || '';
-        data[s.id + '_goalkeeper'] = (s.type === 'match' && s.goalkeeper) ? s.goalkeeper : '';
-        data[s.id + '_halfLineups'] =
-            s.type === 'match' && s.halfLineups ? JSON.stringify(s.halfLineups) : '';
-        data[s.id + '_matchGoals'] = JSON.stringify(s.matchGoals || {});
-        data[s.id + '_teamScore'] = s.teamScore || '';
-        data[s.id + '_opponentScore'] = s.opponentScore || '';
-        data[s.id + '_result'] = s.result || '';
-        data[s.id + '_cleanSheet'] = s.cleanSheet || false;
-        if (s.type === 'match') {
-            data[s.id + '_matchPhoto'] = s.matchPhoto || '';
-            data[s.id + '_refPaidBy'] = s.refPaidBy || '';
-            data[s.id + '_refPaidConfirmed'] = !!s.refPaidConfirmed;
-        }
-    });
-    
-    // Save to localStorage
-    localStorage.setItem('trainingData', JSON.stringify(data));
-    
-    // Save to Firebase
+
+    // Save to Firebase first so a localStorage quota error cannot block cloud sync.
     if (database) {
         try {
             const sessionsRef = database.ref('sessions');
             const sessionsData = {};
-            
+
             sessions.forEach(s => {
                 sessionsData[s.id] = {
                     id: s.id,
@@ -297,7 +332,6 @@ window.saveData = async function() {
                     warmup: s.warmup || '',
                     drills: s.drills || '',
                     game: s.game || '',
-                    // Match-specific fields
                     attendance: s.attendance || [],
                     captain: s.captain || '',
                     viceCaptain: s.viceCaptain || '',
@@ -315,7 +349,7 @@ window.saveData = async function() {
                     lastUpdated: new Date().toISOString()
                 };
             });
-            
+
             await sessionsRef.set(sessionsData);
             console.log('Data saved to Firebase');
         } catch (e) {
@@ -323,7 +357,9 @@ window.saveData = async function() {
             console.log('Data saved locally only');
         }
     }
-    
+
+    saveLocalTrainingData();
+
     showSaveIndicator();
 }
 

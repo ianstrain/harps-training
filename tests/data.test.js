@@ -258,4 +258,37 @@ describe('Data Management', () => {
             expect(formatMatchOrdinalBadge(sessions[2])).toBe('L02');
         });
     });
+
+    describe('localStorage session cache', () => {
+        test('buildLocalTrainingData omits data-URL match photos from local cache', () => {
+            global.sessions = [{
+                id: 15,
+                type: 'match',
+                desc: '',
+                warmup: '',
+                drills: '',
+                game: '',
+                attendance: [],
+                matchPhoto: 'data:image/jpeg;base64,' + 'A'.repeat(100)
+            }];
+            const data = buildLocalTrainingData();
+            expect(data['15_matchPhoto']).toBe('');
+        });
+
+        test('buildLocalTrainingData keeps Firebase Storage URLs in local cache', () => {
+            const url = 'https://firebasestorage.googleapis.com/v0/b/x/o/y.jpg?alt=media&token=abc';
+            global.sessions = [{
+                id: 15,
+                type: 'match',
+                desc: '',
+                warmup: '',
+                drills: '',
+                game: '',
+                attendance: [],
+                matchPhoto: url
+            }];
+            const data = buildLocalTrainingData();
+            expect(data['15_matchPhoto']).toBe(url);
+        });
+    });
 });
